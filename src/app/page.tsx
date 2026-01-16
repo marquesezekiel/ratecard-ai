@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Zap, ArrowRight, DollarSign, Clock, FileText, ChevronRight, TrendingUp, Shield, Star } from "lucide-react";
+import { Sparkles, Zap, ArrowRight, DollarSign, Clock, FileText, TrendingUp, Shield, Star } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -60,9 +60,9 @@ export default function HomePage() {
 
               {/* CTA */}
               <div className="mt-8 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4">
-                <Link href="/sign-up">
+                <Link href="/quote">
                   <Button size="xl" className="w-full sm:w-auto text-lg px-8">
-                    Create Your Rate Card
+                    Get Your Rate — Free
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
@@ -275,9 +275,9 @@ export default function HomePage() {
                   Join creators who stopped underselling and started getting paid what they deserve.
                 </p>
                 <div className="mt-8">
-                  <Link href="/sign-up">
+                  <Link href="/quote">
                     <Button size="xl" variant="secondary" className="bg-white text-primary hover:bg-white/90 text-lg">
-                      Create Your Free Rate Card
+                      Get Your Rate — Free
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </Link>
