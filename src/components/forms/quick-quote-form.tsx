@@ -7,13 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, Zap } from "lucide-react";
+import { Loader2, Zap, Instagram, Youtube, Minus, Plus } from "lucide-react";
 import type { ParsedBrief, CreatorProfile, FitScoreResult, PricingResult, Platform, ContentFormat } from "@/lib/types";
 
 const PLATFORMS = [
-  { value: "instagram", label: "Instagram" },
+  { value: "instagram", label: "Instagram", icon: Instagram },
   { value: "tiktok", label: "TikTok" },
-  { value: "youtube", label: "YouTube" },
+  { value: "youtube", label: "YouTube", icon: Youtube },
   { value: "twitter", label: "Twitter/X" },
 ];
 
@@ -28,11 +28,11 @@ const FORMATS = [
 ];
 
 const USAGE_OPTIONS = [
-  { value: "organic", label: "Organic only (I post it, that's it)", days: 0, exclusivity: "none" as const },
-  { value: "30-day", label: "30-day paid usage", days: 30, exclusivity: "none" as const },
-  { value: "90-day", label: "90-day paid usage", days: 90, exclusivity: "none" as const },
-  { value: "90-day-exclusive", label: "90-day + category exclusivity", days: 90, exclusivity: "category" as const },
-  { value: "perpetual", label: "Unlimited/perpetual usage", days: -1, exclusivity: "none" as const },
+  { value: "organic", label: "Organic only", description: "I post it, that's it", days: 0, exclusivity: "none" as const },
+  { value: "30-day", label: "30-day paid usage", description: "Brand can use in ads", days: 30, exclusivity: "none" as const },
+  { value: "90-day", label: "90-day paid usage", description: "Extended ad rights", days: 90, exclusivity: "none" as const },
+  { value: "90-day-exclusive", label: "90-day + exclusivity", description: "No competitor work", days: 90, exclusivity: "category" as const },
+  { value: "perpetual", label: "Perpetual usage", description: "Forever rights", days: -1, exclusivity: "none" as const },
 ];
 
 interface QuickQuoteFormProps {
@@ -127,40 +127,41 @@ export function QuickQuoteForm({ profile, onQuoteGenerated }: QuickQuoteFormProp
 
   return (
     <form onSubmit={handleSubmit}>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-yellow-500" />
-            Quick Quote
-          </CardTitle>
-          <CardDescription>
-            Get an instant rate without uploading a brief. Perfect for DM inquiries.
-          </CardDescription>
+      <Card className="overflow-hidden">
+        <CardHeader className="bg-gradient-to-br from-primary/5 to-primary/10 border-b border-primary/10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-sm">
+              <Zap className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div>
+              <CardTitle className="text-xl">Quick Quote</CardTitle>
+              <CardDescription>
+                Get a rate in 30 seconds — perfect for DM inquiries
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-6">
           {/* Brand Name (Optional) */}
           <div className="space-y-2">
-            <Label htmlFor="brandName">Brand Name (optional)</Label>
+            <Label htmlFor="brandName">Brand Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
             <Input
               id="brandName"
-              placeholder="e.g., Nike, Glossier"
+              placeholder="e.g., Nike, Glossier, Notion"
               value={brandName}
               onChange={(e) => setBrandName(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">
-              Leave blank if you don&apos;t know yet
-            </p>
           </div>
 
           {/* Platform */}
           <div className="space-y-2">
-            <Label>Platform *</Label>
+            <Label>Platform <span className="text-destructive">*</span></Label>
             <Select value={platform} onValueChange={(val) => {
               setPlatform(val);
               setFormat("");
             }}>
               <SelectTrigger>
-                <SelectValue placeholder="Select platform" />
+                <SelectValue placeholder="Where will you post?" />
               </SelectTrigger>
               <SelectContent>
                 {PLATFORMS.map((p) => (
@@ -174,10 +175,10 @@ export function QuickQuoteForm({ profile, onQuoteGenerated }: QuickQuoteFormProp
 
           {/* Content Format */}
           <div className="space-y-2">
-            <Label>Content Type *</Label>
+            <Label>Content Type <span className="text-destructive">*</span></Label>
             <Select value={format} onValueChange={setFormat} disabled={!platform}>
               <SelectTrigger>
-                <SelectValue placeholder="Select content type" />
+                <SelectValue placeholder={platform ? "What are you creating?" : "Select platform first"} />
               </SelectTrigger>
               <SelectContent>
                 {availableFormats.map((f) => (
@@ -191,25 +192,25 @@ export function QuickQuoteForm({ profile, onQuoteGenerated }: QuickQuoteFormProp
 
           {/* Quantity */}
           <div className="space-y-2">
-            <Label htmlFor="quantity">How many?</Label>
-            <div className="flex items-center gap-2">
+            <Label>How many deliverables?</Label>
+            <div className="flex items-center gap-3">
               <Button
                 type="button"
                 variant="outline"
                 size="icon"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 disabled={quantity <= 1}
+                className="h-11 w-11"
               >
-                -
+                <Minus className="h-4 w-4" />
               </Button>
               <Input
-                id="quantity"
                 type="number"
                 min={1}
                 max={10}
                 value={quantity}
                 onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                className="w-20 text-center"
+                className="w-20 text-center text-lg font-semibold"
               />
               <Button
                 type="button"
@@ -217,11 +218,12 @@ export function QuickQuoteForm({ profile, onQuoteGenerated }: QuickQuoteFormProp
                 size="icon"
                 onClick={() => setQuantity(Math.min(10, quantity + 1))}
                 disabled={quantity >= 10}
+                className="h-11 w-11"
               >
-                +
+                <Plus className="h-4 w-4" />
               </Button>
               <span className="text-sm text-muted-foreground">
-                {format || "deliverables"}
+                {format ? format + (quantity > 1 ? "s" : "") : "deliverable" + (quantity > 1 ? "s" : "")}
               </span>
             </div>
           </div>
@@ -229,38 +231,44 @@ export function QuickQuoteForm({ profile, onQuoteGenerated }: QuickQuoteFormProp
           {/* Usage Rights */}
           <div className="space-y-3">
             <Label>Usage Rights</Label>
-            <RadioGroup value={usageOption} onValueChange={setUsageOption}>
+            <RadioGroup value={usageOption} onValueChange={setUsageOption} className="space-y-2">
               {USAGE_OPTIONS.map((option) => (
-                <div key={option.value} className="flex items-center space-x-2">
+                <label
+                  key={option.value}
+                  htmlFor={option.value}
+                  className={`flex items-center gap-3 rounded-xl border-2 p-4 cursor-pointer transition-all ${
+                    usageOption === option.value
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/30 hover:bg-muted/50"
+                  }`}
+                >
                   <RadioGroupItem value={option.value} id={option.value} />
-                  <Label htmlFor={option.value} className="font-normal cursor-pointer">
-                    {option.label}
-                  </Label>
-                </div>
+                  <div className="flex-1">
+                    <span className="font-medium">{option.label}</span>
+                    <p className="text-xs text-muted-foreground">{option.description}</p>
+                  </div>
+                </label>
               ))}
             </RadioGroup>
-            <p className="text-xs text-muted-foreground">
-              &quot;Paid usage&quot; means the brand can use your content in their ads.
-            </p>
           </div>
 
           {/* Error */}
           {error && (
-            <p className="text-sm text-destructive">
+            <div className="p-4 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl">
               {error}
-            </p>
+            </div>
           )}
 
           {/* Submit */}
-          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+          <Button type="submit" className="w-full" size="xl" disabled={loading}>
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Calculating...
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Calculating your rate...
               </>
             ) : (
               <>
-                <Zap className="mr-2 h-4 w-4" />
+                <Zap className="mr-2 h-5 w-5" />
                 Get My Rate
               </>
             )}

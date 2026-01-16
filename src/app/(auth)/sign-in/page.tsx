@@ -7,14 +7,7 @@ import { signIn } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Sparkles, Loader2, ArrowRight, Zap, TrendingUp, DollarSign } from "lucide-react";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -48,64 +41,148 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            Welcome back
-          </CardTitle>
-          <CardDescription className="text-center">
-            Sign in to your RateCard.AI account
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded-md">
-                {error}
+    <div className="min-h-screen flex">
+      {/* Left Panel - Branding (desktop only) */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary to-primary/90 relative overflow-hidden">
+        {/* Background pattern */}
+        <div className="absolute inset-0 bg-grid opacity-10" />
+
+        <div className="relative flex flex-col justify-between p-12 w-full">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-xl font-bold text-white">RateCard.AI</span>
+          </div>
+
+          {/* Main content */}
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight">
+                Welcome back,
+                <br />
+                creator.
+              </h1>
+              <p className="mt-4 text-lg text-white/70 max-w-md">
+                Your next brand deal is waiting. Let&apos;s make sure you get paid what you&apos;re worth.
+              </p>
+            </div>
+
+            {/* Feature highlights */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 text-white/80">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
+                  <Zap className="h-5 w-5" />
+                </div>
+                <span>30-second rate quotes</span>
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+              <div className="flex items-center gap-4 text-white/80">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <span>Data-backed pricing</span>
+              </div>
+              <div className="flex items-center gap-4 text-white/80">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
+                  <DollarSign className="h-5 w-5" />
+                </div>
+                <span>Professional rate cards</span>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+          </div>
+
+          {/* Footer */}
+          <p className="text-sm text-white/50">
+            Built for creators with 1K-100K followers
+          </p>
+        </div>
+      </div>
+
+      {/* Right Panel - Form */}
+      <div className="flex-1 flex items-center justify-center px-4 py-12 bg-background lg:bg-muted/30">
+        <div className="w-full max-w-md space-y-8">
+          {/* Mobile logo */}
+          <div className="flex flex-col items-center space-y-3 lg:hidden">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg">
+              <Sparkles className="h-7 w-7 text-primary-foreground animate-sparkle" />
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign in"}
-            </Button>
-            <p className="text-sm text-center text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/sign-up"
-                className="font-medium text-primary hover:underline"
-              >
-                Sign up
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
+            <h1 className="text-2xl font-bold tracking-tight">RateCard.AI</h1>
+          </div>
+
+          {/* Form card */}
+          <div className="bg-card rounded-2xl p-8 shadow-xl border-0 lg:shadow-2xl animate-fade-in">
+            <div className="space-y-2 text-center lg:text-left mb-6">
+              <h2 className="text-2xl font-bold">Sign in</h2>
+              <p className="text-muted-foreground">
+                let&apos;s get you paid
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-4 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl animate-fade-in">
+                  {error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  autoComplete="email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  autoComplete="current-password"
+                />
+              </div>
+              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign in
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+          </div>
+
+          {/* Footer */}
+          <p className="text-center text-sm text-muted-foreground">
+            New here?{" "}
+            <Link
+              href="/sign-up"
+              className="font-semibold text-primary hover:text-primary/80 transition-colors"
+            >
+              Create an account
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

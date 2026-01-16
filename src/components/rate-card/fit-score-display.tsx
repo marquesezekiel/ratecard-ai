@@ -4,6 +4,7 @@ import { FitScoreResult, FitLevel } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Target, TrendingUp, TrendingDown, Sparkles } from "lucide-react";
 
 interface FitScoreDisplayProps {
   fitScore: FitScoreResult;
@@ -11,31 +12,35 @@ interface FitScoreDisplayProps {
 
 const FIT_LEVEL_CONFIG: Record<
   FitLevel,
-  { label: string; color: string; bgColor: string; ringColor: string }
+  { label: string; color: string; bgColor: string; ringColor: string; gradient: string }
 > = {
   perfect: {
     label: "Perfect Fit",
     color: "text-emerald-700",
     bgColor: "bg-emerald-100",
     ringColor: "stroke-emerald-500",
+    gradient: "from-emerald-500 to-emerald-600",
   },
   high: {
     label: "High Fit",
     color: "text-blue-700",
     bgColor: "bg-blue-100",
     ringColor: "stroke-blue-500",
+    gradient: "from-blue-500 to-blue-600",
   },
   medium: {
     label: "Medium Fit",
     color: "text-amber-700",
     bgColor: "bg-amber-100",
     ringColor: "stroke-amber-500",
+    gradient: "from-amber-500 to-amber-600",
   },
   low: {
     label: "Low Fit",
     color: "text-red-700",
     bgColor: "bg-red-100",
     ringColor: "stroke-red-500",
+    gradient: "from-red-500 to-red-600",
   },
 };
 
@@ -59,15 +64,20 @@ export function FitScoreDisplay({ fitScore }: FitScoreDisplayProps) {
   const offset = circumference - progress;
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Brand Fit Score</CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+            <Target className="h-5 w-5 text-primary" />
+          </div>
+          <CardTitle className="text-xl">Brand Fit Score</CardTitle>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Circular Score Display */}
         <div className="flex items-center gap-6">
-          <div className="relative h-28 w-28 flex-shrink-0">
-            <svg className="h-28 w-28 -rotate-90" viewBox="0 0 100 100">
+          <div className="relative h-32 w-32 flex-shrink-0">
+            <svg className="h-32 w-32 -rotate-90" viewBox="0 0 100 100">
               {/* Background circle */}
               <circle
                 cx="50"
@@ -75,8 +85,8 @@ export function FitScoreDisplay({ fitScore }: FitScoreDisplayProps) {
                 r={radius}
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="8"
-                className="text-muted/20"
+                strokeWidth="10"
+                className="text-muted/30"
               />
               {/* Progress circle */}
               <circle
@@ -84,63 +94,74 @@ export function FitScoreDisplay({ fitScore }: FitScoreDisplayProps) {
                 cy="50"
                 r={radius}
                 fill="none"
-                strokeWidth="8"
+                strokeWidth="10"
                 strokeLinecap="round"
                 strokeDasharray={circumference}
                 strokeDashoffset={offset}
-                className={config.ringColor}
+                className={`${config.ringColor} transition-all duration-700 ease-out`}
               />
             </svg>
             {/* Score number in center */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-3xl font-bold">{fitScore.totalScore}</span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-4xl font-bold tracking-tight">{fitScore.totalScore}</span>
+              <span className="text-xs text-muted-foreground">out of 100</span>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Badge className={`${config.bgColor} ${config.color} hover:${config.bgColor}`}>
+          <div className="space-y-3">
+            <Badge className={`${config.bgColor} ${config.color} hover:${config.bgColor} text-sm px-3 py-1`}>
+              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
               {config.label}
             </Badge>
-            <p className="text-sm text-muted-foreground">
-              Price adjustment:{" "}
-              <span
-                className={
-                  isPositiveAdjustment ? "text-emerald-600 font-medium" : "text-red-600 font-medium"
-                }
-              >
-                {isPositiveAdjustment ? "+" : ""}
-                {priceAdjustmentPercent}%
+            <div className="flex items-center gap-2">
+              {isPositiveAdjustment ? (
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-red-500" />
+              )}
+              <span className="text-sm text-muted-foreground">
+                Price adjustment:{" "}
+                <span className={`font-semibold ${isPositiveAdjustment ? "text-emerald-600" : "text-red-600"}`}>
+                  {isPositiveAdjustment ? "+" : ""}{priceAdjustmentPercent}%
+                </span>
               </span>
-            </p>
+            </div>
           </div>
         </div>
 
         {/* Component Breakdown */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Score Breakdown</h4>
-          {Object.entries(fitScore.breakdown).map(([key, component]) => (
-            <div key={key} className="space-y-1">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">{COMPONENT_LABELS[key]}</span>
-                <span className="text-muted-foreground">
-                  {component.score}/100 ({Math.round(component.weight * 100)}%)
-                </span>
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Score Breakdown</h4>
+          <div className="space-y-4">
+            {Object.entries(fitScore.breakdown).map(([key, component]) => (
+              <div key={key} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{COMPONENT_LABELS[key]}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {component.score}/100
+                    <span className="text-xs ml-1">({Math.round(component.weight * 100)}%)</span>
+                  </span>
+                </div>
+                <div className="relative">
+                  <Progress value={component.score} className="h-2.5" />
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{component.insight}</p>
               </div>
-              <Progress value={component.score} className="h-2" />
-              <p className="text-xs text-muted-foreground">{component.insight}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Top Insights */}
         {fitScore.insights.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-muted-foreground">Key Insights</h4>
-            <ul className="space-y-1">
+          <div className="space-y-3 pt-2">
+            <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Key Insights</h4>
+            <ul className="space-y-2">
               {fitScore.insights.slice(0, 3).map((insight, index) => (
-                <li key={index} className="flex gap-2 text-sm">
-                  <span className="text-emerald-500">•</span>
-                  <span>{insight}</span>
+                <li key={index} className="flex gap-3 text-sm">
+                  <span className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded-full bg-emerald-100 text-emerald-600 text-xs font-semibold">
+                    {index + 1}
+                  </span>
+                  <span className="text-muted-foreground">{insight}</span>
                 </li>
               ))}
             </ul>

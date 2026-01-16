@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Info, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { ChevronDown, ChevronUp, Info, TrendingUp, TrendingDown, Minus, DollarSign } from "lucide-react";
 import type { PricingResult } from "@/lib/types";
 
 interface PricingBreakdownProps {
@@ -21,15 +20,15 @@ function formatCurrency(amount: number, currencySymbol: string): string {
 }
 
 function getAdjustmentIcon(adjustment: number) {
-  if (adjustment > 0) return <TrendingUp className="h-4 w-4 text-green-500" />;
-  if (adjustment < 0) return <TrendingDown className="h-4 w-4 text-red-500" />;
-  return <Minus className="h-4 w-4 text-gray-400" />;
+  if (adjustment > 0) return <TrendingUp className="h-4 w-4" />;
+  if (adjustment < 0) return <TrendingDown className="h-4 w-4" />;
+  return <Minus className="h-4 w-4" />;
 }
 
-function getAdjustmentColor(adjustment: number) {
-  if (adjustment > 0) return "text-green-600";
-  if (adjustment < 0) return "text-red-600";
-  return "text-gray-500";
+function getAdjustmentStyles(adjustment: number) {
+  if (adjustment > 0) return { text: "text-emerald-600", bg: "bg-emerald-50", icon: "text-emerald-500" };
+  if (adjustment < 0) return { text: "text-red-600", bg: "bg-red-50", icon: "text-red-500" };
+  return { text: "text-muted-foreground", bg: "bg-muted", icon: "text-muted-foreground" };
 }
 
 // Explanations for each pricing layer
@@ -47,56 +46,64 @@ export function PricingBreakdown({ pricing, showDetailedExplanation = true }: Pr
   const [expandedLayer, setExpandedLayer] = useState<string | null>(null);
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">Pricing Breakdown</CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100">
+              <DollarSign className="h-5 w-5 text-emerald-600" />
+            </div>
+            <CardTitle className="text-xl">Pricing Breakdown</CardTitle>
+          </div>
           {showDetailedExplanation && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowExplanation(!showExplanation)}
-              className="text-muted-foreground"
+              className="text-muted-foreground hover:text-foreground"
             >
-              <Info className="h-4 w-4 mr-1" />
-              {showExplanation ? "Hide" : "How we calculated this"}
+              <Info className="h-4 w-4 mr-1.5" />
+              {showExplanation ? "Hide" : "How it works"}
             </Button>
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
         {/* Explanation Panel */}
         {showExplanation && (
-          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-            <h4 className="font-semibold text-sm">How RateCard.AI Calculates Your Rate</h4>
+          <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 space-y-2">
+            <h4 className="font-semibold text-sm text-primary">How RateCard.AI Calculates Your Rate</h4>
             <p className="text-sm text-muted-foreground">
               We use a 6-layer pricing model based on industry benchmarks and real sponsorship data.
               Each factor either increases or decreases your base rate.
             </p>
-            <p className="text-xs font-mono text-muted-foreground bg-background/50 p-2 rounded">
-              Formula: (Base × Engagement) × (1+Format) × (1+Fit) × (1+Rights) × (1+Complexity)
-            </p>
+            <code className="block text-xs text-muted-foreground bg-background/50 p-2.5 rounded-lg font-mono">
+              (Base × Engagement) × (1+Format) × (1+Fit) × (1+Rights) × (1+Complexity)
+            </code>
           </div>
         )}
 
         {/* 6-Layer Breakdown */}
-        <div className="space-y-1">
+        <div className="space-y-2">
           {pricing.layers.map((layer, index) => {
             const adjustmentPercent = Math.round(layer.adjustment * 100);
             const isExpanded = expandedLayer === layer.name;
+            const styles = getAdjustmentStyles(layer.adjustment);
 
             return (
-              <div key={index}>
+              <div key={index} className="rounded-xl border border-border/50 overflow-hidden transition-all duration-200 hover:border-border">
                 <button
-                  className="w-full py-3 flex items-center justify-between hover:bg-muted/50 rounded px-2 -mx-2 transition-colors"
+                  className="w-full p-4 flex items-center justify-between bg-card hover:bg-muted/30 transition-colors"
                   onClick={() => setExpandedLayer(isExpanded ? null : layer.name)}
                 >
-                  <div className="flex items-center gap-2">
-                    {getAdjustmentIcon(layer.adjustment)}
-                    <span className="font-medium text-sm">{layer.name}</span>
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${styles.bg}`}>
+                      <span className={styles.icon}>{getAdjustmentIcon(layer.adjustment)}</span>
+                    </div>
+                    <span className="font-medium">{layer.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-sm font-medium ${getAdjustmentColor(layer.adjustment)}`}>
+                    <span className={`text-sm font-semibold px-2 py-1 rounded-md ${styles.bg} ${styles.text}`}>
                       {adjustmentPercent >= 0 ? "+" : ""}{adjustmentPercent}%
                     </span>
                     {showDetailedExplanation && (
@@ -109,10 +116,10 @@ export function PricingBreakdown({ pricing, showDetailedExplanation = true }: Pr
 
                 {/* Expanded explanation */}
                 {isExpanded && showDetailedExplanation && (
-                  <div className="ml-6 pb-3 pr-2">
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <p>{layer.description}</p>
-                      <p className="text-xs italic">
+                  <div className="px-4 pb-4 pt-0 bg-muted/20">
+                    <div className="pl-11 space-y-1.5">
+                      <p className="text-sm text-foreground">{layer.description}</p>
+                      <p className="text-xs text-muted-foreground italic">
                         {LAYER_EXPLANATIONS[layer.name]}
                       </p>
                     </div>
@@ -123,35 +130,40 @@ export function PricingBreakdown({ pricing, showDetailedExplanation = true }: Pr
           })}
         </div>
 
-        <Separator />
+        {/* Divider */}
+        <div className="h-px bg-border" />
 
-        {/* Per-Deliverable Price */}
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Price per deliverable</span>
-          <span className="font-medium">
-            {formatCurrency(pricing.pricePerDeliverable, pricing.currencySymbol)}
-          </span>
+        {/* Price Summary */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Price per deliverable</span>
+            <span className="font-semibold">
+              {formatCurrency(pricing.pricePerDeliverable, pricing.currencySymbol)}
+            </span>
+          </div>
+
+          {pricing.quantity > 1 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Quantity</span>
+              <span className="font-semibold">×{pricing.quantity}</span>
+            </div>
+          )}
         </div>
 
-        {pricing.quantity > 1 && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Quantity</span>
-            <span className="font-medium">×{pricing.quantity}</span>
-          </div>
-        )}
-
-        <Separator />
-
-        {/* Total */}
-        <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-          <div className="flex items-center justify-between">
+        {/* Total - Hero Section */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground">
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+          
+          <div className="relative flex items-center justify-between">
             <div>
-              <p className="font-semibold">Your Rate</p>
-              <p className="text-2xl font-bold text-primary">
+              <p className="text-sm font-medium opacity-90">Your Rate</p>
+              <p className="text-4xl font-bold tracking-tight mt-1">
                 {formatCurrency(pricing.totalPrice, pricing.currencySymbol)}
               </p>
             </div>
-            <div className="text-right text-sm text-muted-foreground">
+            <div className="text-right text-sm opacity-80">
               <p>{pricing.currency}</p>
               <p>Valid {pricing.validDays} days</p>
             </div>
@@ -159,10 +171,9 @@ export function PricingBreakdown({ pricing, showDetailedExplanation = true }: Pr
         </div>
 
         {/* Confidence note */}
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-xs text-muted-foreground text-center leading-relaxed">
           Based on industry benchmarks for creators in your tier with similar engagement.
-          <br />
-          Your actual rate may vary based on relationship with brand and negotiation.
+          Your actual rate may vary based on your relationship with the brand.
         </p>
       </CardContent>
     </Card>
