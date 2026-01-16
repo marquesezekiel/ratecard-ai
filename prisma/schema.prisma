@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// BETTER AUTH REQUIRED MODELS
+// =============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions  Session[]
+  accounts  Account[]
+  profile   CreatorProfile?
+  briefs    Brief[]
+  rateCards RateCard[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+}
+
+// =============================================================================
+// APP-SPECIFIC MODELS
+// =============================================================================
+
+model CreatorProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  displayName       String
+  handle            String
+  bio               String?
+  location          String?
+  niches            String[]
+  instagram         Json?
+  tiktok            Json?
+  youtube           Json?
+  twitter           Json?
+  audience          Json?
+  tier              String   @default("nano")
+  totalReach        Int      @default(0)
+  avgEngagementRate Float    @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Brief {
+  id               String     @id @default(cuid())
+  userId           String
+  originalFilename String?
+  rawText          String
+  parsedData       Json
+  status           String     @default("parsed")
+  createdAt        DateTime   @default(now())
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rateCards        RateCard[]
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model RateCard {
+  id                  String   @id @default(cuid())
+  userId              String
+  briefId             String?
+  brandName           String
+  campaignName        String?
+  fitScore            Int
+  fitLevel            String
+  fitBreakdown        Json
+  fitInsights         String[]
+  pricePerDeliverable Int
+  quantity            Int      @default(1)
+  totalPrice          Int
+  pricingBreakdown    Json
+  pdfUrl              String?
+  createdAt           DateTime @default(now())
+  expiresAt           DateTime
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brief               Brief?   @relation(fields: [briefId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+}
