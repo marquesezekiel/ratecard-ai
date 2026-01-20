@@ -1,20 +1,42 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { QuickQuoteForm } from "@/components/forms/quick-quote-form";
 import { FitScoreDisplay } from "@/components/rate-card/fit-score-display";
 import { PricingBreakdown } from "@/components/rate-card/pricing-breakdown";
 import { PriceAdjuster } from "@/components/rate-card/price-adjuster";
+import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-sheet";
 import { ShareActions } from "@/components/rate-card/share-actions";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import type { CreatorProfile, ParsedBrief, FitScoreResult, PricingResult } from "@/lib/types";
 
+const emptySubscribe = () => () => {};
+
+function useLocalStorageProfile(): CreatorProfile | null | undefined {
+  // Cache the parsed result to avoid infinite loops
+  const cacheRef = useRef<{ raw: string | null; parsed: CreatorProfile | null }>({ raw: null, parsed: null });
+
+  const getSnapshot = useCallback(() => {
+    const raw = localStorage.getItem("creatorProfile");
+    // Only re-parse if the raw string changed
+    if (raw !== cacheRef.current.raw) {
+      cacheRef.current.raw = raw;
+      cacheRef.current.parsed = raw ? JSON.parse(raw) as CreatorProfile : null;
+    }
+    return cacheRef.current.parsed;
+  }, []);
+
+  // Return undefined on server to indicate "loading" state
+  const getServerSnapshot = useCallback((): CreatorProfile | null | undefined => undefined, []);
+
+  return useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot);
+}
+
 export default function QuickQuotePage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<CreatorProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const profile = useLocalStorageProfile();
   const [result, setResult] = useState<{
     brief: Omit<ParsedBrief, "id">;
     fitScore: FitScoreResult;
@@ -22,15 +44,8 @@ export default function QuickQuotePage() {
   } | null>(null);
   const [adjustedPricing, setAdjustedPricing] = useState<PricingResult | null>(null);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("creatorProfile");
-    if (saved) {
-      setProfile(JSON.parse(saved));
-    }
-    setLoading(false);
-  }, []);
-
-  if (loading) {
+  // undefined means still loading (server render), null means no profile
+  if (profile === undefined) {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -97,6 +112,7 @@ export default function QuickQuotePage() {
             calculatedPricing={result.pricing}
             onPriceChange={setAdjustedPricing}
           />
+          <NegotiationCheatSheet pricing={adjustedPricing || result.pricing} />
         </div>
       )}
 
