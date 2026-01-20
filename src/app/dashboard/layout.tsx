@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, User, LogOut, Sparkles, Zap, Bookmark } from "lucide-react";
+import { Home, User, LogOut, Sparkles, Bookmark } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-// Core navigation items - only standalone features, not flow steps
+// Core navigation - minimal, no redundancy
 const navItems = [
   { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/dashboard/quick-quote", label: "Quick Quote", icon: Zap },
   { href: "/dashboard/rates", label: "My Rates", icon: Bookmark },
   { href: "/dashboard/profile", label: "Profile", icon: User },
 ];
