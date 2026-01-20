@@ -15,7 +15,10 @@ export default function SavedRatesPage() {
         </p>
       </div>
 
-      <SavedRates onAddNew={() => router.push("/dashboard/quick-quote")} />
+      <SavedRates
+        onQuickQuote={() => router.push("/dashboard/quick-quote")}
+        onUploadBrief={() => router.push("/dashboard/upload")}
+      />
     </div>
   );
 }

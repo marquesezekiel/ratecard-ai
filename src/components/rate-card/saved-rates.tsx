@@ -4,7 +4,7 @@ import { useState, useEffect, startTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Check, Plus, Trash2, Bookmark } from "lucide-react";
+import { Copy, Check, Trash2, Bookmark, Zap, FileText } from "lucide-react";
 
 export interface SavedRate {
   id: string;
@@ -17,10 +17,11 @@ export interface SavedRate {
 }
 
 interface SavedRatesProps {
-  onAddNew?: () => void;
+  onQuickQuote?: () => void;
+  onUploadBrief?: () => void;
 }
 
-export function SavedRates({ onAddNew }: SavedRatesProps) {
+export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
   const [rates, setRates] = useState<SavedRate[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -70,12 +71,20 @@ export function SavedRates({ onAddNew }: SavedRatesProps) {
           <p className="text-muted-foreground mb-4">
             No saved rates yet. Generate a quote and save it for quick access.
           </p>
-          {onAddNew && (
-            <Button variant="outline" onClick={onAddNew}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Rate
-            </Button>
-          )}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            {onQuickQuote && (
+              <Button onClick={onQuickQuote}>
+                <Zap className="mr-2 h-4 w-4" />
+                Quick Quote
+              </Button>
+            )}
+            {onUploadBrief && (
+              <Button variant="outline" onClick={onUploadBrief}>
+                <FileText className="mr-2 h-4 w-4" />
+                Upload Brief
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
     );
@@ -91,12 +100,20 @@ export function SavedRates({ onAddNew }: SavedRatesProps) {
             </div>
             <CardTitle>Saved Rates</CardTitle>
           </div>
-          {onAddNew && (
-            <Button variant="ghost" size="sm" onClick={onAddNew}>
-              <Plus className="mr-1 h-4 w-4" />
-              Add
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {onQuickQuote && (
+              <Button variant="ghost" size="sm" onClick={onQuickQuote}>
+                <Zap className="mr-1 h-4 w-4" />
+                Quick Quote
+              </Button>
+            )}
+            {onUploadBrief && (
+              <Button variant="ghost" size="sm" onClick={onUploadBrief}>
+                <FileText className="mr-1 h-4 w-4" />
+                Upload Brief
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
