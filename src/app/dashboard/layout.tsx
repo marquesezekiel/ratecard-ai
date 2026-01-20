@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, User, FileText, History, LogOut, Sparkles, Zap } from "lucide-react";
+import { Home, User, LogOut, Sparkles, Zap, Bookmark } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -17,13 +17,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-// Core navigation items
+// Core navigation items - only standalone features, not flow steps
 const navItems = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/dashboard/quick-quote", label: "Quick Quote", icon: Zap },
+  { href: "/dashboard/rates", label: "My Rates", icon: Bookmark },
   { href: "/dashboard/profile", label: "Profile", icon: User },
-  { href: "/dashboard/generate", label: "Generate", icon: FileText },
-  { href: "/dashboard/history", label: "History", icon: History },
 ];
 
 function getInitials(name: string | undefined | null): string {
@@ -51,8 +50,8 @@ function TopNavLink({
       className={cn(
         "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
         isActive
-          ? "bg-primary text-primary-foreground"
-          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          ? "bg-accent text-foreground font-semibold"
+          : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
       )}
     >
       <Icon className="h-4 w-4" />

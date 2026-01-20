@@ -70,19 +70,22 @@ export default function QuickQuotePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold md:text-3xl">
-            {result ? "Your Quote" : "Quick Quote"}
-          </h1>
+      {/* Header - centered when showing form, left-aligned when showing results */}
+      {!result ? (
+        <div className="text-center">
+          <h1 className="text-2xl font-bold md:text-3xl">Quick Quote</h1>
           <p className="text-muted-foreground mt-1">
-            {result
-              ? `${result.brief.content.quantity}x ${result.brief.content.format} on ${result.brief.content.platform}`
-              : "Get an instant rate without uploading a brief"
-            }
+            Get an instant rate without uploading a brief
           </p>
         </div>
-        {result && profile && (
+      ) : (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold md:text-3xl">Your Quote</h1>
+            <p className="text-muted-foreground mt-1">
+              {result.brief.content.quantity}x {result.brief.content.format} on {result.brief.content.platform}
+            </p>
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => { setResult(null); setAdjustedPricing(null); }}>
               <RefreshCw className="mr-2 h-4 w-4" />
@@ -95,11 +98,11 @@ export default function QuickQuotePage() {
               pricing={adjustedPricing || result.pricing}
             />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {!result ? (
-        <div className="max-w-xl">
+        <div className="max-w-xl mx-auto">
           <QuickQuoteForm profile={profile} onQuoteGenerated={setResult} />
         </div>
       ) : (

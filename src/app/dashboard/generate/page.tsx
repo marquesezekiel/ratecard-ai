@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PriceAdjuster } from "@/components/rate-card/price-adjuster";
+import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-sheet";
 import { ShareActions } from "@/components/rate-card/share-actions";
 import type { CreatorProfile, ParsedBrief, FitScoreResult, PricingResult, ApiResponse } from "@/lib/types";
 
@@ -221,6 +222,9 @@ export default function GeneratePage() {
           calculatedPricing={pricing}
           onPriceChange={setAdjustedPricing}
         />
+
+        {/* Negotiation Scripts */}
+        <NegotiationCheatSheet pricing={adjustedPricing || pricing} />
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3">

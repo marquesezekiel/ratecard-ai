@@ -3273,6 +3273,1267 @@ import { ShareActions } from "@/components/rate-card/share-actions";
 
 ---
 
+# PHASE-5-PROMPT-23F: Dashboard Redesign
+
+**Goal:** Replace cluttered dashboard with decisive, state-aware UI.
+
+**Time Estimate:** 30-40 minutes
+
+**File:** `src/app/dashboard/page.tsx`
+
+---
+
+## Problem
+
+Current dashboard has:
+- 5 competing CTAs
+- Same flow described 3 times
+- Static cards that ignore user state
+- Yellow "warning energy" card
+- Redundant bottom banner
+
+## Solution
+
+Two hero tiles + compact progress row + recent rate cards.
+
+---
+
+## Instructions
+
+### Step 1: Rewrite the Dashboard Page
+
+Replace `src/app/dashboard/page.tsx` with this structure:
+
+```tsx
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useAuth } from "@/hooks/use-auth";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Zap, FileText, CheckCircle2, Circle, ArrowRight, Clock } from "lucide-react";
+import type { CreatorProfile } from "@/lib/types";
+
+export default function DashboardPage() {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<CreatorProfile | null>(null);
+  const [recentRates, setRecentRates] = useState<any[]>([]); // TODO: Type properly
+
+  useEffect(() => {
+    const saved = localStorage.getItem("creatorProfile");
+    if (saved) setProfile(JSON.parse(saved));
+    
+    const savedRates = localStorage.getItem("rateCardHistory");
+    if (savedRates) setRecentRates(JSON.parse(savedRates).slice(0, 3));
+  }, []);
+
+  const firstName = user?.name?.split(" ")[0] || "there";
+  const hasProfile = !!profile;
+  const hasRates = recentRates.length > 0;
+
+  return (
+    <div className="space-y-10">
+      {/* Hero Section */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Welcome back, {firstName}
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Get a defendable rate in minutes.
+        </p>
+      </div>
+
+      {/* Two Decision Tiles */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {/* Quick Quote Tile */}
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5">
+          <CardContent className="p-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 mb-4">
+              <Zap className="h-6 w-6 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">Quick Quote</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              Get a rate in 30 seconds — perfect for DM inquiries.
+            </p>
+            <Link href="/dashboard/quick-quote">
+              <Button className="w-full sm:w-auto">
+                Get My Rate
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Upload Brief Tile */}
+        <Card className="relative overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary mb-4">
+              <FileText className="h-6 w-6 text-secondary-foreground" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">Upload Brief</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              For precise pricing from a brand's campaign brief.
+            </p>
+            <Link href="/dashboard/upload">
+              <Button variant="outline" className="w-full sm:w-auto">
+                Upload Brief
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Compact Progress Row */}
+      <div className="flex items-center justify-center gap-4 py-4">
+        <ProgressStep 
+          label="Profile" 
+          complete={hasProfile} 
+          href="/dashboard/profile"
+        />
+        <ProgressDivider />
+        <ProgressStep 
+          label="Get Quote" 
+          complete={hasRates} 
+          href="/dashboard/quick-quote"
+        />
+        <ProgressDivider />
+        <ProgressStep 
+          label="Share" 
+          complete={false} 
+          href="/dashboard/history"
+        />
+      </div>
+
+      {/* Recent Rate Cards */}
+      {hasRates ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Recent Rate Cards</h2>
+            <Link href="/dashboard/history">
+              <Button variant="ghost" size="sm">
+                View all
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+          <div className="grid gap-3">
+            {recentRates.map((rate, i) => (
+              <Card key={i} className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{rate.brandName || "Quick Quote"}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {rate.platform} · {rate.format}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold">${rate.totalPrice}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {new Date(rate.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <Card className="p-8 text-center border-dashed">
+          <p className="text-muted-foreground">
+            Your rate cards will appear here after you generate them.
+          </p>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function ProgressStep({ 
+  label, 
+  complete, 
+  href 
+}: { 
+  label: string; 
+  complete: boolean; 
+  href: string;
+}) {
+  return (
+    <Link href={href} className="flex items-center gap-2 group">
+      {complete ? (
+        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+      ) : (
+        <Circle className="h-5 w-5 text-muted-foreground/40 group-hover:text-muted-foreground" />
+      )}
+      <span className={`text-sm ${complete ? "text-foreground" : "text-muted-foreground"} group-hover:text-foreground transition-colors`}>
+        {label}
+      </span>
+    </Link>
+  );
+}
+
+function ProgressDivider() {
+  return <div className="h-px w-8 bg-border" />;
+}
+```
+
+---
+
+### Step 2: Update Navigation Active State
+
+**File:** `src/app/dashboard/layout.tsx`
+
+In the `NavLink` component, change the active state from filled pill to subtle indicator:
+
+```tsx
+// Change this:
+isActive
+  ? "bg-primary text-primary-foreground shadow-sm"
+  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+
+// To this:
+isActive
+  ? "bg-accent text-foreground font-semibold"
+  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+```
+
+---
+
+## Validation
+
+- [ ] Dashboard shows only 2 hero tiles
+- [ ] Progress row is compact (not full cards)
+- [ ] No yellow card
+- [ ] No bottom banner
+- [ ] Recent rate cards section appears (or empty state)
+- [ ] Nav active state is subtle, not bright blue pill
+
+---
+
+# PHASE-5-PROMPT-23G: Public Quick Quote (No Auth Required)
+
+**Goal:** Let users generate a rate without signing up. Gate the PDF download.
+
+**Time Estimate:** 45-60 minutes
+
+---
+
+## Problem
+
+Current flow requires signup before users see any value. This kills conversion.
+
+## Solution
+
+1. Create public `/quote` route
+2. Collect minimal profile data inline
+3. Show the rate
+4. Gate PDF download and save with auth prompt
+
+---
+
+## Instructions
+
+### Step 1: Create Public Quote Page
+
+**File:** `src/app/quote/page.tsx`
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Sparkles, Zap, ArrowRight, Loader2, Lock } from "lucide-react";
+import { FitScoreDisplay } from "@/components/rate-card/fit-score-display";
+import { PricingBreakdown } from "@/components/rate-card/pricing-breakdown";
+import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-sheet";
+import type { CreatorProfile, ParsedBrief, FitScoreResult, PricingResult, Platform, ContentFormat } from "@/lib/types";
+
+const PLATFORMS = [
+  { value: "instagram", label: "Instagram" },
+  { value: "tiktok", label: "TikTok" },
+  { value: "youtube", label: "YouTube" },
+  { value: "twitter", label: "Twitter/X" },
+];
+
+const FORMATS = [
+  { value: "static", label: "Static Post", platforms: ["instagram", "twitter"] },
+  { value: "carousel", label: "Carousel", platforms: ["instagram"] },
+  { value: "story", label: "Story", platforms: ["instagram"] },
+  { value: "reel", label: "Reel", platforms: ["instagram"] },
+  { value: "video", label: "Short Video", platforms: ["tiktok", "youtube"] },
+  { value: "ugc", label: "UGC Only", platforms: ["instagram", "tiktok", "youtube"] },
+];
+
+const USAGE_OPTIONS = [
+  { value: "organic", label: "Organic only", days: 0, exclusivity: "none" as const },
+  { value: "30-day", label: "30-day paid usage", days: 30, exclusivity: "none" as const },
+  { value: "90-day", label: "90-day paid usage", days: 90, exclusivity: "none" as const },
+  { value: "perpetual", label: "Perpetual rights", days: -1, exclusivity: "none" as const },
+];
+
+type Step = "profile" | "content" | "result";
+
+export default function PublicQuotePage() {
+  const [step, setStep] = useState<Step>("profile");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Profile fields
+  const [platform, setPlatform] = useState("");
+  const [followers, setFollowers] = useState("");
+  const [engagementRate, setEngagementRate] = useState("");
+
+  // Content fields
+  const [format, setFormat] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [usageOption, setUsageOption] = useState("organic");
+
+  // Results
+  const [result, setResult] = useState<{
+    brief: Omit<ParsedBrief, "id">;
+    fitScore: FitScoreResult;
+    pricing: PricingResult;
+  } | null>(null);
+
+  const availableFormats = FORMATS.filter(f =>
+    f.platforms.includes(platform) || platform === ""
+  );
+
+  const handleProfileSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!platform || !followers || !engagementRate) {
+      setError("Please fill in all fields");
+      return;
+    }
+    setError(null);
+    setStep("content");
+  };
+
+  const handleContentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!format) {
+      setError("Please select content type");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Build synthetic profile
+      const profile: CreatorProfile = {
+        id: "temp",
+        userId: "temp",
+        displayName: "Creator",
+        handle: "creator",
+        bio: "",
+        location: "United States",
+        niches: ["lifestyle"],
+        [platform]: {
+          followers: parseInt(followers),
+          engagementRate: parseFloat(engagementRate),
+          avgLikes: Math.round(parseInt(followers) * parseFloat(engagementRate) / 100),
+          avgComments: Math.round(parseInt(followers) * parseFloat(engagementRate) / 100 * 0.1),
+          avgViews: parseInt(followers) * 2,
+        },
+        audience: {
+          ageRange: "18-34",
+          genderSplit: { male: 40, female: 55, other: 5 },
+          topLocations: ["United States"],
+          interests: ["lifestyle"],
+        },
+        tier: parseInt(followers) < 10000 ? "nano" : parseInt(followers) < 50000 ? "micro" : parseInt(followers) < 500000 ? "mid" : "macro",
+        totalReach: parseInt(followers),
+        avgEngagementRate: parseFloat(engagementRate),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const selectedUsage = USAGE_OPTIONS.find(u => u.value === usageOption)!;
+
+      const syntheticBrief: Omit<ParsedBrief, "id"> = {
+        brand: { name: "Brand", industry: "lifestyle", product: "Product" },
+        campaign: { objective: "Brand awareness", targetAudience: "General", budgetRange: "Not specified" },
+        content: {
+          platform: platform as Platform,
+          format: format as ContentFormat,
+          quantity,
+          creativeDirection: "Creator's discretion",
+        },
+        usageRights: {
+          durationDays: selectedUsage.days,
+          exclusivity: selectedUsage.exclusivity,
+          paidAmplification: selectedUsage.days > 0,
+        },
+        timeline: { deadline: "Flexible" },
+        rawText: `Quick quote for ${quantity}x ${format} on ${platform}`,
+      };
+
+      const response = await fetch("/api/calculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile, brief: syntheticBrief }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Calculation failed");
+      }
+
+      setResult({
+        brief: syntheticBrief,
+        fitScore: data.data.fitScore,
+        pricing: data.data.pricing,
+      });
+      setStep("result");
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border/40">
+        <div className="mx-auto max-w-4xl px-4 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <span className="font-bold">RateCard.AI</span>
+          </Link>
+          <Link href="/sign-in">
+            <Button variant="ghost" size="sm">Sign in</Button>
+          </Link>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-4xl px-4 py-8 md:py-12">
+        {step === "profile" && (
+          <div className="max-w-md mx-auto">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold tracking-tight">Know your worth</h1>
+              <p className="text-muted-foreground mt-2">
+                Get a data-backed rate in 60 seconds. No signup required.
+              </p>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  Your Stats
+                </CardTitle>
+                <CardDescription>
+                  We need a few numbers to calculate your rate.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleProfileSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Primary Platform</Label>
+                    <Select value={platform} onValueChange={setPlatform}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Where do you create?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PLATFORMS.map((p) => (
+                          <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Follower Count</Label>
+                    <Input
+                      type="number"
+                      placeholder="e.g., 15000"
+                      value={followers}
+                      onChange={(e) => setFollowers(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Engagement Rate (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      placeholder="e.g., 4.2"
+                      value={engagementRate}
+                      onChange={(e) => setEngagementRate(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      (Likes + Comments) ÷ Followers × 100
+                    </p>
+                  </div>
+
+                  {error && (
+                    <p className="text-sm text-destructive">{error}</p>
+                  )}
+
+                  <Button type="submit" className="w-full">
+                    Continue
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {step === "content" && (
+          <div className="max-w-md mx-auto">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold tracking-tight">What are you creating?</h1>
+              <p className="text-muted-foreground mt-2">
+                Tell us about the deliverable.
+              </p>
+            </div>
+
+            <Card>
+              <CardContent className="pt-6">
+                <form onSubmit={handleContentSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Content Type</Label>
+                    <Select value={format} onValueChange={setFormat}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="What are you creating?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableFormats.map((f) => (
+                          <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Quantity</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={10}
+                      value={quantity}
+                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Usage Rights</Label>
+                    <RadioGroup value={usageOption} onValueChange={setUsageOption} className="space-y-2">
+                      {USAGE_OPTIONS.map((option) => (
+                        <label
+                          key={option.value}
+                          htmlFor={option.value}
+                          className={`flex items-center gap-3 rounded-xl border-2 p-3 cursor-pointer transition-all ${
+                            usageOption === option.value
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-primary/30"
+                          }`}
+                        >
+                          <RadioGroupItem value={option.value} id={option.value} />
+                          <span className="font-medium text-sm">{option.label}</span>
+                        </label>
+                      ))}
+                    </RadioGroup>
+                  </div>
+
+                  {error && (
+                    <p className="text-sm text-destructive">{error}</p>
+                  )}
+
+                  <div className="flex gap-3">
+                    <Button type="button" variant="outline" onClick={() => setStep("profile")}>
+                      Back
+                    </Button>
+                    <Button type="submit" className="flex-1" disabled={loading}>
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Calculating...
+                        </>
+                      ) : (
+                        <>
+                          Get My Rate
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {step === "result" && result && (
+          <div className="space-y-8">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold tracking-tight">Your Rate</h1>
+              <p className="text-muted-foreground mt-2">
+                {result.brief.content.quantity}x {result.brief.content.format} on {result.brief.content.platform}
+              </p>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <FitScoreDisplay fitScore={result.fitScore} />
+              <PricingBreakdown pricing={result.pricing} />
+            </div>
+
+            {/* Negotiation Cheat Sheet */}
+            <NegotiationCheatSheet pricing={result.pricing} />
+
+            {/* Gated Actions */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                    <Lock className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">Save your rate card</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Create a free account to download the PDF, save to history, and access your rates anytime.
+                    </p>
+                    <div className="flex gap-3 mt-4">
+                      <Link href="/sign-up">
+                        <Button>
+                          Create Free Account
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <Button variant="outline" onClick={() => setStep("profile")}>
+                        Start Over
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+```
+
+---
+
+### Step 2: Update Landing Page CTA
+
+**File:** `src/app/page.tsx`
+
+Change the primary hero CTA from `/sign-up` to `/quote`:
+
+```tsx
+<Link href="/quote">
+  <Button size="xl" className="w-full sm:w-auto">
+    Get Your Rate — Free
+    <ArrowRight className="ml-2 h-5 w-5" />
+  </Button>
+</Link>
+```
+
+---
+
+## Validation
+
+- [ ] `/quote` loads without auth
+- [ ] Three-step flow works (stats → content → result)
+- [ ] Rate displays correctly
+- [ ] PDF download is gated behind signup prompt
+- [ ] "Create Free Account" links to `/sign-up`
+
+---
+
+# PHASE-5-PROMPT-23H: Negotiation Cheat Sheet
+
+**Goal:** After generating a rate, show creators exactly what to say when brands push back.
+
+**Time Estimate:** 30-40 minutes
+
+---
+
+## Problem
+
+Creators get the rate but still fold when brands negotiate. The rate card doesn't help them defend it.
+
+## Solution
+
+Dynamic negotiation scripts generated based on their specific rate card.
+
+---
+
+## Instructions
+
+### Step 1: Create NegotiationCheatSheet Component
+
+**File:** `src/components/rate-card/negotiation-cheat-sheet.tsx`
+
+```tsx
+"use client";
+
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { MessageSquare, Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
+import type { PricingResult } from "@/lib/types";
+
+interface NegotiationCheatSheetProps {
+  pricing: PricingResult;
+}
+
+interface Script {
+  objection: string;
+  response: string;
+}
+
+function generateScripts(pricing: PricingResult): Script[] {
+  const rate = pricing.totalPrice;
+  const perDeliverable = pricing.pricePerDeliverable;
+  const quantity = pricing.quantity;
+  
+  // Find key value drivers from layers
+  const usageLayer = pricing.layers.find(l => l.name === "Usage Rights");
+  const engagementLayer = pricing.layers.find(l => l.name === "Engagement Multiplier");
+  const hasUsageRights = usageLayer && usageLayer.adjustment > 0;
+  const hasStrongEngagement = engagementLayer && engagementLayer.adjustment > 0;
+
+  return [
+    {
+      objection: `"That's above our budget. Can you do it for $${Math.round(rate * 0.4)}?"`,
+      response: `I appreciate you sharing your budget! For $${Math.round(rate * 0.4)}, I could offer [organic posting only / 1 deliverable instead of ${quantity} / story-only coverage]. My full rate of $${rate} reflects ${hasUsageRights ? "the usage rights included" : "the production quality and reach"}. Would a smaller package work for this campaign?`,
+    },
+    {
+      objection: `"Other creators are charging less for the same thing."`,
+      response: `I price based on my specific metrics — ${hasStrongEngagement ? "my engagement rate is above platform average, which means your content will actually be seen and acted on" : "my audience demographics and content quality"}. I'm happy to walk you through the breakdown so you can see exactly what you're paying for. Sometimes lower rates mean lower reach or engagement.`,
+    },
+    {
+      objection: `"Can you do it for exposure/product only?"`,
+      response: `I'd love to work together! I offer paid collaborations starting at $${perDeliverable}. I do accept gifted partnerships selectively — typically for brands I already use and love. Would you like to discuss a paid package, or tell me more about the product?`,
+    },
+    {
+      objection: `"We need exclusivity but can't pay more."`,
+      response: `Exclusivity means I'd turn down other brands in your category during that period, which is a real cost for me. My rate of $${rate} ${hasUsageRights ? "already includes usage rights" : "is for organic posting only"}. For exclusivity, I'd need to add ${Math.round(rate * 0.25)}-${Math.round(rate * 0.5)} depending on the duration. What exclusivity period did you have in mind?`,
+    },
+    {
+      objection: `"We'll have more campaigns later — can you give us a discount now?"`,
+      response: `I'd be excited about an ongoing partnership! I offer package rates for multi-campaign commitments — typically 10-15% off when we agree to 3+ collaborations upfront. For this first campaign at $${rate}, I'd love to prove the ROI and then discuss a longer-term rate.`,
+    },
+  ];
+}
+
+export function NegotiationCheatSheet({ pricing }: NegotiationCheatSheetProps) {
+  const [expanded, setExpanded] = useState(true);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const scripts = generateScripts(pricing);
+
+  const copyToClipboard = async (text: string, index: number) => {
+    await navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center justify-between w-full"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100">
+              <MessageSquare className="h-5 w-5 text-amber-600" />
+            </div>
+            <div className="text-left">
+              <CardTitle className="text-xl">Negotiation Cheat Sheet</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                What to say when they push back
+              </p>
+            </div>
+          </div>
+          {expanded ? (
+            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+          )}
+        </button>
+      </CardHeader>
+
+      {expanded && (
+        <CardContent className="space-y-4">
+          {scripts.map((script, index) => (
+            <div
+              key={index}
+              className="rounded-xl border border-border/50 overflow-hidden"
+            >
+              {/* Objection */}
+              <div className="bg-muted/50 px-4 py-3">
+                <p className="text-sm font-medium text-muted-foreground">
+                  They say:
+                </p>
+                <p className="font-medium mt-1">{script.objection}</p>
+              </div>
+
+              {/* Response */}
+              <div className="px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-emerald-600 mb-1">
+                      You say:
+                    </p>
+                    <p className="text-sm leading-relaxed">{script.response}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="flex-shrink-0"
+                    onClick={() => copyToClipboard(script.response, index)}
+                  >
+                    {copiedIndex === index ? (
+                      <Check className="h-4 w-4 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          <p className="text-xs text-muted-foreground text-center pt-2">
+            💡 Tip: Always be friendly and flexible on scope, firm on your base rate.
+          </p>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+```
+
+---
+
+### Step 2: Add to Quick Quote Results
+
+**File:** `src/app/dashboard/quick-quote/page.tsx`
+
+Import and add the component after the pricing breakdown:
+
+```tsx
+import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-sheet";
+
+// In the results section, after PriceAdjuster:
+<NegotiationCheatSheet pricing={adjustedPricing || result.pricing} />
+```
+
+---
+
+### Step 3: Add to Generate Results
+
+**File:** `src/app/dashboard/generate/page.tsx`
+
+Same import and placement after pricing results are shown.
+
+---
+
+## Validation
+
+- [ ] Cheat sheet appears after rate generation
+- [ ] Scripts reference actual numbers from the rate card
+- [ ] Copy button works
+- [ ] Collapsible toggle works
+- [ ] Mobile layout is readable
+
+---
+
+# PHASE-5-PROMPT-23I: Saved Rates (One-Tap Lookup)
+
+**Goal:** Let creators save rates as presets for instant lookup during DM conversations.
+
+**Time Estimate:** 45-60 minutes
+
+---
+
+## Problem
+
+Creators need to reference their rates constantly. Regenerating every time is friction that kills repeat usage.
+
+## Solution
+
+Save rates as presets. One-tap copy to clipboard.
+
+---
+
+## Instructions
+
+### Step 1: Create SavedRates Component
+
+**File:** `src/components/rate-card/saved-rates.tsx`
+
+```tsx
+"use client";
+
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Copy, Check, Plus, Trash2, Bookmark } from "lucide-react";
+
+export interface SavedRate {
+  id: string;
+  name: string;
+  platform: string;
+  format: string;
+  usageRights: string;
+  price: number;
+  createdAt: string;
+}
+
+interface SavedRatesProps {
+  onAddNew?: () => void;
+}
+
+export function SavedRates({ onAddNew }: SavedRatesProps) {
+  const [rates, setRates] = useState<SavedRate[]>([]);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("savedRates");
+    if (saved) {
+      setRates(JSON.parse(saved));
+    }
+  }, []);
+
+  const saveRates = (newRates: SavedRate[]) => {
+    setRates(newRates);
+    localStorage.setItem("savedRates", JSON.stringify(newRates));
+  };
+
+  const copyRate = async (rate: SavedRate) => {
+    const text = `$${rate.price} for ${rate.format} on ${rate.platform} (${rate.usageRights})`;
+    await navigator.clipboard.writeText(text);
+    setCopiedId(rate.id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const deleteRate = (id: string) => {
+    saveRates(rates.filter(r => r.id !== id));
+  };
+
+  const startEditing = (rate: SavedRate) => {
+    setEditingId(rate.id);
+    setEditName(rate.name);
+  };
+
+  const saveEdit = (id: string) => {
+    saveRates(rates.map(r => r.id === id ? { ...r, name: editName } : r));
+    setEditingId(null);
+    setEditName("");
+  };
+
+  if (rates.length === 0) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="py-8 text-center">
+          <Bookmark className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
+          <p className="text-muted-foreground mb-4">
+            No saved rates yet. Generate a quote and save it for quick access.
+          </p>
+          {onAddNew && (
+            <Button variant="outline" onClick={onAddNew}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Rate
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+              <Bookmark className="h-5 w-5 text-primary" />
+            </div>
+            <CardTitle>Saved Rates</CardTitle>
+          </div>
+          {onAddNew && (
+            <Button variant="ghost" size="sm" onClick={onAddNew}>
+              <Plus className="mr-1 h-4 w-4" />
+              Add
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {rates.map((rate) => (
+          <div
+            key={rate.id}
+            className="flex items-center justify-between rounded-xl border border-border/50 p-3 hover:bg-muted/30 transition-colors"
+          >
+            <div className="flex-1 min-w-0">
+              {editingId === rate.id ? (
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onBlur={() => saveEdit(rate.id)}
+                  onKeyDown={(e) => e.key === "Enter" && saveEdit(rate.id)}
+                  className="h-8"
+                  autoFocus
+                />
+              ) : (
+                <button
+                  onClick={() => startEditing(rate)}
+                  className="font-medium text-left hover:text-primary transition-colors"
+                >
+                  {rate.name}
+                </button>
+              )}
+              <p className="text-xs text-muted-foreground truncate">
+                {rate.platform} · {rate.format} · {rate.usageRights}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 ml-4">
+              <span className="text-lg font-bold">${rate.price}</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => copyRate(rate)}
+              >
+                {copiedId === rate.id ? (
+                  <Check className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                onClick={() => deleteRate(rate.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Helper function to save a new rate (call this from results pages)
+export function saveRate(rate: Omit<SavedRate, "id" | "createdAt">) {
+  const saved = localStorage.getItem("savedRates");
+  const rates: SavedRate[] = saved ? JSON.parse(saved) : [];
+  
+  const newRate: SavedRate = {
+    ...rate,
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+  };
+  
+  rates.unshift(newRate);
+  localStorage.setItem("savedRates", JSON.stringify(rates.slice(0, 20))); // Keep max 20
+  
+  return newRate;
+}
+```
+
+---
+
+### Step 2: Add "Save Rate" Button to Results
+
+**File:** `src/components/rate-card/share-actions.tsx`
+
+Add a save button alongside share options:
+
+```tsx
+import { saveRate } from "./saved-rates";
+import { Bookmark, Check } from "lucide-react";
+
+// In the ShareActions component, add state:
+const [saved, setSaved] = useState(false);
+
+// Add save handler:
+const handleSave = () => {
+  saveRate({
+    name: `${brief.content.format} on ${brief.content.platform}`,
+    platform: brief.content.platform,
+    format: brief.content.format,
+    usageRights: brief.usageRights.durationDays > 0 
+      ? `${brief.usageRights.durationDays}-day usage` 
+      : "Organic only",
+    price: pricing.totalPrice,
+  });
+  setSaved(true);
+};
+
+// Add button in the actions row:
+<Button
+  variant="outline"
+  size="sm"
+  onClick={handleSave}
+  disabled={saved}
+>
+  {saved ? (
+    <>
+      <Check className="mr-2 h-4 w-4" />
+      Saved
+    </>
+  ) : (
+    <>
+      <Bookmark className="mr-2 h-4 w-4" />
+      Save Rate
+    </>
+  )}
+</Button>
+```
+
+---
+
+### Step 3: Add SavedRates to Dashboard
+
+**File:** `src/app/dashboard/page.tsx`
+
+Import and add below recent rate cards:
+
+```tsx
+import { SavedRates } from "@/components/rate-card/saved-rates";
+
+// After the Recent Rate Cards section:
+<div className="space-y-4">
+  <h2 className="text-lg font-semibold">Quick Reference</h2>
+  <SavedRates onAddNew={() => router.push("/dashboard/quick-quote")} />
+</div>
+```
+
+---
+
+### Step 4: Create Dedicated Saved Rates Page
+
+**File:** `src/app/dashboard/rates/page.tsx`
+
+```tsx
+"use client";
+
+import { useRouter } from "next/navigation";
+import { SavedRates } from "@/components/rate-card/saved-rates";
+
+export default function SavedRatesPage() {
+  const router = useRouter();
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Your Rates</h1>
+        <p className="text-muted-foreground mt-1">
+          Quick reference for DM conversations.
+        </p>
+      </div>
+
+      <SavedRates onAddNew={() => router.push("/dashboard/quick-quote")} />
+    </div>
+  );
+}
+```
+
+---
+
+### Step 5: Add to Navigation
+
+**File:** `src/app/dashboard/layout.tsx`
+
+Add to `navItems`:
+
+```tsx
+{ href: "/dashboard/rates", label: "My Rates", icon: Bookmark },
+```
+
+---
+
+## Validation
+
+- [ ] Save button appears on rate card results
+- [ ] Saved rates appear on dashboard
+- [ ] One-tap copy works
+- [ ] Can delete saved rates
+- [ ] Can rename saved rates
+- [ ] `/dashboard/rates` page works
+- [ ] Nav link appears
+
+---
+
+# Quick Reference: Commands
+
+```bash
+# Dashboard Redesign
+claude "Implement PHASE-5-PROMPT-23F from IMPLEMENTATION_PLAN.md"
+
+# Public Quick Quote
+claude "Implement PHASE-5-PROMPT-23G from IMPLEMENTATION_PLAN.md"
+
+# Negotiation Cheat Sheet
+claude "Implement PHASE-5-PROMPT-23H from IMPLEMENTATION_PLAN.md"
+
+# Saved Rates
+claude "Implement PHASE-5-PROMPT-23I from IMPLEMENTATION_PLAN.md"
+```
+
+---
+
+# Execution Order
+
+| Order | Prompt | Why |
+|-------|--------|-----|
+| 1st | 23F (Dashboard) | Cleans up the home base |
+| 2nd | 23H (Negotiation) | High value, small scope |
+| 3rd | 23I (Saved Rates) | Retention driver |
+| 4th | 23G (Public Quote) | Requires negotiation sheet to be built |
+
+---
+
+# After All Prompts Complete
+
+Run validation:
+```bash
+pnpm lint
+pnpm build
+```
+
+Test the full flow:
+1. Visit `/quote` (no auth)
+2. Generate rate
+3. See negotiation scripts
+4. Sign up
+5. Save rate
+6. View on dashboard
+7. One-tap copy
+
+---
+
 # PHASE 6: Landing Page & Deployment (1 hour)
 
 ## PHASE-6-PROMPT-24: Landing Page
