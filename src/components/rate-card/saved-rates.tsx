@@ -93,7 +93,7 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
               <Bookmark className="h-5 w-5 text-primary" />
@@ -102,15 +102,17 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
           </div>
           <div className="flex gap-2">
             {onQuickQuote && (
-              <Button variant="ghost" size="sm" onClick={onQuickQuote}>
+              <Button variant="ghost" size="sm" onClick={onQuickQuote} className="h-10 sm:h-9">
                 <Zap className="mr-1 h-4 w-4" />
-                Quick Quote
+                <span className="hidden sm:inline">Quick Quote</span>
+                <span className="sm:hidden">Quote</span>
               </Button>
             )}
             {onUploadBrief && (
-              <Button variant="ghost" size="sm" onClick={onUploadBrief}>
+              <Button variant="ghost" size="sm" onClick={onUploadBrief} className="h-10 sm:h-9">
                 <FileText className="mr-1 h-4 w-4" />
-                Upload Brief
+                <span className="hidden sm:inline">Upload Brief</span>
+                <span className="sm:hidden">Upload</span>
               </Button>
             )}
           </div>
@@ -145,12 +147,12 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 ml-4">
-              <span className="text-lg font-bold">${rate.price}</span>
+            <div className="flex items-center gap-1 sm:gap-2 ml-2 sm:ml-4">
+              <span className="text-base sm:text-lg font-bold">${rate.price}</span>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-11 w-11 sm:h-9 sm:w-9"
                 onClick={() => copyRate(rate)}
               >
                 {copiedId === rate.id ? (
@@ -162,7 +164,7 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                className="h-11 w-11 sm:h-9 sm:w-9 text-muted-foreground hover:text-destructive"
                 onClick={() => deleteRate(rate.id)}
               >
                 <Trash2 className="h-4 w-4" />

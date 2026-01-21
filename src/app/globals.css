@@ -354,4 +354,21 @@
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  /* Hide scrollbar while maintaining scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
+  /* Touch action utilities for better mobile interaction */
+  .touch-pan-x {
+    touch-action: pan-x;
+  }
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
 }

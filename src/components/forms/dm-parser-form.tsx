@@ -255,7 +255,7 @@ export function DMParserForm({ profile, onAnalysisComplete, onEvaluateGift }: DM
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm text-purple-700">Content Expected</Label>
                     <p className="mt-1 font-medium capitalize">{analysis.giftAnalysis.contentExpectation}</p>
@@ -285,7 +285,7 @@ export function DMParserForm({ profile, onAnalysisComplete, onEvaluateGift }: DM
           )}
 
           {/* Flags */}
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Red Flags */}
             {analysis.redFlags.length > 0 && (
               <Card className="border-red-200">
