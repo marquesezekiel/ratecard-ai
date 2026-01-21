@@ -15,6 +15,8 @@ import type {
   ContentFormat,
   FitScoreResult,
   FitLevel,
+  DealQualityResult,
+  DealQualityLevel,
   PricingResult,
   PricingLayer,
   ExclusivityLevel,
@@ -39,6 +41,41 @@ import type {
   AmbassadorPerksBreakdown,
 } from "./types";
 import { CURRENCIES } from "./types";
+
+// =============================================================================
+// SCORE INPUT TYPE (Accepts both FitScore and DealQuality)
+// =============================================================================
+
+/**
+ * Union type that accepts either the legacy FitScoreResult or new DealQualityResult.
+ * This allows the pricing engine to work with both systems during transition.
+ */
+export type ScoreInput = FitScoreResult | DealQualityResult;
+
+/**
+ * Type guard to check if a score input is the new DealQualityResult.
+ */
+function isDealQualityResult(score: ScoreInput): score is DealQualityResult {
+  return "qualityLevel" in score && "recommendation" in score;
+}
+
+/**
+ * Get the appropriate fit level from either score type.
+ * Maps DealQualityLevel to FitLevel for pricing calculations.
+ */
+function getFitLevelFromScore(score: ScoreInput): FitLevel {
+  if (isDealQualityResult(score)) {
+    // Map DealQualityLevel to FitLevel
+    const levelMap: Record<DealQualityLevel, FitLevel> = {
+      excellent: "perfect",
+      good: "high",
+      fair: "medium",
+      caution: "low",
+    };
+    return levelMap[score.qualityLevel];
+  }
+  return score.fitLevel;
+}
 
 // =============================================================================
 // LAYER 1: BASE RATES BY TIER
@@ -1535,13 +1572,13 @@ export function calculateUGCPrice(
  *
  * @param profile - Creator's profile with platform metrics
  * @param brief - Parsed brand brief with campaign requirements
- * @param fitScore - Calculated fit score result
+ * @param score - Either FitScoreResult (legacy) or DealQualityResult (new)
  * @returns Complete pricing result with layer-by-layer breakdown
  */
 export function calculatePrice(
   profile: CreatorProfile,
   brief: ParsedBrief,
-  fitScore: FitScoreResult
+  score: ScoreInput
 ): PricingResult {
   // Route to UGC pricing if deal type is "ugc"
   if (brief.dealType === "ugc") {
@@ -1555,7 +1592,7 @@ export function calculatePrice(
 
   // For hybrid and performance models, we need to calculate the base flat fee first,
   // then wrap with the respective model. Calculate standard pricing and then enhance.
-  const basePricingResult = calculateStandardSponsoredPrice(profile, brief, fitScore);
+  const basePricingResult = calculateStandardSponsoredPrice(profile, brief, score);
 
   // Route to hybrid pricing (50% base + affiliate)
   if (brief.pricingModel === "hybrid" && brief.affiliateConfig) {
@@ -1582,11 +1619,15 @@ export function calculatePrice(
 /**
  * Calculate standard sponsored content pricing (flat fee model).
  * This is the core 11-layer pricing engine used for flat fee and as the base for hybrid/performance.
+ *
+ * @param profile - Creator's profile
+ * @param brief - Parsed brand brief
+ * @param score - Either FitScoreResult (legacy) or DealQualityResult (new)
  */
 function calculateStandardSponsoredPrice(
   profile: CreatorProfile,
   brief: ParsedBrief,
-  fitScore: FitScoreResult
+  score: ScoreInput
 ): PricingResult {
   // Standard sponsored content pricing
   const layers: PricingLayer[] = [];
@@ -1692,15 +1733,23 @@ function calculateStandardSponsoredPrice(
   currentPrice *= 1 + formatPremiumValue;
 
   // -------------------------------------------------------------------------
-  // Layer 4: Fit Score Adjustment
+  // Layer 4: Deal Quality / Fit Score Adjustment
   // -------------------------------------------------------------------------
-  const fitLevel = fitScore.fitLevel;
+  const fitLevel = getFitLevelFromScore(score);
   const fitAdjustment = FIT_ADJUSTMENTS[fitLevel];
 
+  // Determine the label based on score type
+  const isNewScore = isDealQualityResult(score);
+  const scoreLabel = isNewScore ? "Deal Quality" : "Fit Score";
+  const levelLabel = isNewScore
+    ? (score as DealQualityResult).qualityLevel.charAt(0).toUpperCase() +
+      (score as DealQualityResult).qualityLevel.slice(1)
+    : fitLevel.charAt(0).toUpperCase() + fitLevel.slice(1);
+
   layers.push({
-    name: "Fit Score",
-    description: `${fitScore.totalScore}/100 - ${fitLevel.charAt(0).toUpperCase() + fitLevel.slice(1)} alignment`,
-    baseValue: `${fitScore.totalScore}/100`,
+    name: scoreLabel,
+    description: `${score.totalScore}/100 - ${levelLabel} ${isNewScore ? "opportunity" : "alignment"}`,
+    baseValue: `${score.totalScore}/100`,
     multiplier: 1 + fitAdjustment,
     adjustment: currentPrice * fitAdjustment,
   });

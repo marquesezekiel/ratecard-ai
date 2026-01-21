@@ -1,22 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { calculateFitScore } from "@/lib/fit-score";
+import { calculateDealQualityWithCompat } from "@/lib/deal-quality-score";
 import { calculatePrice } from "@/lib/pricing-engine";
-import type { ApiResponse, CreatorProfile, ParsedBrief, FitScoreResult, PricingResult } from "@/lib/types";
+import type {
+  ApiResponse,
+  CreatorProfile,
+  ParsedBrief,
+  FitScoreResult,
+  DealQualityResult,
+  DealQualityInput,
+  PricingResult,
+} from "@/lib/types";
 
 interface CalculationResult {
+  /** @deprecated Use dealQuality instead */
   fitScore: FitScoreResult;
+  /** New creator-centric deal quality score */
+  dealQuality: DealQualityResult;
   pricing: PricingResult;
 }
 
 /**
  * POST /api/public-calculate
  *
- * Public endpoint for calculating fit score and pricing.
+ * Public endpoint for calculating deal quality score and pricing.
  * No authentication required - used by the public /quote page.
  * Does not save to database.
  *
- * Accepts: application/json with { profile: CreatorProfile, brief: ParsedBrief }
- * Returns: ApiResponse<CalculationResult> with both fitScore and pricing
+ * Accepts: application/json with { profile: CreatorProfile, brief: ParsedBrief, dealQualityInput?: DealQualityInput }
+ * Returns: ApiResponse<CalculationResult> with dealQuality, fitScore (deprecated), and pricing
  */
 export async function POST(
   request: NextRequest
@@ -24,9 +35,10 @@ export async function POST(
   try {
     // Parse JSON body
     const body = await request.json();
-    const { profile, brief } = body as {
+    const { profile, brief, dealQualityInput } = body as {
       profile: CreatorProfile | undefined;
       brief: ParsedBrief | undefined;
+      dealQualityInput?: DealQualityInput;
     };
 
     // Validate required inputs
@@ -44,16 +56,21 @@ export async function POST(
       );
     }
 
-    // Calculate fit score (must run first - pricing depends on it)
-    const fitScore = calculateFitScore(profile, brief);
+    // Calculate deal quality score (returns both new and legacy formats)
+    const { dealQuality, fitScore } = calculateDealQualityWithCompat(
+      profile,
+      brief,
+      dealQualityInput || {}
+    );
 
-    // Calculate pricing using fit score result
-    const pricing = calculatePrice(profile, brief, fitScore);
+    // Calculate pricing using the new deal quality score
+    const pricing = calculatePrice(profile, brief, dealQuality);
 
     return NextResponse.json({
       success: true,
       data: {
-        fitScore,
+        fitScore, // Deprecated - for backward compatibility
+        dealQuality, // New creator-centric score
         pricing,
       },
     });

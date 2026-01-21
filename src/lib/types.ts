@@ -464,17 +464,19 @@ export interface ParsedBrief {
 }
 
 // =============================================================================
-// FIT SCORE TYPES
+// FIT SCORE TYPES (DEPRECATED - Use Deal Quality Score)
 // =============================================================================
 
 /**
  * Fit level category based on total score.
  * Determines the price adjustment in Layer 4.
+ * @deprecated Use DealQualityLevel instead
  */
 export type FitLevel = "perfect" | "high" | "medium" | "low";
 
 /**
  * Individual component score within the fit score breakdown.
+ * @deprecated Use DealQualityComponent instead
  */
 export interface FitScoreComponent {
   /** Raw score for this component (0-100) */
@@ -488,6 +490,7 @@ export interface FitScoreComponent {
 /**
  * Complete fit score calculation result.
  * Measures creator-brand compatibility across 5 weighted dimensions.
+ * @deprecated Use DealQualityResult instead
  */
 export interface FitScoreResult {
   /** Final weighted score (0-100) */
@@ -511,6 +514,128 @@ export interface FitScoreResult {
   };
   /** Top actionable insights for the creator (max 5) */
   insights: string[];
+}
+
+// =============================================================================
+// DEAL QUALITY SCORE TYPES
+// =============================================================================
+
+/**
+ * Deal Quality Level - Creator-centric assessment of how good a deal is.
+ *
+ * Unlike FitLevel (brand-centric), this answers: "How good is this deal FOR the creator?"
+ *
+ * - excellent: 85-100 - Take this deal! Excellent opportunity.
+ * - good: 70-84 - Good deal worth pursuing.
+ * - fair: 50-69 - Fair deal, consider negotiating terms.
+ * - caution: 0-49 - Proceed with caution, significant concerns.
+ */
+export type DealQualityLevel = "excellent" | "good" | "fair" | "caution";
+
+/**
+ * Individual component in the Deal Quality Score breakdown.
+ */
+export interface DealQualityComponent {
+  /** Component name for display */
+  name: string;
+  /** Raw score for this component (0 to maxPoints) */
+  score: number;
+  /** Maximum points possible for this component */
+  maxPoints: number;
+  /** Weight as a fraction of total (for display) */
+  weight: number;
+  /** Human-readable explanation of the score */
+  insight: string;
+  /** Optional tips for improving this dimension */
+  tips?: string[];
+}
+
+/**
+ * Recommendation for the creator based on Deal Quality Score.
+ */
+export type DealRecommendation =
+  | "take_deal"      // 85+: Excellent opportunity, accept it
+  | "good_deal"      // 70-84: Good deal, worth accepting
+  | "negotiate"      // 50-69: Fair deal but negotiate for better terms
+  | "decline"        // Below 50: Consider declining or major renegotiation
+  | "ask_questions"; // When key info is missing
+
+/**
+ * Complete Deal Quality Score result.
+ *
+ * This is the creator-centric replacement for FitScoreResult.
+ * Instead of "How well does this creator fit the brand?", it answers
+ * "How good is this deal FOR the creator?"
+ *
+ * 6 Scoring Dimensions (100 points total):
+ * 1. Rate Fairness (25 points) - Is the rate at/above market?
+ * 2. Brand Legitimacy (20 points) - Is this a real, trustworthy brand?
+ * 3. Portfolio Value (20 points) - Will this look good in portfolio?
+ * 4. Growth Potential (15 points) - Ongoing partnership opportunity?
+ * 5. Terms Fairness (10 points) - Are contract terms reasonable?
+ * 6. Creative Freedom (10 points) - How much creative control?
+ */
+export interface DealQualityResult {
+  /** Final score (0-100) */
+  totalScore: number;
+  /** Deal quality level category */
+  qualityLevel: DealQualityLevel;
+  /** Price adjustment multiplier for pricing engine compatibility (-0.10 to +0.25) */
+  priceAdjustment: number;
+  /** Recommendation for the creator */
+  recommendation: DealRecommendation;
+  /** Human-readable recommendation text */
+  recommendationText: string;
+  /** Detailed breakdown of all 6 scoring dimensions */
+  breakdown: {
+    /** Is the offered/calculated rate at or above market? (25 points) */
+    rateFairness: DealQualityComponent;
+    /** Is this a real brand with real followers? (20 points) */
+    brandLegitimacy: DealQualityComponent;
+    /** Will this look good in creator's portfolio? (20 points) */
+    portfolioValue: DealQualityComponent;
+    /** Is there ongoing partnership potential? (15 points) */
+    growthPotential: DealQualityComponent;
+    /** Are payment/usage terms reasonable? (10 points) */
+    termsFairness: DealQualityComponent;
+    /** How much creative control does creator have? (10 points) */
+    creativeFreedom: DealQualityComponent;
+  };
+  /** Top actionable insights for the creator (max 5) */
+  insights: string[];
+  /** Red flags detected in the deal */
+  redFlags: string[];
+  /** Green flags (positive signals) detected */
+  greenFlags: string[];
+}
+
+/**
+ * Input for Deal Quality Score calculation.
+ * Additional signals beyond the standard brief that affect deal quality.
+ */
+export interface DealQualityInput {
+  /** Brand's social following (if known) */
+  brandFollowers?: number;
+  /** Does brand have a website? */
+  brandHasWebsite?: boolean;
+  /** Has brand worked with creators before? */
+  brandHasCreatorHistory?: boolean;
+  /** Payment terms (e.g., "net_15", "net_30", "net_60", "upfront") */
+  paymentTerms?: "upfront" | "net_15" | "net_30" | "net_60" | "net_90" | "unknown";
+  /** Does brand mention ongoing partnership? */
+  mentionsOngoingPartnership?: boolean;
+  /** Is there a strict script/rigid guidelines? */
+  hasStrictScript?: boolean;
+  /** Number of revision rounds allowed */
+  revisionRounds?: number;
+  /** Approval process complexity ("simple" | "moderate" | "complex") */
+  approvalProcess?: "simple" | "moderate" | "complex";
+  /** Offered rate (if brand specified a budget) */
+  offeredRate?: number;
+  /** Is this brand a category leader? */
+  isCategoryLeader?: boolean;
+  /** Brand reputation tier */
+  brandTier?: "major" | "established" | "emerging" | "unknown";
 }
 
 // =============================================================================
