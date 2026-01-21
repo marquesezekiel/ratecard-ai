@@ -30,7 +30,6 @@ import type {
   AffiliateEarningsBreakdown,
   PerformanceBonusBreakdown,
   HybridPricingBreakdown,
-  PricingModel,
   DealLength,
   RetainerConfig,
   MonthlyDeliverables,

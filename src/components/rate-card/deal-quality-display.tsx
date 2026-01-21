@@ -4,6 +4,7 @@ import { DealQualityResult, DealQualityLevel, DealRecommendation, FitScoreResult
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { FitScoreDisplay } from "./fit-score-display";
 import {
   Target,
   TrendingUp,
@@ -287,7 +288,5 @@ export function ScoreDisplay({ score }: ScoreDisplayProps) {
   }
 
   // For FitScoreResult, use the legacy FitScoreDisplay component
-  // This allows gradual migration
-  const { FitScoreDisplay } = require("./fit-score-display");
   return <FitScoreDisplay fitScore={score} />;
 }

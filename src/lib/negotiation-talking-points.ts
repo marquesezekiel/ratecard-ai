@@ -140,7 +140,7 @@ function getFormatDisplay(format: string): string {
 function generateWhyThisRate(
   profile: CreatorProfile,
   brief: ParsedBrief,
-  pricing: PricingResult
+  _pricing: PricingResult
 ): WhyThisRateSection {
   const bulletPoints: RateJustification[] = [];
   const engagementBenchmark = ENGAGEMENT_BENCHMARKS[profile.tier];
@@ -279,7 +279,6 @@ function generatePushBackSection(
   // Calculate minimum acceptable rate
   const minPercentage = MINIMUM_RATE_PERCENTAGES[profile.tier];
   const minimumRate = Math.round(totalRate * minPercentage);
-  const minimumPerDeliverable = Math.round(perDeliverable * minPercentage);
 
   // Generate counter-offer scripts
   const counterOfferScripts: CounterOfferScript[] = [];
