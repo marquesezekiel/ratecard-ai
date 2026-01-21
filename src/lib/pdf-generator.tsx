@@ -13,7 +13,10 @@ import type {
   FitScoreResult,
   PricingResult,
   PricingModel,
+  NegotiationTalkingPoints,
+  PDFExportMode,
 } from "./types";
+import { generateNegotiationTalkingPoints } from "./negotiation-talking-points";
 
 // Color palette
 const colors = {
@@ -309,6 +312,189 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 8,
   },
+  // Negotiation Talking Points styles
+  negotiationPage: {
+    flexDirection: "column",
+    backgroundColor: colors.white,
+    padding: 40,
+    fontFamily: "Helvetica",
+  },
+  negotiationHeader: {
+    marginBottom: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.success,
+    paddingBottom: 15,
+  },
+  negotiationTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.dark,
+    marginBottom: 4,
+  },
+  negotiationSubtitle: {
+    fontSize: 11,
+    color: colors.gray,
+  },
+  creatorOnlyBadge: {
+    fontSize: 9,
+    color: colors.white,
+    backgroundColor: colors.warning,
+    padding: "3 8",
+    borderRadius: 4,
+    alignSelf: "flex-start",
+    marginTop: 8,
+    textTransform: "uppercase",
+  },
+  negotiationSection: {
+    marginBottom: 18,
+  },
+  negotiationSectionTitle: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: colors.primary,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  bulletPoint: {
+    flexDirection: "row",
+    marginBottom: 6,
+    paddingLeft: 4,
+  },
+  bulletDot: {
+    fontSize: 10,
+    color: colors.primary,
+    marginRight: 8,
+    width: 8,
+  },
+  bulletText: {
+    fontSize: 10,
+    color: colors.dark,
+    flex: 1,
+    lineHeight: 1.4,
+  },
+  bulletSupporting: {
+    fontSize: 9,
+    color: colors.gray,
+    marginLeft: 16,
+    marginBottom: 6,
+    fontStyle: "italic",
+  },
+  confidenceBox: {
+    backgroundColor: "#F0FDF4",
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success,
+  },
+  confidenceText: {
+    fontSize: 10,
+    color: colors.dark,
+    lineHeight: 1.4,
+  },
+  valueReminder: {
+    fontSize: 9,
+    color: colors.gray,
+    marginBottom: 4,
+    paddingLeft: 12,
+  },
+  encouragementBox: {
+    backgroundColor: "#EFF6FF",
+    padding: 10,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  encouragementText: {
+    fontSize: 10,
+    color: colors.secondary,
+    fontStyle: "italic",
+  },
+  counterOfferBox: {
+    backgroundColor: colors.lightGray,
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 10,
+  },
+  counterOfferScenario: {
+    fontSize: 9,
+    color: colors.gray,
+    marginBottom: 4,
+    fontWeight: "bold",
+  },
+  counterOfferScript: {
+    fontSize: 10,
+    color: colors.dark,
+    lineHeight: 1.4,
+  },
+  counterOfferMeta: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  counterOfferConcession: {
+    fontSize: 8,
+    color: colors.warning,
+  },
+  counterOfferRate: {
+    fontSize: 8,
+    color: colors.success,
+    fontWeight: "bold",
+  },
+  minimumRateBox: {
+    backgroundColor: "#FEF2F2",
+    padding: 10,
+    borderRadius: 6,
+    marginTop: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.danger,
+  },
+  minimumRateText: {
+    fontSize: 10,
+    color: colors.danger,
+    fontWeight: "bold",
+  },
+  walkAwayText: {
+    fontSize: 9,
+    color: colors.gray,
+    marginTop: 6,
+    lineHeight: 1.4,
+  },
+  leversList: {
+    marginTop: 8,
+  },
+  leverItem: {
+    fontSize: 9,
+    color: colors.gray,
+    marginBottom: 3,
+    paddingLeft: 12,
+  },
+  responseBox: {
+    backgroundColor: "#F8FAFC",
+    padding: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  responseText: {
+    fontSize: 10,
+    color: colors.dark,
+    lineHeight: 1.5,
+    whiteSpace: "pre-wrap",
+  },
+  copyHint: {
+    fontSize: 8,
+    color: colors.gray,
+    marginTop: 8,
+    textAlign: "center",
+    fontStyle: "italic",
+  },
+  pageBreak: {
+    marginTop: 20,
+  },
 });
 
 interface RateCardDocumentProps {
@@ -316,6 +502,8 @@ interface RateCardDocumentProps {
   brief: ParsedBrief;
   fitScore: FitScoreResult;
   pricing: PricingResult;
+  /** Export mode: "brand" = rate card only, "creator" = rate card + negotiation tips */
+  exportMode?: PDFExportMode;
 }
 
 /**
@@ -327,10 +515,16 @@ export function RateCardDocument({
   brief,
   fitScore,
   pricing,
+  exportMode = "creator", // Default to creator mode (includes negotiation tips)
 }: RateCardDocumentProps): React.ReactElement<DocumentProps> {
   const fitColor = fitLevelColors[fitScore.fitLevel] || colors.gray;
   const expiryDate = new Date();
   expiryDate.setDate(expiryDate.getDate() + pricing.validDays);
+
+  // Generate negotiation talking points if in creator mode
+  const negotiationTips = exportMode === "creator"
+    ? generateNegotiationTalkingPoints(pricing, profile, brief)
+    : null;
 
   const formatAdjustment = (adjustment: number): string => {
     if (adjustment === 0) return "—";
@@ -866,6 +1060,155 @@ export function RateCardDocument({
           </View>
         </View>
       </Page>
+
+      {/* Negotiation Talking Points Pages - Only in Creator Mode */}
+      {negotiationTips && (
+        <>
+          {/* Page 2: Why This Rate + Confidence Boosters */}
+          <Page size="A4" style={styles.negotiationPage}>
+            {/* Header */}
+            <View style={styles.negotiationHeader}>
+              <Text style={styles.negotiationTitle}>Negotiation Confidence Stack</Text>
+              <Text style={styles.negotiationSubtitle}>
+                Your guide to confidently presenting and defending your rate
+              </Text>
+              <Text style={styles.creatorOnlyBadge}>For Your Eyes Only</Text>
+            </View>
+
+            {/* Section 1: Why This Rate */}
+            <View style={styles.negotiationSection}>
+              <Text style={styles.negotiationSectionTitle}>Why This Rate</Text>
+              <Text style={[styles.bulletSupporting, { marginLeft: 0, marginBottom: 10 }]}>
+                Share these points with brands to justify your rate
+              </Text>
+              {negotiationTips.whyThisRate.bulletPoints.map((point, index) => (
+                <View key={index}>
+                  <View style={styles.bulletPoint}>
+                    <Text style={styles.bulletDot}>•</Text>
+                    <Text style={styles.bulletText}>{point.point}</Text>
+                  </View>
+                  {point.supporting && (
+                    <Text style={styles.bulletSupporting}>{point.supporting}</Text>
+                  )}
+                </View>
+              ))}
+              <View style={styles.encouragementBox}>
+                <Text style={styles.confidenceText}>{negotiationTips.whyThisRate.summary}</Text>
+              </View>
+            </View>
+
+            {/* Section 2: Confidence Boosters */}
+            <View style={styles.negotiationSection}>
+              <Text style={styles.negotiationSectionTitle}>Confidence Boosters</Text>
+              <Text style={[styles.bulletSupporting, { marginLeft: 0, marginBottom: 10 }]}>
+                Internal reminders - don't share with brands
+              </Text>
+
+              {/* Market Comparison */}
+              <View style={styles.confidenceBox}>
+                <Text style={styles.confidenceText}>{negotiationTips.confidenceBoosters.marketComparison}</Text>
+              </View>
+
+              {/* Value Reminders */}
+              <View style={styles.leversList}>
+                {negotiationTips.confidenceBoosters.valueReminders.map((reminder, index) => (
+                  <Text key={index} style={styles.valueReminder}>✓ {reminder}</Text>
+                ))}
+              </View>
+
+              {/* Encouragement */}
+              <View style={styles.encouragementBox}>
+                <Text style={styles.encouragementText}>{negotiationTips.confidenceBoosters.encouragement}</Text>
+              </View>
+            </View>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <View>
+                <Text style={styles.footerBrand}>RateCard.AI</Text>
+                <Text style={styles.footerText}>Confidence Stack - Page 2</Text>
+              </View>
+              <View>
+                <Text style={styles.validity}>For creator's reference only</Text>
+              </View>
+            </View>
+          </Page>
+
+          {/* Page 3: If They Push Back + Quick Response */}
+          <Page size="A4" style={styles.negotiationPage}>
+            {/* Header */}
+            <View style={styles.negotiationHeader}>
+              <Text style={styles.negotiationTitle}>If They Push Back</Text>
+              <Text style={styles.negotiationSubtitle}>
+                Scripts and strategies for common negotiation scenarios
+              </Text>
+              <Text style={styles.creatorOnlyBadge}>For Your Eyes Only</Text>
+            </View>
+
+            {/* Section 3: Counter-Offer Scripts */}
+            <View style={styles.negotiationSection}>
+              <Text style={styles.negotiationSectionTitle}>Counter-Offer Scripts</Text>
+              {negotiationTips.pushBack.counterOfferScripts.map((script, index) => (
+                <View key={index} style={styles.counterOfferBox}>
+                  <Text style={styles.counterOfferScenario}>{script.scenario}</Text>
+                  <Text style={styles.counterOfferScript}>{script.script}</Text>
+                  {(script.concession || script.adjustedRate) && (
+                    <View style={styles.counterOfferMeta}>
+                      {script.concession && (
+                        <Text style={styles.counterOfferConcession}>Concession: {script.concession}</Text>
+                      )}
+                      {script.adjustedRate && (
+                        <Text style={styles.counterOfferRate}>Adjusted: {script.adjustedRate}</Text>
+                      )}
+                    </View>
+                  )}
+                </View>
+              ))}
+
+              {/* Negotiation Levers */}
+              <Text style={[styles.negotiationSectionTitle, { fontSize: 11, marginTop: 10 }]}>
+                Things You Can Reduce to Meet Budget
+              </Text>
+              <View style={styles.leversList}>
+                {negotiationTips.pushBack.negotiationLevers.slice(0, 4).map((lever, index) => (
+                  <Text key={index} style={styles.leverItem}>• {lever}</Text>
+                ))}
+              </View>
+
+              {/* Minimum Rate & Walk Away */}
+              <View style={styles.minimumRateBox}>
+                <Text style={styles.minimumRateText}>
+                  Minimum Acceptable: {pricing.currencySymbol}{negotiationTips.pushBack.minimumRate.toLocaleString()} ({negotiationTips.pushBack.minimumRatePercentage}% of quoted rate)
+                </Text>
+                <Text style={styles.walkAwayText}>{negotiationTips.pushBack.walkAwayPoint}</Text>
+              </View>
+            </View>
+
+            {/* Section 4: Quick Response Template */}
+            <View style={styles.negotiationSection}>
+              <Text style={styles.negotiationSectionTitle}>Quick Response Template</Text>
+              <Text style={[styles.bulletSupporting, { marginLeft: 0, marginBottom: 10 }]}>
+                Copy and customize this message to send to the brand
+              </Text>
+              <View style={styles.responseBox}>
+                <Text style={styles.responseText}>{negotiationTips.quickResponse.fullMessage}</Text>
+              </View>
+              <Text style={styles.copyHint}>Copy this message and personalize before sending</Text>
+            </View>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <View>
+                <Text style={styles.footerBrand}>RateCard.AI</Text>
+                <Text style={styles.footerText}>Confidence Stack - Page 3</Text>
+              </View>
+              <View>
+                <Text style={styles.validity}>For creator's reference only</Text>
+              </View>
+            </View>
+          </Page>
+        </>
+      )}
     </Document>
   );
 }

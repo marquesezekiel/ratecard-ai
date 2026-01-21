@@ -807,6 +807,114 @@ export interface PricingResult {
 }
 
 // =============================================================================
+// NEGOTIATION TALKING POINTS TYPES
+// =============================================================================
+
+/**
+ * A single bullet point justifying the rate.
+ */
+export interface RateJustification {
+  /** The main point */
+  point: string;
+  /** Supporting data or explanation */
+  supporting?: string;
+}
+
+/**
+ * Counter-offer script for negotiation.
+ */
+export interface CounterOfferScript {
+  /** Scenario when this counter applies */
+  scenario: string;
+  /** What to say to the brand */
+  script: string;
+  /** What the creator gives up in this scenario */
+  concession?: string;
+  /** New rate or description of adjustment */
+  adjustedRate?: string;
+}
+
+/**
+ * "Why This Rate" section - professional justification to share with brands.
+ */
+export interface WhyThisRateSection {
+  /** 3-4 bullet points justifying the rate */
+  bulletPoints: RateJustification[];
+  /** One-liner summary */
+  summary: string;
+}
+
+/**
+ * "Confidence Boosters" section - internal encouragement for the creator.
+ */
+export interface ConfidenceBoostersSection {
+  /** Comparison to market (e.g., "This is 10% below average for your tier") */
+  marketComparison: string;
+  /** Percentage relative to market average */
+  marketPercentage: number;
+  /** Whether rate is above, at, or below market */
+  marketPosition: "above" | "at" | "below";
+  /** Reminder of creator's specific value */
+  valueReminders: string[];
+  /** Encouraging message (non-cheesy) */
+  encouragement: string;
+}
+
+/**
+ * "If They Push Back" section - negotiation scripts and walk-away points.
+ */
+export interface PushBackSection {
+  /** 2-3 counter-offer scripts */
+  counterOfferScripts: CounterOfferScript[];
+  /** Minimum acceptable rate (floor) */
+  minimumRate: number;
+  /** Percentage of original rate that's the minimum */
+  minimumRatePercentage: number;
+  /** When to walk away */
+  walkAwayPoint: string;
+  /** Things that can be reduced to meet budget */
+  negotiationLevers: string[];
+}
+
+/**
+ * "Quick Response Template" section - ready-to-copy message.
+ */
+export interface QuickResponseSection {
+  /** Professional opening */
+  greeting: string;
+  /** The complete response message */
+  fullMessage: string;
+  /** Just the rate portion for quick reference */
+  rateStatement: string;
+  /** Call-to-action to close */
+  closingCTA: string;
+}
+
+/**
+ * Complete Negotiation Talking Points result.
+ *
+ * The "Confidence Stack" that helps creators negotiate with confidence.
+ * Includes both brand-facing and creator-only sections.
+ */
+export interface NegotiationTalkingPoints {
+  /** "Why This Rate" - to share with brand */
+  whyThisRate: WhyThisRateSection;
+  /** "Confidence Boosters" - for creator's eyes only */
+  confidenceBoosters: ConfidenceBoostersSection;
+  /** "If They Push Back" - negotiation scripts */
+  pushBack: PushBackSection;
+  /** "Quick Response Template" - ready-to-copy message */
+  quickResponse: QuickResponseSection;
+  /** Generated timestamp */
+  generatedAt: Date;
+}
+
+/**
+ * PDF export mode - determines what content to include.
+ */
+export type PDFExportMode = "brand" | "creator";
+
+// =============================================================================
 // RATE CARD TYPES
 // =============================================================================
 
