@@ -57,6 +57,61 @@ const ENGAGEMENT_THRESHOLDS = [
 ];
 
 // =============================================================================
+// LAYER 2.5: NICHE/INDUSTRY PREMIUM
+// =============================================================================
+
+/**
+ * Niche/industry premium multipliers.
+ * Different niches command different rates based on advertiser demand
+ * and audience purchasing power.
+ */
+const NICHE_PREMIUMS: Record<string, number> = {
+  // High-value niches (high advertiser demand, high-intent audiences)
+  finance: 2.0,
+  investing: 2.0,
+  "b2b": 1.8,
+  business: 1.8,
+  tech: 1.7,
+  software: 1.7,
+  technology: 1.7,
+  legal: 1.7,
+  medical: 1.7,
+  healthcare: 1.7,
+  luxury: 1.5,
+  "high-end fashion": 1.5,
+
+  // Premium niches
+  beauty: 1.3,
+  skincare: 1.3,
+  cosmetics: 1.3,
+  fitness: 1.2,
+  wellness: 1.2,
+  health: 1.2,
+
+  // Standard niches
+  food: 1.15,
+  cooking: 1.15,
+  recipes: 1.15,
+  travel: 1.15,
+  parenting: 1.1,
+  family: 1.1,
+  motherhood: 1.1,
+
+  // Baseline niches
+  lifestyle: 1.0,
+  entertainment: 1.0,
+  comedy: 1.0,
+  music: 1.0,
+
+  // Below baseline
+  gaming: 0.95,
+  esports: 0.95,
+};
+
+/** Default multiplier for unknown niches */
+const DEFAULT_NICHE_PREMIUM = 1.0;
+
+// =============================================================================
 // LAYER 3: FORMAT PREMIUMS
 // =============================================================================
 
@@ -184,6 +239,63 @@ function getEngagementMultiplier(engagementRate: number): number {
 }
 
 /**
+ * Get niche/industry premium multiplier.
+ * Looks up the niche in the NICHE_PREMIUMS map, returning the default if not found.
+ *
+ * @param niche - The creator's primary niche or content category
+ * @returns Multiplier value (e.g., 2.0 for finance, 1.0 for lifestyle)
+ */
+export function getNichePremium(niche: string): number {
+  const normalizedNiche = niche.toLowerCase().trim();
+  return NICHE_PREMIUMS[normalizedNiche] ?? DEFAULT_NICHE_PREMIUM;
+}
+
+/**
+ * Get the display name for a niche premium.
+ * Maps the niche to a human-readable category name.
+ */
+function getNicheCategoryName(niche: string): string {
+  const normalizedNiche = niche.toLowerCase().trim();
+
+  // Map niches to display categories
+  const categoryMap: Record<string, string> = {
+    finance: "Finance/Investing",
+    investing: "Finance/Investing",
+    "b2b": "B2B/Business",
+    business: "B2B/Business",
+    tech: "Tech/Software",
+    software: "Tech/Software",
+    technology: "Tech/Software",
+    legal: "Legal/Medical",
+    medical: "Legal/Medical",
+    healthcare: "Legal/Medical",
+    luxury: "Luxury/High-end Fashion",
+    "high-end fashion": "Luxury/High-end Fashion",
+    beauty: "Beauty/Skincare",
+    skincare: "Beauty/Skincare",
+    cosmetics: "Beauty/Skincare",
+    fitness: "Fitness/Wellness",
+    wellness: "Fitness/Wellness",
+    health: "Fitness/Wellness",
+    food: "Food/Cooking",
+    cooking: "Food/Cooking",
+    recipes: "Food/Cooking",
+    travel: "Travel",
+    parenting: "Parenting/Family",
+    family: "Parenting/Family",
+    motherhood: "Parenting/Family",
+    lifestyle: "Lifestyle",
+    entertainment: "Entertainment/Comedy",
+    comedy: "Entertainment/Comedy",
+    music: "Entertainment/Comedy",
+    gaming: "Gaming",
+    esports: "Gaming",
+  };
+
+  return categoryMap[normalizedNiche] || "Other";
+}
+
+/**
  * Get duration-based usage rights premium.
  */
 function getDurationPremium(durationDays: number): number {
@@ -268,6 +380,24 @@ export function calculatePrice(
   });
 
   currentPrice *= engagementMultiplier;
+
+  // -------------------------------------------------------------------------
+  // Layer 2.5: Niche Premium
+  // -------------------------------------------------------------------------
+  // Use the creator's primary niche (first in the list) for premium calculation
+  const primaryNiche = profile.niches[0] || "lifestyle";
+  const nichePremiumMultiplier = getNichePremium(primaryNiche);
+  const nicheCategoryName = getNicheCategoryName(primaryNiche);
+
+  layers.push({
+    name: "Niche Premium",
+    description: `${nicheCategoryName} content commands ${nichePremiumMultiplier}x rates`,
+    baseValue: primaryNiche,
+    multiplier: nichePremiumMultiplier,
+    adjustment: currentPrice * nichePremiumMultiplier - currentPrice,
+  });
+
+  currentPrice *= nichePremiumMultiplier;
 
   // -------------------------------------------------------------------------
   // Layer 3: Format Premium
@@ -357,7 +487,7 @@ export function calculatePrice(
 
   // Build formula string
   const formula =
-    `($${baseRate} × ${engagementMultiplier.toFixed(1)}) ` +
+    `($${baseRate} × ${engagementMultiplier.toFixed(1)} × ${nichePremiumMultiplier.toFixed(1)}) ` +
     `× (1 ${formatPremium(formatPremiumValue)}) ` +
     `× (1 ${formatPremium(fitAdjustment)}) ` +
     `× (1 ${formatPremium(totalRightsPremium)}) ` +

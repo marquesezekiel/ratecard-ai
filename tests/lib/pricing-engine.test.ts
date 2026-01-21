@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculateTier, calculatePrice } from "@/lib/pricing-engine";
+import { calculateTier, calculatePrice, getNichePremium } from "@/lib/pricing-engine";
 import type { CreatorProfile, ParsedBrief, FitScoreResult } from "@/lib/types";
 
 describe("pricing-engine", () => {
@@ -164,12 +164,133 @@ describe("pricing-engine", () => {
     });
   });
 
+  // ============================================================================
+  // getNichePremium Tests
+  // ============================================================================
+  describe("getNichePremium", () => {
+    describe("high-value niches (2.0x)", () => {
+      it("returns 2.0x for finance", () => {
+        expect(getNichePremium("finance")).toBe(2.0);
+        expect(getNichePremium("Finance")).toBe(2.0);
+        expect(getNichePremium("FINANCE")).toBe(2.0);
+      });
+
+      it("returns 2.0x for investing", () => {
+        expect(getNichePremium("investing")).toBe(2.0);
+      });
+    });
+
+    describe("high-value niches (1.8x)", () => {
+      it("returns 1.8x for B2B/Business", () => {
+        expect(getNichePremium("b2b")).toBe(1.8);
+        expect(getNichePremium("business")).toBe(1.8);
+      });
+    });
+
+    describe("high-value niches (1.7x)", () => {
+      it("returns 1.7x for Tech/Software", () => {
+        expect(getNichePremium("tech")).toBe(1.7);
+        expect(getNichePremium("software")).toBe(1.7);
+        expect(getNichePremium("technology")).toBe(1.7);
+      });
+
+      it("returns 1.7x for Legal/Medical", () => {
+        expect(getNichePremium("legal")).toBe(1.7);
+        expect(getNichePremium("medical")).toBe(1.7);
+        expect(getNichePremium("healthcare")).toBe(1.7);
+      });
+    });
+
+    describe("high-value niches (1.5x)", () => {
+      it("returns 1.5x for Luxury/High-end Fashion", () => {
+        expect(getNichePremium("luxury")).toBe(1.5);
+        expect(getNichePremium("high-end fashion")).toBe(1.5);
+      });
+    });
+
+    describe("premium niches (1.3x)", () => {
+      it("returns 1.3x for Beauty/Skincare", () => {
+        expect(getNichePremium("beauty")).toBe(1.3);
+        expect(getNichePremium("skincare")).toBe(1.3);
+        expect(getNichePremium("cosmetics")).toBe(1.3);
+      });
+    });
+
+    describe("premium niches (1.2x)", () => {
+      it("returns 1.2x for Fitness/Wellness", () => {
+        expect(getNichePremium("fitness")).toBe(1.2);
+        expect(getNichePremium("wellness")).toBe(1.2);
+        expect(getNichePremium("health")).toBe(1.2);
+      });
+    });
+
+    describe("standard niches (1.15x)", () => {
+      it("returns 1.15x for Food/Cooking", () => {
+        expect(getNichePremium("food")).toBe(1.15);
+        expect(getNichePremium("cooking")).toBe(1.15);
+        expect(getNichePremium("recipes")).toBe(1.15);
+      });
+
+      it("returns 1.15x for Travel", () => {
+        expect(getNichePremium("travel")).toBe(1.15);
+      });
+    });
+
+    describe("standard niches (1.1x)", () => {
+      it("returns 1.1x for Parenting/Family", () => {
+        expect(getNichePremium("parenting")).toBe(1.1);
+        expect(getNichePremium("family")).toBe(1.1);
+        expect(getNichePremium("motherhood")).toBe(1.1);
+      });
+    });
+
+    describe("baseline niches (1.0x)", () => {
+      it("returns 1.0x for Lifestyle", () => {
+        expect(getNichePremium("lifestyle")).toBe(1.0);
+      });
+
+      it("returns 1.0x for Entertainment/Comedy", () => {
+        expect(getNichePremium("entertainment")).toBe(1.0);
+        expect(getNichePremium("comedy")).toBe(1.0);
+        expect(getNichePremium("music")).toBe(1.0);
+      });
+    });
+
+    describe("below baseline niches (0.95x)", () => {
+      it("returns 0.95x for Gaming", () => {
+        expect(getNichePremium("gaming")).toBe(0.95);
+        expect(getNichePremium("esports")).toBe(0.95);
+      });
+    });
+
+    describe("unknown niches", () => {
+      it("returns 1.0x (default) for unknown niches", () => {
+        expect(getNichePremium("unknown")).toBe(1.0);
+        expect(getNichePremium("random")).toBe(1.0);
+        expect(getNichePremium("notarealcategory")).toBe(1.0);
+        expect(getNichePremium("")).toBe(1.0);
+      });
+
+      it("handles case insensitivity", () => {
+        expect(getNichePremium("FINANCE")).toBe(2.0);
+        expect(getNichePremium("Finance")).toBe(2.0);
+        expect(getNichePremium("fInAnCe")).toBe(2.0);
+      });
+
+      it("handles whitespace", () => {
+        expect(getNichePremium("  finance  ")).toBe(2.0);
+        expect(getNichePremium("  beauty  ")).toBe(1.3);
+      });
+    });
+  });
+
   describe("calculatePrice", () => {
-    // Helper function to create a mock profile with specific tier
+    // Helper function to create a mock profile with specific tier and niches
     function createMockProfile(
       tier: "nano" | "micro" | "mid" | "rising" | "macro" | "mega" | "celebrity",
       followers: number,
-      engagementRate: number = 4.5
+      engagementRate: number = 4.5,
+      niches: string[] = ["lifestyle", "fashion"]
     ): CreatorProfile {
       return {
         id: "test-1",
@@ -178,7 +299,7 @@ describe("pricing-engine", () => {
         handle: "testcreator",
         bio: "Test bio",
         location: "United States",
-        niches: ["lifestyle", "fashion"],
+        niches,
         instagram: {
           followers,
           engagementRate,
@@ -243,17 +364,18 @@ describe("pricing-engine", () => {
       insights: ["Good fit overall"],
     };
 
-    it("calculates price with all 6 layers", () => {
+    it("calculates price with all 7 layers (including niche premium)", () => {
       const mockProfile = createMockProfile("micro", 25000);
       const result = calculatePrice(mockProfile, mockBrief, mockFitScore);
 
-      expect(result.layers).toHaveLength(6);
+      expect(result.layers).toHaveLength(7);
       expect(result.layers[0].name).toBe("Base Rate");
       expect(result.layers[1].name).toBe("Engagement Multiplier");
-      expect(result.layers[2].name).toBe("Format Premium");
-      expect(result.layers[3].name).toBe("Fit Score");
-      expect(result.layers[4].name).toBe("Usage Rights");
-      expect(result.layers[5].name).toBe("Complexity");
+      expect(result.layers[2].name).toBe("Niche Premium");
+      expect(result.layers[3].name).toBe("Format Premium");
+      expect(result.layers[4].name).toBe("Fit Score");
+      expect(result.layers[5].name).toBe("Usage Rights");
+      expect(result.layers[6].name).toBe("Complexity");
     });
 
     it("returns price per deliverable and total", () => {
@@ -311,6 +433,65 @@ describe("pricing-engine", () => {
       });
     });
 
+    // ==========================================================================
+    // Niche Premium Integration Tests
+    // ==========================================================================
+    describe("niche premium integration", () => {
+      it("applies niche premium multiplier to price calculation", () => {
+        const financeProfile = createMockProfile("micro", 25000, 4.5, ["finance"]);
+        const lifestyleProfile = createMockProfile("micro", 25000, 4.5, ["lifestyle"]);
+
+        const financeResult = calculatePrice(financeProfile, mockBrief, mockFitScore);
+        const lifestyleResult = calculatePrice(lifestyleProfile, mockBrief, mockFitScore);
+
+        // Finance (2.0x) should produce higher price than lifestyle (1.0x)
+        expect(financeResult.pricePerDeliverable).toBeGreaterThan(lifestyleResult.pricePerDeliverable);
+      });
+
+      it("uses first niche in array as primary niche", () => {
+        const financeFirstProfile = createMockProfile("micro", 25000, 4.5, ["finance", "lifestyle"]);
+        const lifestyleFirstProfile = createMockProfile("micro", 25000, 4.5, ["lifestyle", "finance"]);
+
+        const financeFirstResult = calculatePrice(financeFirstProfile, mockBrief, mockFitScore);
+        const lifestyleFirstResult = calculatePrice(lifestyleFirstProfile, mockBrief, mockFitScore);
+
+        // Finance first should have higher price
+        expect(financeFirstResult.pricePerDeliverable).toBeGreaterThan(lifestyleFirstResult.pricePerDeliverable);
+      });
+
+      it("niche premium layer shows correct multiplier", () => {
+        const financeProfile = createMockProfile("micro", 25000, 4.5, ["finance"]);
+        const result = calculatePrice(financeProfile, mockBrief, mockFitScore);
+
+        const nicheLayer = result.layers.find(l => l.name === "Niche Premium");
+        expect(nicheLayer).toBeDefined();
+        expect(nicheLayer?.multiplier).toBe(2.0);
+      });
+
+      it("defaults to lifestyle (1.0x) for empty niches array", () => {
+        const emptyNichesProfile = createMockProfile("micro", 25000, 4.5, []);
+        const lifestyleProfile = createMockProfile("micro", 25000, 4.5, ["lifestyle"]);
+
+        const emptyResult = calculatePrice(emptyNichesProfile, mockBrief, mockFitScore);
+        const lifestyleResult = calculatePrice(lifestyleProfile, mockBrief, mockFitScore);
+
+        expect(emptyResult.pricePerDeliverable).toBe(lifestyleResult.pricePerDeliverable);
+      });
+
+      it("high-value niches significantly increase price", () => {
+        const financeProfile = createMockProfile("micro", 25000, 4.5, ["finance"]);
+        const gamingProfile = createMockProfile("micro", 25000, 4.5, ["gaming"]);
+
+        const financeResult = calculatePrice(financeProfile, mockBrief, mockFitScore);
+        const gamingResult = calculatePrice(gamingProfile, mockBrief, mockFitScore);
+
+        // Finance (2.0x) vs Gaming (0.95x) - should be roughly 2x difference
+        const ratio = financeResult.pricePerDeliverable / gamingResult.pricePerDeliverable;
+        expect(ratio).toBeGreaterThan(1.9);
+        expect(ratio).toBeLessThan(2.2);
+      });
+    });
+
     it("rounds price to nearest $5", () => {
       const mockProfile = createMockProfile("micro", 25000);
       const result = calculatePrice(mockProfile, mockBrief, mockFitScore);
@@ -318,11 +499,12 @@ describe("pricing-engine", () => {
       expect(result.pricePerDeliverable % 5).toBe(0);
     });
 
-    it("includes formula representation", () => {
-      const mockProfile = createMockProfile("micro", 25000);
-      const result = calculatePrice(mockProfile, mockBrief, mockFitScore);
+    it("includes niche multiplier in formula representation", () => {
+      const financeProfile = createMockProfile("micro", 25000, 4.5, ["finance"]);
+      const result = calculatePrice(financeProfile, mockBrief, mockFitScore);
 
       expect(result.formula).toContain("$400");
+      expect(result.formula).toContain("2.0"); // Finance multiplier
       expect(result.formula).toContain("×");
     });
 
