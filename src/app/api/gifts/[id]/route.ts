@@ -181,7 +181,7 @@ export async function PATCH(
     }
 
     // Remove action field before passing to update
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     const { action: _, ...updateData } = body;
 
     // Update the gift deal

@@ -461,7 +461,7 @@ function estimateDealQuality(
  */
 function validateAndNormalize(
   data: unknown,
-  profile: CreatorProfile
+  _profile: CreatorProfile
 ): Omit<DMAnalysis, "recommendedResponse" | "suggestedRate" | "dealQualityEstimate" | "nextSteps"> {
   const parsed = data as Record<string, unknown>;
 
