@@ -224,6 +224,56 @@ export type ExclusivityLevel = "none" | "category" | "full";
 export type DealType = "sponsored" | "ugc";
 
 /**
+ * Pricing model determines how compensation is structured.
+ * - "flat_fee": Standard one-time payment (default)
+ * - "affiliate": Commission-only based on sales
+ * - "hybrid": Base fee + commission on sales
+ * - "performance": Base fee + bonus for hitting targets
+ */
+export type PricingModel = "flat_fee" | "affiliate" | "hybrid" | "performance";
+
+/**
+ * Affiliate product category for commission rate lookup.
+ * Different categories have different typical commission rates.
+ */
+export type AffiliateCategory =
+  | "fashion_apparel"
+  | "beauty_skincare"
+  | "tech_electronics"
+  | "home_lifestyle"
+  | "food_beverage"
+  | "health_supplements"
+  | "digital_products"
+  | "services_subscriptions"
+  | "other";
+
+/**
+ * Affiliate deal configuration for commission-based earnings.
+ */
+export interface AffiliateConfig {
+  /** Commission rate as a percentage (e.g., 15 means 15%) */
+  affiliateRate: number;
+  /** Estimated number of sales to project earnings */
+  estimatedSales: number;
+  /** Average order value in currency units */
+  averageOrderValue: number;
+  /** Product category for commission rate benchmarks */
+  category?: AffiliateCategory;
+}
+
+/**
+ * Performance deal configuration for bonus-based compensation.
+ */
+export interface PerformanceConfig {
+  /** Threshold to trigger bonus (e.g., 1000 clicks, 500 sales) */
+  bonusThreshold: number;
+  /** Type of metric for the threshold */
+  bonusMetric: "clicks" | "sales" | "conversions" | "views";
+  /** Bonus amount when threshold is met */
+  bonusAmount: number;
+}
+
+/**
  * UGC content format for deliverable-based pricing.
  * Used when dealType is "ugc".
  */
@@ -258,6 +308,24 @@ export interface ParsedBrief {
    * Determines base rate: video ($175) or photo ($100).
    */
   ugcFormat?: UGCFormat;
+  /**
+   * Pricing model determines compensation structure.
+   * - "flat_fee": Standard one-time payment (default)
+   * - "affiliate": Commission-only based on sales
+   * - "hybrid": Base fee (50%) + commission
+   * - "performance": Base fee + bonus for hitting targets
+   */
+  pricingModel?: PricingModel;
+  /**
+   * Affiliate configuration for "affiliate" and "hybrid" pricing models.
+   * Required when pricingModel is "affiliate" or "hybrid".
+   */
+  affiliateConfig?: AffiliateConfig;
+  /**
+   * Performance configuration for "performance" pricing model.
+   * Required when pricingModel is "performance".
+   */
+  performanceConfig?: PerformanceConfig;
   /** Brand/company information */
   brand: {
     /** Company or brand name */
@@ -393,6 +461,54 @@ export interface PricingLayer {
 }
 
 /**
+ * Affiliate earnings breakdown for commission-based deals.
+ */
+export interface AffiliateEarningsBreakdown {
+  /** Commission rate as percentage */
+  commissionRate: number;
+  /** Estimated number of sales */
+  estimatedSales: number;
+  /** Average order value */
+  averageOrderValue: number;
+  /** Total estimated commission earnings */
+  estimatedEarnings: number;
+  /** Category commission rate range for context */
+  categoryRateRange?: { min: number; max: number };
+}
+
+/**
+ * Performance bonus breakdown for performance-based deals.
+ */
+export interface PerformanceBonusBreakdown {
+  /** Base fee before bonus */
+  baseFee: number;
+  /** Threshold to trigger bonus */
+  bonusThreshold: number;
+  /** Type of metric for threshold */
+  bonusMetric: string;
+  /** Bonus amount when threshold is met */
+  bonusAmount: number;
+  /** Total potential earnings (base + bonus) */
+  potentialTotal: number;
+}
+
+/**
+ * Hybrid pricing breakdown showing both base fee and affiliate components.
+ */
+export interface HybridPricingBreakdown {
+  /** Reduced base fee (50% of normal rate) */
+  baseFee: number;
+  /** Full rate for reference */
+  fullRate: number;
+  /** Discount percentage applied to base fee */
+  baseDiscount: number;
+  /** Affiliate earnings component */
+  affiliateEarnings: AffiliateEarningsBreakdown;
+  /** Combined estimated total */
+  combinedEstimate: number;
+}
+
+/**
  * Complete pricing calculation result from the 6-Layer Engine.
  * Formula: (Base × Engagement) × (1+Format) × (1+Fit) × (1+Rights) × (1+Complexity)
  */
@@ -415,6 +531,14 @@ export interface PricingResult {
   formula: string;
   /** Original calculated price if user adjusted (for reference on PDF) */
   originalTotal?: number;
+  /** Pricing model used for this calculation */
+  pricingModel?: PricingModel;
+  /** Affiliate earnings breakdown (for affiliate and hybrid models) */
+  affiliateBreakdown?: AffiliateEarningsBreakdown;
+  /** Performance bonus breakdown (for performance model) */
+  performanceBreakdown?: PerformanceBonusBreakdown;
+  /** Hybrid pricing breakdown (for hybrid model) */
+  hybridBreakdown?: HybridPricingBreakdown;
 }
 
 // =============================================================================

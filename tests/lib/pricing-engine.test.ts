@@ -1,6 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { calculateTier, calculatePrice, getNichePremium, calculateUGCPrice, getWhitelistingPremium, getSeasonalPremium, getRegionalMultiplier, getPlatformMultiplier } from "@/lib/pricing-engine";
-import type { CreatorProfile, ParsedBrief, FitScoreResult, Platform } from "@/lib/types";
+import {
+  calculateTier,
+  calculatePrice,
+  getNichePremium,
+  calculateUGCPrice,
+  getWhitelistingPremium,
+  getSeasonalPremium,
+  getRegionalMultiplier,
+  getPlatformMultiplier,
+  getAffiliateCategoryRates,
+  calculateAffiliateEarnings,
+  calculateHybridPrice,
+  calculatePerformancePrice,
+} from "@/lib/pricing-engine";
+import type { CreatorProfile, ParsedBrief, FitScoreResult, Platform, AffiliateConfig, PerformanceConfig } from "@/lib/types";
 
 describe("pricing-engine", () => {
   describe("calculateTier", () => {
@@ -1910,6 +1923,800 @@ describe("pricing-engine", () => {
 
       // Micro should have higher price than nano (audience-based)
       expect(microResult.pricePerDeliverable).toBeGreaterThan(nanoResult.pricePerDeliverable);
+    });
+  });
+
+  // ============================================================================
+  // Affiliate/Performance Pricing Tests (Prompt 8)
+  // ============================================================================
+  describe("getAffiliateCategoryRates", () => {
+    describe("fashion_apparel category (10-20%)", () => {
+      it("returns correct rate range for fashion_apparel", () => {
+        const rates = getAffiliateCategoryRates("fashion_apparel");
+        expect(rates.min).toBe(10);
+        expect(rates.max).toBe(20);
+        expect(rates.default).toBe(15);
+        expect(rates.displayName).toBe("Fashion/Apparel");
+      });
+    });
+
+    describe("beauty_skincare category (15-25%)", () => {
+      it("returns correct rate range for beauty_skincare", () => {
+        const rates = getAffiliateCategoryRates("beauty_skincare");
+        expect(rates.min).toBe(15);
+        expect(rates.max).toBe(25);
+        expect(rates.default).toBe(20);
+        expect(rates.displayName).toBe("Beauty/Skincare");
+      });
+    });
+
+    describe("tech_electronics category (5-10%)", () => {
+      it("returns correct rate range for tech_electronics", () => {
+        const rates = getAffiliateCategoryRates("tech_electronics");
+        expect(rates.min).toBe(5);
+        expect(rates.max).toBe(10);
+        expect(rates.default).toBe(7);
+        expect(rates.displayName).toBe("Tech/Electronics");
+      });
+    });
+
+    describe("home_lifestyle category (8-15%)", () => {
+      it("returns correct rate range for home_lifestyle", () => {
+        const rates = getAffiliateCategoryRates("home_lifestyle");
+        expect(rates.min).toBe(8);
+        expect(rates.max).toBe(15);
+        expect(rates.default).toBe(12);
+        expect(rates.displayName).toBe("Home/Lifestyle");
+      });
+    });
+
+    describe("food_beverage category (10-15%)", () => {
+      it("returns correct rate range for food_beverage", () => {
+        const rates = getAffiliateCategoryRates("food_beverage");
+        expect(rates.min).toBe(10);
+        expect(rates.max).toBe(15);
+        expect(rates.default).toBe(12);
+        expect(rates.displayName).toBe("Food/Beverage");
+      });
+    });
+
+    describe("health_supplements category (15-30%)", () => {
+      it("returns correct rate range for health_supplements", () => {
+        const rates = getAffiliateCategoryRates("health_supplements");
+        expect(rates.min).toBe(15);
+        expect(rates.max).toBe(30);
+        expect(rates.default).toBe(22);
+        expect(rates.displayName).toBe("Health/Supplements");
+      });
+    });
+
+    describe("digital_products category (20-40%)", () => {
+      it("returns correct rate range for digital_products", () => {
+        const rates = getAffiliateCategoryRates("digital_products");
+        expect(rates.min).toBe(20);
+        expect(rates.max).toBe(40);
+        expect(rates.default).toBe(30);
+        expect(rates.displayName).toBe("Digital Products/Courses");
+      });
+    });
+
+    describe("services_subscriptions category (15-25%)", () => {
+      it("returns correct rate range for services_subscriptions", () => {
+        const rates = getAffiliateCategoryRates("services_subscriptions");
+        expect(rates.min).toBe(15);
+        expect(rates.max).toBe(25);
+        expect(rates.default).toBe(20);
+        expect(rates.displayName).toBe("Services/Subscriptions");
+      });
+    });
+
+    describe("other category (10-15%)", () => {
+      it("returns correct rate range for other", () => {
+        const rates = getAffiliateCategoryRates("other");
+        expect(rates.min).toBe(10);
+        expect(rates.max).toBe(15);
+        expect(rates.default).toBe(12);
+        expect(rates.displayName).toBe("Other");
+      });
+    });
+
+    describe("unknown category handling", () => {
+      it("defaults to other for unknown category", () => {
+        const rates = getAffiliateCategoryRates("unknown_category");
+        expect(rates.min).toBe(10);
+        expect(rates.max).toBe(15);
+        expect(rates.default).toBe(12);
+        expect(rates.displayName).toBe("Other");
+      });
+
+      it("defaults to other for undefined", () => {
+        const rates = getAffiliateCategoryRates(undefined);
+        expect(rates.min).toBe(10);
+        expect(rates.max).toBe(15);
+        expect(rates.default).toBe(12);
+      });
+    });
+  });
+
+  describe("calculateAffiliateEarnings", () => {
+    describe("pure affiliate calculation", () => {
+      it("calculates earnings correctly: rate × sales × aov", () => {
+        const config: AffiliateConfig = {
+          affiliateRate: 15,
+          estimatedSales: 100,
+          averageOrderValue: 50,
+        };
+
+        const result = calculateAffiliateEarnings(config);
+
+        // 15% × 100 sales × $50 = $750
+        expect(result.estimatedEarnings).toBe(750);
+        expect(result.commissionRate).toBe(15);
+        expect(result.estimatedSales).toBe(100);
+        expect(result.averageOrderValue).toBe(50);
+      });
+
+      it("rounds earnings to nearest $5", () => {
+        const config: AffiliateConfig = {
+          affiliateRate: 12,
+          estimatedSales: 47,
+          averageOrderValue: 35,
+        };
+
+        const result = calculateAffiliateEarnings(config);
+
+        // 12% × 47 × $35 = $197.40 → rounds to $195 or $200
+        expect(result.estimatedEarnings % 5).toBe(0);
+      });
+
+      it("includes category rate range when category provided", () => {
+        const config: AffiliateConfig = {
+          affiliateRate: 15,
+          estimatedSales: 100,
+          averageOrderValue: 50,
+          category: "beauty_skincare",
+        };
+
+        const result = calculateAffiliateEarnings(config);
+
+        expect(result.categoryRateRange).toBeDefined();
+        expect(result.categoryRateRange?.min).toBe(15);
+        expect(result.categoryRateRange?.max).toBe(25);
+      });
+
+      it("does not include category rate range when no category", () => {
+        const config: AffiliateConfig = {
+          affiliateRate: 15,
+          estimatedSales: 100,
+          averageOrderValue: 50,
+        };
+
+        const result = calculateAffiliateEarnings(config);
+
+        expect(result.categoryRateRange).toBeUndefined();
+      });
+
+      it("handles high-value categories like digital products", () => {
+        const config: AffiliateConfig = {
+          affiliateRate: 30,
+          estimatedSales: 50,
+          averageOrderValue: 100,
+          category: "digital_products",
+        };
+
+        const result = calculateAffiliateEarnings(config);
+
+        // 30% × 50 × $100 = $1,500
+        expect(result.estimatedEarnings).toBe(1500);
+      });
+
+      it("handles low-value categories like tech", () => {
+        const config: AffiliateConfig = {
+          affiliateRate: 5,
+          estimatedSales: 20,
+          averageOrderValue: 500,
+          category: "tech_electronics",
+        };
+
+        const result = calculateAffiliateEarnings(config);
+
+        // 5% × 20 × $500 = $500
+        expect(result.estimatedEarnings).toBe(500);
+      });
+    });
+  });
+
+  describe("calculateHybridPrice", () => {
+    describe("hybrid pricing (50% base + affiliate)", () => {
+      it("reduces base fee to 50% of full rate", () => {
+        const fullRate = 1000;
+        const affiliateConfig: AffiliateConfig = {
+          affiliateRate: 15,
+          estimatedSales: 100,
+          averageOrderValue: 50,
+        };
+
+        const result = calculateHybridPrice(fullRate, affiliateConfig);
+
+        expect(result.baseFee).toBe(500); // 50% of $1000
+        expect(result.fullRate).toBe(1000);
+        expect(result.baseDiscount).toBe(50);
+      });
+
+      it("adds affiliate earnings to base fee for combined estimate", () => {
+        const fullRate = 1000;
+        const affiliateConfig: AffiliateConfig = {
+          affiliateRate: 15,
+          estimatedSales: 100,
+          averageOrderValue: 50,
+        };
+
+        const result = calculateHybridPrice(fullRate, affiliateConfig);
+
+        // Base: $500 + Affiliate: $750 = $1,250
+        expect(result.baseFee).toBe(500);
+        expect(result.affiliateEarnings.estimatedEarnings).toBe(750);
+        expect(result.combinedEstimate).toBe(1250);
+      });
+
+      it("rounds all values to nearest $5", () => {
+        const fullRate = 847; // Odd number
+        const affiliateConfig: AffiliateConfig = {
+          affiliateRate: 12,
+          estimatedSales: 33,
+          averageOrderValue: 47,
+        };
+
+        const result = calculateHybridPrice(fullRate, affiliateConfig);
+
+        expect(result.baseFee % 5).toBe(0);
+        expect(result.fullRate % 5).toBe(0);
+        expect(result.combinedEstimate % 5).toBe(0);
+      });
+
+      it("includes full affiliate breakdown", () => {
+        const fullRate = 1000;
+        const affiliateConfig: AffiliateConfig = {
+          affiliateRate: 20,
+          estimatedSales: 50,
+          averageOrderValue: 75,
+          category: "beauty_skincare",
+        };
+
+        const result = calculateHybridPrice(fullRate, affiliateConfig);
+
+        expect(result.affiliateEarnings.commissionRate).toBe(20);
+        expect(result.affiliateEarnings.estimatedSales).toBe(50);
+        expect(result.affiliateEarnings.averageOrderValue).toBe(75);
+        expect(result.affiliateEarnings.categoryRateRange).toBeDefined();
+      });
+
+      it("hybrid can result in higher earnings than flat fee", () => {
+        const fullRate = 500;
+        const affiliateConfig: AffiliateConfig = {
+          affiliateRate: 30,
+          estimatedSales: 100,
+          averageOrderValue: 100,
+        };
+
+        const result = calculateHybridPrice(fullRate, affiliateConfig);
+
+        // Base: $250 + Affiliate: $3,000 = $3,250 (much higher than $500 flat)
+        expect(result.combinedEstimate).toBeGreaterThan(fullRate);
+      });
+
+      it("hybrid provides minimum guarantee even with low sales", () => {
+        const fullRate = 1000;
+        const affiliateConfig: AffiliateConfig = {
+          affiliateRate: 10,
+          estimatedSales: 5,
+          averageOrderValue: 30,
+        };
+
+        const result = calculateHybridPrice(fullRate, affiliateConfig);
+
+        // Base: $500 + Affiliate: $15 → $500 minimum guaranteed
+        expect(result.baseFee).toBe(500);
+        expect(result.combinedEstimate).toBeGreaterThanOrEqual(500);
+      });
+    });
+  });
+
+  describe("calculatePerformancePrice", () => {
+    describe("performance pricing (base + bonus)", () => {
+      it("keeps full base fee", () => {
+        const baseFee = 1000;
+        const performanceConfig: PerformanceConfig = {
+          bonusThreshold: 1000,
+          bonusMetric: "clicks",
+          bonusAmount: 200,
+        };
+
+        const result = calculatePerformancePrice(baseFee, performanceConfig);
+
+        expect(result.baseFee).toBe(1000);
+      });
+
+      it("adds bonus to calculate potential total", () => {
+        const baseFee = 1000;
+        const performanceConfig: PerformanceConfig = {
+          bonusThreshold: 1000,
+          bonusMetric: "clicks",
+          bonusAmount: 200,
+        };
+
+        const result = calculatePerformancePrice(baseFee, performanceConfig);
+
+        expect(result.potentialTotal).toBe(1200); // $1000 + $200 bonus
+      });
+
+      it("includes all performance config details", () => {
+        const baseFee = 1500;
+        const performanceConfig: PerformanceConfig = {
+          bonusThreshold: 500,
+          bonusMetric: "sales",
+          bonusAmount: 500,
+        };
+
+        const result = calculatePerformancePrice(baseFee, performanceConfig);
+
+        expect(result.bonusThreshold).toBe(500);
+        expect(result.bonusMetric).toBe("sales");
+        expect(result.bonusAmount).toBe(500);
+      });
+
+      it("rounds values to nearest $5", () => {
+        const baseFee = 847;
+        const performanceConfig: PerformanceConfig = {
+          bonusThreshold: 1000,
+          bonusMetric: "views",
+          bonusAmount: 123,
+        };
+
+        const result = calculatePerformancePrice(baseFee, performanceConfig);
+
+        expect(result.baseFee % 5).toBe(0);
+        expect(result.bonusAmount % 5).toBe(0);
+        expect(result.potentialTotal % 5).toBe(0);
+      });
+
+      it("handles all bonus metrics", () => {
+        const baseFee = 1000;
+        const metrics: Array<"clicks" | "sales" | "conversions" | "views"> = [
+          "clicks", "sales", "conversions", "views"
+        ];
+
+        for (const metric of metrics) {
+          const result = calculatePerformancePrice(baseFee, {
+            bonusThreshold: 100,
+            bonusMetric: metric,
+            bonusAmount: 100,
+          });
+
+          expect(result.bonusMetric).toBe(metric);
+        }
+      });
+    });
+  });
+
+  describe("calculatePrice with pricing models", () => {
+    function createMockProfile(
+      tier: "nano" | "micro" | "mid" | "rising" | "macro" | "mega" | "celebrity",
+      followers: number
+    ): CreatorProfile {
+      return {
+        id: "test-1",
+        userId: "user-1",
+        displayName: "Test Creator",
+        handle: "testcreator",
+        bio: "Test bio",
+        location: "United States",
+        niches: ["lifestyle"],
+        instagram: {
+          followers,
+          engagementRate: 4.5,
+          avgLikes: Math.round(followers * 0.045),
+          avgComments: 50,
+          avgViews: followers * 0.2,
+        },
+        audience: {
+          ageRange: "18-24",
+          genderSplit: { male: 30, female: 65, other: 5 },
+          topLocations: ["United States", "United Kingdom"],
+          interests: ["fashion", "lifestyle"],
+        },
+        tier,
+        totalReach: followers,
+        avgEngagementRate: 4.5,
+        currency: "USD",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
+    const mockFitScore: FitScoreResult = {
+      totalScore: 75,
+      fitLevel: "high",
+      priceAdjustment: 0.15,
+      breakdown: {
+        nicheMatch: { score: 80, weight: 0.3, insight: "Good niche match" },
+        demographicMatch: { score: 70, weight: 0.25, insight: "Good demo match" },
+        platformMatch: { score: 85, weight: 0.2, insight: "Strong platform" },
+        engagementQuality: { score: 75, weight: 0.15, insight: "Above average" },
+        contentCapability: { score: 60, weight: 0.1, insight: "Capable" },
+      },
+      insights: ["Good fit overall"],
+    };
+
+    describe("pure affiliate pricing model", () => {
+      it("routes to affiliate pricing when pricingModel is affiliate", () => {
+        const profile = createMockProfile("micro", 25000);
+        const affiliateBrief: ParsedBrief = {
+          pricingModel: "affiliate",
+          affiliateConfig: {
+            affiliateRate: 15,
+            estimatedSales: 100,
+            averageOrderValue: 50,
+            category: "fashion_apparel",
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "sales", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, affiliateBrief, mockFitScore);
+
+        expect(result.pricingModel).toBe("affiliate");
+        expect(result.pricePerDeliverable).toBe(0); // No flat fee for pure affiliate
+        expect(result.affiliateBreakdown).toBeDefined();
+        expect(result.affiliateBreakdown?.estimatedEarnings).toBe(750); // 15% × 100 × $50
+      });
+
+      it("affiliate pricing ignores follower count", () => {
+        const nanoProfile = createMockProfile("nano", 5000);
+        const celebrityProfile = createMockProfile("celebrity", 5000000);
+        const affiliateBrief: ParsedBrief = {
+          pricingModel: "affiliate",
+          affiliateConfig: {
+            affiliateRate: 20,
+            estimatedSales: 100,
+            averageOrderValue: 75,
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "sales", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const nanoResult = calculatePrice(nanoProfile, affiliateBrief, mockFitScore);
+        const celebrityResult = calculatePrice(celebrityProfile, affiliateBrief, mockFitScore);
+
+        // Both should have same affiliate earnings regardless of follower count
+        expect(nanoResult.totalPrice).toBe(celebrityResult.totalPrice);
+      });
+
+      it("affiliate pricing has correct layer structure", () => {
+        const profile = createMockProfile("micro", 25000);
+        const affiliateBrief: ParsedBrief = {
+          pricingModel: "affiliate",
+          affiliateConfig: {
+            affiliateRate: 15,
+            estimatedSales: 100,
+            averageOrderValue: 50,
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "sales", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, affiliateBrief, mockFitScore);
+
+        expect(result.layers).toHaveLength(4);
+        expect(result.layers[0].name).toBe("Commission Rate");
+        expect(result.layers[1].name).toBe("Estimated Sales");
+        expect(result.layers[2].name).toBe("Average Order Value");
+        expect(result.layers[3].name).toBe("Estimated Earnings");
+      });
+
+      it("affiliate pricing includes formula", () => {
+        const profile = createMockProfile("micro", 25000);
+        const affiliateBrief: ParsedBrief = {
+          pricingModel: "affiliate",
+          affiliateConfig: {
+            affiliateRate: 15,
+            estimatedSales: 100,
+            averageOrderValue: 50,
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "sales", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, affiliateBrief, mockFitScore);
+
+        expect(result.formula).toContain("100 sales");
+        expect(result.formula).toContain("$50 AOV");
+        expect(result.formula).toContain("15%");
+      });
+    });
+
+    describe("hybrid pricing model", () => {
+      it("routes to hybrid pricing when pricingModel is hybrid", () => {
+        const profile = createMockProfile("micro", 25000);
+        const hybridBrief: ParsedBrief = {
+          pricingModel: "hybrid",
+          affiliateConfig: {
+            affiliateRate: 15,
+            estimatedSales: 50,
+            averageOrderValue: 40,
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "sales", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, hybridBrief, mockFitScore);
+
+        expect(result.pricingModel).toBe("hybrid");
+        expect(result.hybridBreakdown).toBeDefined();
+        expect(result.affiliateBreakdown).toBeDefined();
+      });
+
+      it("hybrid pricing applies 50% discount to base fee", () => {
+        const profile = createMockProfile("micro", 25000);
+        const hybridBrief: ParsedBrief = {
+          pricingModel: "hybrid",
+          affiliateConfig: {
+            affiliateRate: 15,
+            estimatedSales: 50,
+            averageOrderValue: 40,
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "sales", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, hybridBrief, mockFitScore);
+
+        // Hybrid discount should be 50%
+        expect(result.hybridBreakdown?.baseDiscount).toBe(50);
+        // Base fee should be 50% of full rate
+        const fullRate = result.hybridBreakdown?.fullRate ?? 0;
+        expect(result.hybridBreakdown?.baseFee).toBe(Math.round(fullRate / 2 / 5) * 5);
+      });
+
+      it("hybrid pricing combines base fee and affiliate", () => {
+        const profile = createMockProfile("micro", 25000);
+        const hybridBrief: ParsedBrief = {
+          pricingModel: "hybrid",
+          affiliateConfig: {
+            affiliateRate: 15,
+            estimatedSales: 50,
+            averageOrderValue: 40,
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "sales", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, hybridBrief, mockFitScore);
+
+        const expectedCombined = result.hybridBreakdown!.baseFee + result.hybridBreakdown!.affiliateEarnings.estimatedEarnings;
+        expect(result.hybridBreakdown?.combinedEstimate).toBeCloseTo(expectedCombined, -1);
+      });
+
+      it("hybrid pricing includes additional layers for discount and commission", () => {
+        const profile = createMockProfile("micro", 25000);
+        const hybridBrief: ParsedBrief = {
+          pricingModel: "hybrid",
+          affiliateConfig: {
+            affiliateRate: 15,
+            estimatedSales: 50,
+            averageOrderValue: 40,
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "sales", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, hybridBrief, mockFitScore);
+
+        // Should have standard layers + 2 hybrid layers
+        const layerNames = result.layers.map(l => l.name);
+        expect(layerNames).toContain("Hybrid Discount");
+        expect(layerNames).toContain("Affiliate Commission");
+      });
+    });
+
+    describe("performance pricing model", () => {
+      it("routes to performance pricing when pricingModel is performance", () => {
+        const profile = createMockProfile("micro", 25000);
+        const performanceBrief: ParsedBrief = {
+          pricingModel: "performance",
+          performanceConfig: {
+            bonusThreshold: 1000,
+            bonusMetric: "clicks",
+            bonusAmount: 200,
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, performanceBrief, mockFitScore);
+
+        expect(result.pricingModel).toBe("performance");
+        expect(result.performanceBreakdown).toBeDefined();
+      });
+
+      it("performance pricing keeps full base fee", () => {
+        const profile = createMockProfile("micro", 25000);
+        const performanceBrief: ParsedBrief = {
+          pricingModel: "performance",
+          performanceConfig: {
+            bonusThreshold: 1000,
+            bonusMetric: "clicks",
+            bonusAmount: 200,
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, performanceBrief, mockFitScore);
+
+        // Total price should equal base fee (guaranteed amount)
+        expect(result.totalPrice).toBe(result.performanceBreakdown?.baseFee);
+      });
+
+      it("performance pricing shows potential total with bonus", () => {
+        const profile = createMockProfile("micro", 25000);
+        const performanceBrief: ParsedBrief = {
+          pricingModel: "performance",
+          performanceConfig: {
+            bonusThreshold: 1000,
+            bonusMetric: "clicks",
+            bonusAmount: 200,
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, performanceBrief, mockFitScore);
+
+        // Potential total should be base + bonus
+        expect(result.performanceBreakdown?.potentialTotal).toBe(
+          result.performanceBreakdown!.baseFee + 200
+        );
+      });
+
+      it("performance pricing includes bonus layer", () => {
+        const profile = createMockProfile("micro", 25000);
+        const performanceBrief: ParsedBrief = {
+          pricingModel: "performance",
+          performanceConfig: {
+            bonusThreshold: 500,
+            bonusMetric: "sales",
+            bonusAmount: 300,
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, performanceBrief, mockFitScore);
+
+        const layerNames = result.layers.map(l => l.name);
+        expect(layerNames).toContain("Performance Bonus");
+      });
+
+      it("performance pricing includes all bonus metrics in breakdown", () => {
+        const profile = createMockProfile("micro", 25000);
+        const performanceBrief: ParsedBrief = {
+          pricingModel: "performance",
+          performanceConfig: {
+            bonusThreshold: 500,
+            bonusMetric: "conversions",
+            bonusAmount: 300,
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, performanceBrief, mockFitScore);
+
+        expect(result.performanceBreakdown?.bonusThreshold).toBe(500);
+        expect(result.performanceBreakdown?.bonusMetric).toBe("conversions");
+        expect(result.performanceBreakdown?.bonusAmount).toBe(300);
+      });
+    });
+
+    describe("flat_fee pricing model (default)", () => {
+      it("defaults to flat_fee when pricingModel not specified", () => {
+        const profile = createMockProfile("micro", 25000);
+        const standardBrief: ParsedBrief = {
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, standardBrief, mockFitScore);
+
+        expect(result.pricingModel).toBe("flat_fee");
+        expect(result.affiliateBreakdown).toBeUndefined();
+        expect(result.hybridBreakdown).toBeUndefined();
+        expect(result.performanceBreakdown).toBeUndefined();
+      });
+
+      it("explicitly flat_fee works the same as default", () => {
+        const profile = createMockProfile("micro", 25000);
+        const explicitBrief: ParsedBrief = {
+          pricingModel: "flat_fee",
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+        const defaultBrief: ParsedBrief = {
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const explicitResult = calculatePrice(profile, explicitBrief, mockFitScore);
+        const defaultResult = calculatePrice(profile, defaultBrief, mockFitScore);
+
+        expect(explicitResult.totalPrice).toBe(defaultResult.totalPrice);
+        expect(explicitResult.pricingModel).toBe("flat_fee");
+      });
     });
   });
 });

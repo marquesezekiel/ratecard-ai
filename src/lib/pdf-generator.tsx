@@ -12,6 +12,7 @@ import type {
   ParsedBrief,
   FitScoreResult,
   PricingResult,
+  PricingModel,
 } from "./types";
 
 // Color palette
@@ -239,6 +240,72 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: "right",
   },
+  // Pricing model badge styles
+  pricingModelBadge: {
+    fontSize: 10,
+    color: colors.white,
+    padding: "4 10",
+    borderRadius: 4,
+    alignSelf: "flex-start",
+    textTransform: "uppercase",
+    marginBottom: 10,
+  },
+  affiliateBadge: {
+    backgroundColor: "#8B5CF6", // Purple for affiliate
+  },
+  hybridBadge: {
+    backgroundColor: "#F59E0B", // Amber for hybrid
+  },
+  performanceBadge: {
+    backgroundColor: "#10B981", // Green for performance
+  },
+  flatFeeBadge: {
+    backgroundColor: colors.primary, // Blue for flat fee
+  },
+  // Affiliate/Hybrid/Performance breakdown styles
+  breakdownBox: {
+    backgroundColor: colors.lightGray,
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+  breakdownTitle: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: colors.dark,
+    marginBottom: 10,
+  },
+  breakdownRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  breakdownLabel: {
+    fontSize: 10,
+    color: colors.gray,
+  },
+  breakdownValue: {
+    fontSize: 10,
+    color: colors.dark,
+    fontWeight: "bold",
+  },
+  breakdownDivider: {
+    borderTopWidth: 1,
+    borderTopColor: colors.gray,
+    marginVertical: 8,
+    opacity: 0.3,
+  },
+  highlightValue: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: colors.success,
+  },
+  bonusNote: {
+    fontSize: 9,
+    color: colors.gray,
+    fontStyle: "italic",
+    marginTop: 8,
+  },
 });
 
 interface RateCardDocumentProps {
@@ -272,6 +339,126 @@ export function RateCardDocument({
     if (adjustment > 0) return styles.positiveAdjustment;
     if (adjustment < 0) return styles.negativeAdjustment;
     return styles.neutralAdjustment;
+  };
+
+  // Get pricing model display info
+  const getPricingModelBadge = (model?: PricingModel) => {
+    switch (model) {
+      case "affiliate":
+        return { label: "Affiliate Deal", style: styles.affiliateBadge };
+      case "hybrid":
+        return { label: "Hybrid Deal", style: styles.hybridBadge };
+      case "performance":
+        return { label: "Performance Deal", style: styles.performanceBadge };
+      default:
+        return { label: "Flat Fee", style: styles.flatFeeBadge };
+    }
+  };
+
+  const pricingModelInfo = getPricingModelBadge(pricing.pricingModel);
+
+  // Render affiliate breakdown section
+  const renderAffiliateBreakdown = () => {
+    if (!pricing.affiliateBreakdown) return null;
+    const { commissionRate, estimatedSales, averageOrderValue, estimatedEarnings, categoryRateRange } = pricing.affiliateBreakdown;
+
+    return (
+      <View style={styles.breakdownBox}>
+        <Text style={styles.breakdownTitle}>Affiliate Earnings Breakdown</Text>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Commission Rate</Text>
+          <Text style={styles.breakdownValue}>{commissionRate}%</Text>
+        </View>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Estimated Sales</Text>
+          <Text style={styles.breakdownValue}>{estimatedSales.toLocaleString()}</Text>
+        </View>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Average Order Value</Text>
+          <Text style={styles.breakdownValue}>{pricing.currencySymbol}{averageOrderValue}</Text>
+        </View>
+        <View style={styles.breakdownDivider} />
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Estimated Earnings</Text>
+          <Text style={styles.highlightValue}>{pricing.currencySymbol}{estimatedEarnings.toLocaleString()}</Text>
+        </View>
+        {categoryRateRange && (
+          <Text style={styles.bonusNote}>
+            Industry typical: {categoryRateRange.min}%-{categoryRateRange.max}% commission
+          </Text>
+        )}
+      </View>
+    );
+  };
+
+  // Render hybrid breakdown section
+  const renderHybridBreakdown = () => {
+    if (!pricing.hybridBreakdown) return null;
+    const { baseFee, fullRate, baseDiscount, affiliateEarnings, combinedEstimate } = pricing.hybridBreakdown;
+
+    return (
+      <View style={styles.breakdownBox}>
+        <Text style={styles.breakdownTitle}>Hybrid Deal Structure</Text>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Standard Rate</Text>
+          <Text style={styles.breakdownValue}>{pricing.currencySymbol}{fullRate.toLocaleString()}</Text>
+        </View>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Hybrid Discount</Text>
+          <Text style={styles.breakdownValue}>-{baseDiscount}%</Text>
+        </View>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Guaranteed Base Fee</Text>
+          <Text style={styles.breakdownValue}>{pricing.currencySymbol}{baseFee.toLocaleString()}</Text>
+        </View>
+        <View style={styles.breakdownDivider} />
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>+ Commission ({affiliateEarnings.commissionRate}%)</Text>
+          <Text style={styles.breakdownValue}>{pricing.currencySymbol}{affiliateEarnings.estimatedEarnings.toLocaleString()}</Text>
+        </View>
+        <View style={styles.breakdownDivider} />
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Combined Estimate</Text>
+          <Text style={styles.highlightValue}>{pricing.currencySymbol}{combinedEstimate.toLocaleString()}</Text>
+        </View>
+        <Text style={styles.bonusNote}>
+          Base fee guaranteed; commission based on {affiliateEarnings.estimatedSales} est. sales
+        </Text>
+      </View>
+    );
+  };
+
+  // Render performance breakdown section
+  const renderPerformanceBreakdown = () => {
+    if (!pricing.performanceBreakdown) return null;
+    const { baseFee, bonusThreshold, bonusMetric, bonusAmount, potentialTotal } = pricing.performanceBreakdown;
+
+    return (
+      <View style={styles.breakdownBox}>
+        <Text style={styles.breakdownTitle}>Performance Deal Structure</Text>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Guaranteed Base Fee</Text>
+          <Text style={styles.breakdownValue}>{pricing.currencySymbol}{baseFee.toLocaleString()}</Text>
+        </View>
+        <View style={styles.breakdownDivider} />
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Performance Bonus</Text>
+          <Text style={styles.breakdownValue}>+{pricing.currencySymbol}{bonusAmount.toLocaleString()}</Text>
+        </View>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Threshold</Text>
+          <Text style={styles.breakdownValue}>{bonusThreshold.toLocaleString()} {bonusMetric}</Text>
+        </View>
+        <View style={styles.breakdownDivider} />
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Potential Total</Text>
+          <Text style={styles.highlightValue}>{pricing.currencySymbol}{potentialTotal.toLocaleString()}</Text>
+        </View>
+        <Text style={styles.bonusNote}>
+          Bonus paid when {bonusThreshold.toLocaleString()} {bonusMetric} milestone is reached
+        </Text>
+      </View>
+    );
   };
 
   return (
@@ -379,44 +566,123 @@ export function RateCardDocument({
         {/* Pricing Breakdown */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pricing Breakdown</Text>
-          <View style={styles.pricingTable}>
-            {pricing.layers.map((layer, index) => (
-              <View key={index} style={styles.pricingRow}>
-                <Text style={styles.pricingLayerName}>{layer.name}</Text>
-                <Text style={styles.pricingDescription}>
-                  {layer.description}
-                </Text>
-                <Text
-                  style={[
-                    styles.pricingAdjustment,
-                    getAdjustmentStyle(layer.multiplier - 1),
-                  ]}
-                >
-                  {formatAdjustment(layer.multiplier - 1)}
-                </Text>
-              </View>
-            ))}
-          </View>
+
+          {/* Pricing Model Badge */}
+          <Text style={[styles.pricingModelBadge, pricingModelInfo.style]}>
+            {pricingModelInfo.label}
+          </Text>
+
+          {/* Model-specific breakdown sections */}
+          {pricing.pricingModel === "affiliate" && renderAffiliateBreakdown()}
+          {pricing.pricingModel === "hybrid" && renderHybridBreakdown()}
+          {pricing.pricingModel === "performance" && renderPerformanceBreakdown()}
+
+          {/* Standard pricing layers table - show for flat_fee, hybrid, and performance */}
+          {pricing.pricingModel !== "affiliate" && (
+            <View style={styles.pricingTable}>
+              {pricing.layers.map((layer, index) => (
+                <View key={index} style={styles.pricingRow}>
+                  <Text style={styles.pricingLayerName}>{layer.name}</Text>
+                  <Text style={styles.pricingDescription}>
+                    {layer.description}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.pricingAdjustment,
+                      getAdjustmentStyle(layer.multiplier - 1),
+                    ]}
+                  >
+                    {formatAdjustment(layer.multiplier - 1)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
-        {/* Total Box */}
+        {/* Total Box - different layouts per pricing model */}
         <View style={styles.totalBox}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Per Deliverable</Text>
-            <Text style={styles.totalValue}>
-              {pricing.currencySymbol}{pricing.pricePerDeliverable.toLocaleString()}
-            </Text>
-          </View>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Quantity</Text>
-            <Text style={styles.totalValue}>×{pricing.quantity}</Text>
-          </View>
-          <View style={styles.grandTotal}>
-            <Text style={styles.grandTotalLabel}>Total Quote</Text>
-            <Text style={styles.grandTotalValue}>
-              {pricing.currencySymbol}{pricing.totalPrice.toLocaleString()} {pricing.currency}
-            </Text>
-          </View>
+          {pricing.pricingModel === "affiliate" ? (
+            /* Affiliate: Show estimated earnings */
+            <>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Commission Rate</Text>
+                <Text style={styles.totalValue}>
+                  {pricing.affiliateBreakdown?.commissionRate}%
+                </Text>
+              </View>
+              <View style={styles.grandTotal}>
+                <Text style={styles.grandTotalLabel}>Estimated Earnings</Text>
+                <Text style={styles.grandTotalValue}>
+                  {pricing.currencySymbol}{pricing.totalPrice.toLocaleString()} {pricing.currency}
+                </Text>
+              </View>
+            </>
+          ) : pricing.pricingModel === "hybrid" ? (
+            /* Hybrid: Show base + commission = combined */
+            <>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Guaranteed Base</Text>
+                <Text style={styles.totalValue}>
+                  {pricing.currencySymbol}{pricing.hybridBreakdown?.baseFee.toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>+ Est. Commission</Text>
+                <Text style={styles.totalValue}>
+                  {pricing.currencySymbol}{pricing.hybridBreakdown?.affiliateEarnings.estimatedEarnings.toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.grandTotal}>
+                <Text style={styles.grandTotalLabel}>Combined Estimate</Text>
+                <Text style={styles.grandTotalValue}>
+                  {pricing.currencySymbol}{pricing.totalPrice.toLocaleString()} {pricing.currency}
+                </Text>
+              </View>
+            </>
+          ) : pricing.pricingModel === "performance" ? (
+            /* Performance: Show base + potential bonus */
+            <>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Guaranteed Base</Text>
+                <Text style={styles.totalValue}>
+                  {pricing.currencySymbol}{pricing.totalPrice.toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Potential Bonus</Text>
+                <Text style={styles.totalValue}>
+                  +{pricing.currencySymbol}{pricing.performanceBreakdown?.bonusAmount.toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.grandTotal}>
+                <Text style={styles.grandTotalLabel}>Potential Total</Text>
+                <Text style={styles.grandTotalValue}>
+                  {pricing.currencySymbol}{pricing.performanceBreakdown?.potentialTotal.toLocaleString()} {pricing.currency}
+                </Text>
+              </View>
+            </>
+          ) : (
+            /* Flat Fee: Standard layout */
+            <>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Per Deliverable</Text>
+                <Text style={styles.totalValue}>
+                  {pricing.currencySymbol}{pricing.pricePerDeliverable.toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Quantity</Text>
+                <Text style={styles.totalValue}>×{pricing.quantity}</Text>
+              </View>
+              <View style={styles.grandTotal}>
+                <Text style={styles.grandTotalLabel}>Total Quote</Text>
+                <Text style={styles.grandTotalValue}>
+                  {pricing.currencySymbol}{pricing.totalPrice.toLocaleString()} {pricing.currency}
+                </Text>
+              </View>
+            </>
+          )}
         </View>
 
         {/* Footer */}

@@ -22,6 +22,13 @@ import type {
   WhitelistingType,
   Region,
   Platform,
+  AffiliateCategory,
+  AffiliateConfig,
+  PerformanceConfig,
+  AffiliateEarningsBreakdown,
+  PerformanceBonusBreakdown,
+  HybridPricingBreakdown,
+  PricingModel,
 } from "./types";
 import { CURRENCIES } from "./types";
 
@@ -389,6 +396,346 @@ const SEASONAL_DISPLAY_NAMES: Record<SeasonalPeriod, string> = {
   summer: "Summer Season (Jun-Aug)",
   default: "Standard Period",
 };
+
+// =============================================================================
+// LAYER 7: AFFILIATE/PERFORMANCE PRICING
+// =============================================================================
+
+/**
+ * Affiliate commission rate ranges by product category.
+ * Min and max represent typical industry ranges.
+ * Default rate is the midpoint recommendation.
+ */
+const AFFILIATE_COMMISSION_RATES: Record<AffiliateCategory, { min: number; max: number; default: number }> = {
+  fashion_apparel: { min: 10, max: 20, default: 15 },
+  beauty_skincare: { min: 15, max: 25, default: 20 },
+  tech_electronics: { min: 5, max: 10, default: 7 },
+  home_lifestyle: { min: 8, max: 15, default: 12 },
+  food_beverage: { min: 10, max: 15, default: 12 },
+  health_supplements: { min: 15, max: 30, default: 22 },
+  digital_products: { min: 20, max: 40, default: 30 },
+  services_subscriptions: { min: 15, max: 25, default: 20 },
+  other: { min: 10, max: 15, default: 12 },
+};
+
+/**
+ * Display names for affiliate categories.
+ */
+const AFFILIATE_CATEGORY_DISPLAY_NAMES: Record<AffiliateCategory, string> = {
+  fashion_apparel: "Fashion/Apparel",
+  beauty_skincare: "Beauty/Skincare",
+  tech_electronics: "Tech/Electronics",
+  home_lifestyle: "Home/Lifestyle",
+  food_beverage: "Food/Beverage",
+  health_supplements: "Health/Supplements",
+  digital_products: "Digital Products/Courses",
+  services_subscriptions: "Services/Subscriptions",
+  other: "Other",
+};
+
+/**
+ * Hybrid pricing base fee discount (50% of normal rate).
+ */
+const HYBRID_BASE_FEE_DISCOUNT = 0.5;
+
+// =============================================================================
+// AFFILIATE/PERFORMANCE PRICING FUNCTIONS
+// =============================================================================
+
+/**
+ * Get affiliate commission rate range for a category.
+ * Returns min, max, and default rates for the category.
+ *
+ * @param category - The affiliate product category
+ * @returns Commission rate range object
+ */
+export function getAffiliateCategoryRates(category: AffiliateCategory | string | undefined): {
+  min: number;
+  max: number;
+  default: number;
+  displayName: string;
+} {
+  const normalizedCategory = (category?.toLowerCase().trim() || "other") as AffiliateCategory;
+  const rates = AFFILIATE_COMMISSION_RATES[normalizedCategory] || AFFILIATE_COMMISSION_RATES.other;
+  const displayName = AFFILIATE_CATEGORY_DISPLAY_NAMES[normalizedCategory] || "Other";
+  return { ...rates, displayName };
+}
+
+/**
+ * Calculate affiliate earnings based on commission configuration.
+ *
+ * Formula: (estimatedSales × averageOrderValue × commissionRate) / 100
+ *
+ * @param config - Affiliate configuration with rate, sales, and AOV
+ * @returns Affiliate earnings breakdown
+ */
+export function calculateAffiliateEarnings(config: AffiliateConfig): AffiliateEarningsBreakdown {
+  const { affiliateRate, estimatedSales, averageOrderValue, category } = config;
+
+  // Calculate estimated earnings
+  const estimatedEarnings = (estimatedSales * averageOrderValue * affiliateRate) / 100;
+
+  // Get category rate range for context
+  const categoryRates = category ? getAffiliateCategoryRates(category) : undefined;
+
+  return {
+    commissionRate: affiliateRate,
+    estimatedSales,
+    averageOrderValue,
+    estimatedEarnings: roundToNearestFive(estimatedEarnings),
+    categoryRateRange: categoryRates
+      ? { min: categoryRates.min, max: categoryRates.max }
+      : undefined,
+  };
+}
+
+/**
+ * Calculate hybrid pricing combining base fee with affiliate commission.
+ *
+ * Hybrid deals provide:
+ * - 50% of the normal flat fee as guaranteed payment
+ * - Plus commission on sales for additional upside
+ *
+ * This balances risk between creator (guaranteed income) and
+ * brand (performance-based component).
+ *
+ * @param fullRate - The full flat fee rate (before discount)
+ * @param affiliateConfig - Affiliate configuration for commission component
+ * @returns Hybrid pricing breakdown
+ */
+export function calculateHybridPrice(
+  fullRate: number,
+  affiliateConfig: AffiliateConfig
+): HybridPricingBreakdown {
+  // Calculate discounted base fee (50% of normal rate)
+  const baseFee = roundToNearestFive(fullRate * HYBRID_BASE_FEE_DISCOUNT);
+
+  // Calculate affiliate earnings component
+  const affiliateEarnings = calculateAffiliateEarnings(affiliateConfig);
+
+  // Combined estimate (base + affiliate)
+  const combinedEstimate = baseFee + affiliateEarnings.estimatedEarnings;
+
+  return {
+    baseFee,
+    fullRate: roundToNearestFive(fullRate),
+    baseDiscount: HYBRID_BASE_FEE_DISCOUNT * 100, // 50%
+    affiliateEarnings,
+    combinedEstimate: roundToNearestFive(combinedEstimate),
+  };
+}
+
+/**
+ * Calculate performance pricing with base fee and bonus.
+ *
+ * Performance deals provide:
+ * - Full base fee as guaranteed payment
+ * - Bonus payment when specific targets are met
+ *
+ * @param baseFee - The base fee (full flat fee rate)
+ * @param performanceConfig - Performance configuration with threshold and bonus
+ * @returns Performance bonus breakdown
+ */
+export function calculatePerformancePrice(
+  baseFee: number,
+  performanceConfig: PerformanceConfig
+): PerformanceBonusBreakdown {
+  const { bonusThreshold, bonusMetric, bonusAmount } = performanceConfig;
+
+  return {
+    baseFee: roundToNearestFive(baseFee),
+    bonusThreshold,
+    bonusMetric,
+    bonusAmount: roundToNearestFive(bonusAmount),
+    potentialTotal: roundToNearestFive(baseFee + bonusAmount),
+  };
+}
+
+/**
+ * Calculate pure affiliate pricing (commission only, no base fee).
+ *
+ * For affiliate-only deals, there's no guaranteed payment.
+ * The creator earns entirely based on sales performance.
+ *
+ * @param brief - Parsed brief with affiliate configuration
+ * @param profile - Creator profile (for currency)
+ * @returns Complete pricing result for affiliate deal
+ */
+export function calculateAffiliatePricing(
+  brief: ParsedBrief,
+  profile: CreatorProfile
+): PricingResult {
+  const affiliateConfig = brief.affiliateConfig;
+
+  if (!affiliateConfig) {
+    throw new Error("Affiliate configuration required for affiliate pricing model");
+  }
+
+  const affiliateBreakdown = calculateAffiliateEarnings(affiliateConfig);
+  const categoryRates = getAffiliateCategoryRates(affiliateConfig.category);
+
+  // Get currency info from profile
+  const currencyInfo = CURRENCIES.find(c => c.code === profile.currency) || CURRENCIES[0];
+
+  // Build layers for display
+  const layers: PricingLayer[] = [
+    {
+      name: "Commission Rate",
+      description: `${affiliateConfig.affiliateRate}% commission on sales`,
+      baseValue: `${affiliateConfig.affiliateRate}%`,
+      multiplier: affiliateConfig.affiliateRate / 100,
+      adjustment: 0,
+    },
+    {
+      name: "Estimated Sales",
+      description: `${affiliateConfig.estimatedSales} projected sales`,
+      baseValue: affiliateConfig.estimatedSales,
+      multiplier: 1,
+      adjustment: 0,
+    },
+    {
+      name: "Average Order Value",
+      description: `${currencyInfo.symbol}${affiliateConfig.averageOrderValue} per order`,
+      baseValue: `${currencyInfo.symbol}${affiliateConfig.averageOrderValue}`,
+      multiplier: 1,
+      adjustment: 0,
+    },
+    {
+      name: "Estimated Earnings",
+      description: `${categoryRates.displayName} category (typical: ${categoryRates.min}-${categoryRates.max}%)`,
+      baseValue: `${currencyInfo.symbol}${affiliateBreakdown.estimatedEarnings}`,
+      multiplier: 1,
+      adjustment: affiliateBreakdown.estimatedEarnings,
+    },
+  ];
+
+  const formula = `${affiliateConfig.estimatedSales} sales × ${currencyInfo.symbol}${affiliateConfig.averageOrderValue} AOV × ${affiliateConfig.affiliateRate}% = ${currencyInfo.symbol}${affiliateBreakdown.estimatedEarnings}`;
+
+  return {
+    pricePerDeliverable: 0, // No flat fee for pure affiliate
+    quantity: brief.content.quantity,
+    totalPrice: affiliateBreakdown.estimatedEarnings,
+    currency: currencyInfo.code,
+    currencySymbol: currencyInfo.symbol,
+    validDays: 14,
+    layers,
+    formula,
+    pricingModel: "affiliate",
+    affiliateBreakdown,
+  };
+}
+
+/**
+ * Calculate hybrid pricing (50% base fee + affiliate commission).
+ *
+ * Takes a standard pricing result and converts it to hybrid model:
+ * - Reduces base fee to 50%
+ * - Adds affiliate commission component
+ * - Shows combined estimated earnings
+ *
+ * @param basePricing - Standard flat fee pricing result
+ * @param brief - Parsed brief with affiliate configuration
+ * @param profile - Creator profile (for currency)
+ * @returns Complete pricing result for hybrid deal
+ */
+function calculateHybridPricing(
+  basePricing: PricingResult,
+  brief: ParsedBrief,
+  profile: CreatorProfile
+): PricingResult {
+  const affiliateConfig = brief.affiliateConfig!;
+  const hybridBreakdown = calculateHybridPrice(basePricing.totalPrice, affiliateConfig);
+
+  // Get currency info from profile
+  const currencyInfo = CURRENCIES.find(c => c.code === profile.currency) || CURRENCIES[0];
+
+  // Add hybrid-specific layers
+  const hybridLayers: PricingLayer[] = [
+    ...basePricing.layers,
+    {
+      name: "Hybrid Discount",
+      description: `Base fee reduced to ${100 - hybridBreakdown.baseDiscount}% for hybrid model`,
+      baseValue: `-${hybridBreakdown.baseDiscount}%`,
+      multiplier: HYBRID_BASE_FEE_DISCOUNT,
+      adjustment: -(basePricing.totalPrice * HYBRID_BASE_FEE_DISCOUNT),
+    },
+    {
+      name: "Affiliate Commission",
+      description: `${affiliateConfig.affiliateRate}% on ${affiliateConfig.estimatedSales} est. sales`,
+      baseValue: `${affiliateConfig.affiliateRate}%`,
+      multiplier: 1,
+      adjustment: hybridBreakdown.affiliateEarnings.estimatedEarnings,
+    },
+  ];
+
+  const formula = `(${currencyInfo.symbol}${hybridBreakdown.fullRate} × 50%) + (${affiliateConfig.estimatedSales} × ${currencyInfo.symbol}${affiliateConfig.averageOrderValue} × ${affiliateConfig.affiliateRate}%) = ${currencyInfo.symbol}${hybridBreakdown.combinedEstimate}`;
+
+  return {
+    pricePerDeliverable: hybridBreakdown.baseFee,
+    quantity: brief.content.quantity,
+    totalPrice: hybridBreakdown.combinedEstimate,
+    currency: currencyInfo.code,
+    currencySymbol: currencyInfo.symbol,
+    validDays: 14,
+    layers: hybridLayers,
+    formula,
+    pricingModel: "hybrid",
+    hybridBreakdown,
+    affiliateBreakdown: hybridBreakdown.affiliateEarnings,
+  };
+}
+
+/**
+ * Calculate performance pricing (base fee + performance bonus).
+ *
+ * Takes a standard pricing result and adds performance bonus component:
+ * - Full base fee as guaranteed payment
+ * - Bonus when performance targets are met
+ * - Shows potential total earnings
+ *
+ * @param basePricing - Standard flat fee pricing result
+ * @param brief - Parsed brief with performance configuration
+ * @param profile - Creator profile (for currency)
+ * @returns Complete pricing result for performance deal
+ */
+function calculatePerformancePricing(
+  basePricing: PricingResult,
+  brief: ParsedBrief,
+  profile: CreatorProfile
+): PricingResult {
+  const performanceConfig = brief.performanceConfig!;
+  const performanceBreakdown = calculatePerformancePrice(basePricing.totalPrice, performanceConfig);
+
+  // Get currency info from profile
+  const currencyInfo = CURRENCIES.find(c => c.code === profile.currency) || CURRENCIES[0];
+
+  // Add performance-specific layer
+  const performanceLayers: PricingLayer[] = [
+    ...basePricing.layers,
+    {
+      name: "Performance Bonus",
+      description: `+${currencyInfo.symbol}${performanceConfig.bonusAmount} if ${performanceConfig.bonusThreshold.toLocaleString()} ${performanceConfig.bonusMetric} reached`,
+      baseValue: `${performanceConfig.bonusThreshold} ${performanceConfig.bonusMetric}`,
+      multiplier: 1,
+      adjustment: performanceConfig.bonusAmount,
+    },
+  ];
+
+  const formula = `${currencyInfo.symbol}${performanceBreakdown.baseFee} base + ${currencyInfo.symbol}${performanceBreakdown.bonusAmount} bonus (at ${performanceBreakdown.bonusThreshold} ${performanceBreakdown.bonusMetric}) = ${currencyInfo.symbol}${performanceBreakdown.potentialTotal} potential`;
+
+  return {
+    pricePerDeliverable: basePricing.pricePerDeliverable,
+    quantity: brief.content.quantity,
+    totalPrice: performanceBreakdown.baseFee, // Guaranteed amount
+    currency: currencyInfo.code,
+    currencySymbol: currencyInfo.symbol,
+    validDays: 14,
+    layers: performanceLayers,
+    formula,
+    pricingModel: "performance",
+    performanceBreakdown,
+  };
+}
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -853,7 +1200,42 @@ export function calculatePrice(
     return calculateUGCPrice(brief, profile);
   }
 
-  // Otherwise, use standard sponsored content pricing
+  // Route to pure affiliate pricing if pricing model is "affiliate"
+  if (brief.pricingModel === "affiliate") {
+    return calculateAffiliatePricing(brief, profile);
+  }
+
+  // For hybrid and performance models, we need to calculate the base flat fee first,
+  // then wrap with the respective model. Calculate standard pricing and then enhance.
+  const basePricingResult = calculateStandardSponsoredPrice(profile, brief, fitScore);
+
+  // Route to hybrid pricing (50% base + affiliate)
+  if (brief.pricingModel === "hybrid" && brief.affiliateConfig) {
+    return calculateHybridPricing(basePricingResult, brief, profile);
+  }
+
+  // Route to performance pricing (base + bonus)
+  if (brief.pricingModel === "performance" && brief.performanceConfig) {
+    return calculatePerformancePricing(basePricingResult, brief, profile);
+  }
+
+  // Default: return standard sponsored pricing (flat_fee or unspecified)
+  return {
+    ...basePricingResult,
+    pricingModel: "flat_fee",
+  };
+}
+
+/**
+ * Calculate standard sponsored content pricing (flat fee model).
+ * This is the core 11-layer pricing engine used for flat fee and as the base for hybrid/performance.
+ */
+function calculateStandardSponsoredPrice(
+  profile: CreatorProfile,
+  brief: ParsedBrief,
+  fitScore: FitScoreResult
+): PricingResult {
+  // Standard sponsored content pricing
   const layers: PricingLayer[] = [];
 
   // -------------------------------------------------------------------------
