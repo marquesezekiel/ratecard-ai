@@ -57,12 +57,16 @@ const INDUSTRY_NICHES: Record<string, string[]> = {
 /**
  * Engagement rate benchmarks by tier.
  * These represent "good" engagement for each tier.
+ * Engagement typically decreases as follower count increases.
  */
 const ENGAGEMENT_BENCHMARKS: Record<CreatorTier, number> = {
-  nano: 5.0,
-  micro: 3.5,
-  mid: 2.5,
-  macro: 1.5,
+  nano: 5.0, // 1K-10K followers
+  micro: 3.5, // 10K-50K followers
+  mid: 2.5, // 50K-100K followers
+  rising: 2.0, // 100K-250K followers
+  macro: 1.5, // 250K-500K followers
+  mega: 1.2, // 500K-1M followers
+  celebrity: 1.0, // 1M+ followers
 };
 
 /**

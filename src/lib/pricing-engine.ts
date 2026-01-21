@@ -18,6 +18,10 @@ import type {
   PricingResult,
   PricingLayer,
   ExclusivityLevel,
+  UGCFormat,
+  WhitelistingType,
+  Region,
+  Platform,
 } from "./types";
 import { CURRENCIES } from "./types";
 
@@ -28,12 +32,129 @@ import { CURRENCIES } from "./types";
 /**
  * Base rates in USD based on creator tier.
  * These represent the starting point for a single deliverable.
+ * Updated to 2025 industry standards.
  */
 const BASE_RATES: Record<CreatorTier, number> = {
-  nano: 100, // 1K-10K followers
-  micro: 250, // 10K-50K followers
-  mid: 750, // 50K-500K followers
-  macro: 2500, // 500K+ followers
+  nano: 150, // 1K-10K followers
+  micro: 400, // 10K-50K followers
+  mid: 800, // 50K-100K followers
+  rising: 1500, // 100K-250K followers
+  macro: 3000, // 250K-500K followers
+  mega: 6000, // 500K-1M followers
+  celebrity: 12000, // 1M+ followers
+};
+
+/**
+ * UGC (User-Generated Content) base rates.
+ * UGC is priced as a SERVICE, not based on audience size.
+ * These are flat rates per deliverable.
+ */
+const UGC_BASE_RATES: Record<UGCFormat, number> = {
+  video: 175, // UGC video content
+  photo: 100, // UGC photo content
+};
+
+// =============================================================================
+// LAYER 1.5: REGIONAL MULTIPLIERS
+// =============================================================================
+
+/**
+ * Regional rate multipliers based on creator's primary market.
+ * These reflect differences in advertiser budgets and creator earning
+ * potential across different geographic regions.
+ *
+ * United States is the baseline (1.0x). Other regions are adjusted
+ * relative to US market rates.
+ */
+const REGIONAL_MULTIPLIERS: Record<Region, number> = {
+  united_states: 1.0, // Baseline
+  united_kingdom: 0.95,
+  canada: 0.9,
+  australia: 0.9,
+  western_europe: 0.85, // Germany, France, Netherlands, etc.
+  uae_gulf: 1.1, // UAE, Saudi Arabia, Qatar, etc.
+  singapore_hk: 0.95, // Singapore, Hong Kong
+  japan: 0.8,
+  south_korea: 0.75,
+  brazil: 0.6,
+  mexico: 0.55,
+  india: 0.4,
+  southeast_asia: 0.5, // Thailand, Vietnam, Philippines, Indonesia, etc.
+  eastern_europe: 0.5, // Poland, Romania, Czech Republic, etc.
+  africa: 0.4,
+  other: 0.7, // Default for unknown regions
+};
+
+/** Default region when not specified */
+const DEFAULT_REGION: Region = "united_states";
+
+/**
+ * Human-readable display names for regions.
+ */
+const REGION_DISPLAY_NAMES: Record<Region, string> = {
+  united_states: "United States",
+  united_kingdom: "United Kingdom",
+  canada: "Canada",
+  australia: "Australia",
+  western_europe: "Western Europe",
+  uae_gulf: "UAE/Gulf States",
+  singapore_hk: "Singapore/Hong Kong",
+  japan: "Japan",
+  south_korea: "South Korea",
+  brazil: "Brazil",
+  mexico: "Mexico",
+  india: "India",
+  southeast_asia: "Southeast Asia",
+  eastern_europe: "Eastern Europe",
+  africa: "Africa",
+  other: "Other",
+};
+
+// =============================================================================
+// LAYER 1.25: PLATFORM MULTIPLIERS
+// =============================================================================
+
+/**
+ * Platform-specific base rate multipliers.
+ * Different platforms have different monetization potential and advertiser demand.
+ *
+ * Instagram is the baseline (1.0x). Other platforms are adjusted relative
+ * to Instagram's proven advertising ROI and creator monetization ecosystem.
+ */
+const PLATFORM_MULTIPLIERS: Record<Platform, number> = {
+  instagram: 1.0, // Baseline - most established creator economy
+  tiktok: 0.9, // High reach but lower conversion rates
+  youtube: 1.4, // Long-form premium, high watch time
+  youtube_shorts: 0.7, // Short-form, separate from long-form YouTube
+  twitter: 0.7, // Lower engagement, text-focused
+  threads: 0.6, // Newer platform, less proven ROI
+  pinterest: 0.8, // High purchase intent, visual discovery
+  linkedin: 1.3, // B2B premium, professional audience
+  bluesky: 0.5, // Emerging platform, small audience
+  lemon8: 0.6, // Emerging, shopping-focused
+  snapchat: 0.75, // Younger demo, disappearing content
+  twitch: 1.1, // Live streaming premium, high engagement
+};
+
+/** Default platform multiplier for unknown platforms */
+const DEFAULT_PLATFORM_MULTIPLIER = 1.0;
+
+/**
+ * Human-readable display names for platforms.
+ */
+const PLATFORM_DISPLAY_NAMES: Record<Platform, string> = {
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+  youtube_shorts: "YouTube Shorts",
+  twitter: "Twitter/X",
+  threads: "Threads",
+  pinterest: "Pinterest",
+  linkedin: "LinkedIn",
+  bluesky: "Bluesky",
+  lemon8: "Lemon8",
+  snapchat: "Snapchat",
+  twitch: "Twitch",
 };
 
 // =============================================================================
@@ -53,6 +174,61 @@ const ENGAGEMENT_THRESHOLDS = [
 ];
 
 // =============================================================================
+// LAYER 2.5: NICHE/INDUSTRY PREMIUM
+// =============================================================================
+
+/**
+ * Niche/industry premium multipliers.
+ * Different niches command different rates based on advertiser demand
+ * and audience purchasing power.
+ */
+const NICHE_PREMIUMS: Record<string, number> = {
+  // High-value niches (high advertiser demand, high-intent audiences)
+  finance: 2.0,
+  investing: 2.0,
+  "b2b": 1.8,
+  business: 1.8,
+  tech: 1.7,
+  software: 1.7,
+  technology: 1.7,
+  legal: 1.7,
+  medical: 1.7,
+  healthcare: 1.7,
+  luxury: 1.5,
+  "high-end fashion": 1.5,
+
+  // Premium niches
+  beauty: 1.3,
+  skincare: 1.3,
+  cosmetics: 1.3,
+  fitness: 1.2,
+  wellness: 1.2,
+  health: 1.2,
+
+  // Standard niches
+  food: 1.15,
+  cooking: 1.15,
+  recipes: 1.15,
+  travel: 1.15,
+  parenting: 1.1,
+  family: 1.1,
+  motherhood: 1.1,
+
+  // Baseline niches
+  lifestyle: 1.0,
+  entertainment: 1.0,
+  comedy: 1.0,
+  music: 1.0,
+
+  // Below baseline
+  gaming: 0.95,
+  esports: 0.95,
+};
+
+/** Default multiplier for unknown niches */
+const DEFAULT_NICHE_PREMIUM = 1.0;
+
+// =============================================================================
 // LAYER 3: FORMAT PREMIUMS
 // =============================================================================
 
@@ -67,7 +243,7 @@ const FORMAT_PREMIUMS: Record<ContentFormat, number> = {
   reel: 0.25, // Short-form video
   video: 0.35, // Long-form video
   live: 0.4, // Real-time, high effort
-  ugc: -0.25, // User-generated, less polish expected
+  ugc: 0, // Deprecated: UGC is now a deal type, not a format
 };
 
 // =============================================================================
@@ -113,6 +289,31 @@ const EXCLUSIVITY_PREMIUMS: Record<ExclusivityLevel, number> = {
 };
 
 // =============================================================================
+// LAYER 5.5: WHITELISTING PREMIUM
+// =============================================================================
+
+/**
+ * Whitelisting premiums based on how brand can use creator content.
+ * This is separate from usage rights (duration + exclusivity) because
+ * whitelisting represents additional value when brands use creator content
+ * in their own channels/ads.
+ *
+ * - none: Content stays on creator's channels only (0%)
+ * - organic: Brand can repost organically (+50%)
+ * - paid_social: Brand can run as paid social ads (+100%)
+ * - full_media: Full media buy - TV, OOH, digital ads (+200%)
+ */
+const WHITELISTING_PREMIUMS: Record<WhitelistingType, number> = {
+  none: 0, // No whitelisting
+  organic: 0.5, // Brand reposts (+50%)
+  paid_social: 1.0, // Brand runs as paid ads (+100%)
+  full_media: 2.0, // Full media buy (+200%)
+};
+
+/** Default whitelisting type */
+const DEFAULT_WHITELISTING_TYPE: WhitelistingType = "none";
+
+// =============================================================================
 // LAYER 6: COMPLEXITY
 // =============================================================================
 
@@ -134,11 +335,59 @@ const COMPLEXITY_PREMIUMS: Record<ComplexityLevel, number> = {
 const FORMAT_COMPLEXITY: Record<ContentFormat, ComplexityLevel> = {
   static: "simple",
   story: "simple",
-  ugc: "simple",
+  ugc: "simple", // Deprecated: UGC is now a deal type
   carousel: "standard",
   reel: "standard",
   video: "production",
   live: "complex",
+};
+
+/**
+ * Map UGC format to complexity level.
+ * UGC complexity is generally simpler than sponsored content.
+ */
+const UGC_FORMAT_COMPLEXITY: Record<UGCFormat, ComplexityLevel> = {
+  photo: "simple",
+  video: "standard",
+};
+
+// =============================================================================
+// LAYER 6.5: SEASONAL PRICING
+// =============================================================================
+
+/**
+ * Seasonal period type for pricing adjustments.
+ * Brands pay more during high-demand periods.
+ */
+type SeasonalPeriod = "q4_holiday" | "back_to_school" | "valentines" | "summer" | "default";
+
+/**
+ * Seasonal pricing premiums.
+ * These represent demand-based adjustments for peak advertising periods.
+ *
+ * - Q4 Holiday (Nov 1 - Dec 31): +25% (highest demand period)
+ * - Back to School (Aug 1 - Sep 15): +15% (major retail period)
+ * - Valentine's (Feb 1-14): +10% (romance/gifting period)
+ * - Summer (Jun 1 - Aug 31): +5% (moderate increase)
+ * - Default (rest of year): 0%
+ */
+const SEASONAL_PREMIUMS: Record<SeasonalPeriod, number> = {
+  q4_holiday: 0.25, // Nov 1 - Dec 31: +25%
+  back_to_school: 0.15, // Aug 1 - Sep 15: +15%
+  valentines: 0.10, // Feb 1-14: +10%
+  summer: 0.05, // Jun 1 - Aug 31: +5%
+  default: 0, // Rest of year: 0%
+};
+
+/**
+ * Human-readable display names for seasonal periods.
+ */
+const SEASONAL_DISPLAY_NAMES: Record<SeasonalPeriod, string> = {
+  q4_holiday: "Q4 Holiday Season (Nov-Dec)",
+  back_to_school: "Back to School (Aug-Sep)",
+  valentines: "Valentine's Day (Feb)",
+  summer: "Summer Season (Jun-Aug)",
+  default: "Standard Period",
 };
 
 // =============================================================================
@@ -147,12 +396,66 @@ const FORMAT_COMPLEXITY: Record<ContentFormat, ComplexityLevel> = {
 
 /**
  * Calculate creator tier based on total follower count.
+ *
+ * Tier boundaries (2025 industry standards):
+ * - nano: 1K-10K followers
+ * - micro: 10K-50K followers
+ * - mid: 50K-100K followers
+ * - rising: 100K-250K followers
+ * - macro: 250K-500K followers
+ * - mega: 500K-1M followers
+ * - celebrity: 1M+ followers
  */
 export function calculateTier(followers: number): CreatorTier {
-  if (followers >= 500000) return "macro";
+  if (followers >= 1000000) return "celebrity";
+  if (followers >= 500000) return "mega";
+  if (followers >= 250000) return "macro";
+  if (followers >= 100000) return "rising";
   if (followers >= 50000) return "mid";
   if (followers >= 10000) return "micro";
   return "nano";
+}
+
+/**
+ * Get regional rate multiplier based on creator's primary market.
+ * Returns the multiplier for the specified region, or default (0.7x) for unknown regions.
+ *
+ * @param region - The creator's region identifier
+ * @returns Multiplier value (e.g., 1.0 for US, 0.95 for UK, 0.4 for India)
+ */
+export function getRegionalMultiplier(region: string | undefined): number {
+  if (!region) return REGIONAL_MULTIPLIERS[DEFAULT_REGION];
+  const normalizedRegion = region.toLowerCase().trim().replace(/\s+/g, "_") as Region;
+  return REGIONAL_MULTIPLIERS[normalizedRegion] ?? REGIONAL_MULTIPLIERS.other;
+}
+
+/**
+ * Get display name for a region.
+ */
+function getRegionDisplayName(region: Region | undefined): string {
+  return REGION_DISPLAY_NAMES[region || DEFAULT_REGION];
+}
+
+/**
+ * Get platform-specific rate multiplier.
+ * Returns the multiplier for the specified platform, or default (1.0x) for unknown platforms.
+ *
+ * @param platform - The target platform identifier
+ * @returns Multiplier value (e.g., 1.0 for Instagram, 1.4 for YouTube, 0.5 for Bluesky)
+ */
+export function getPlatformMultiplier(platform: string | undefined): number {
+  if (!platform) return DEFAULT_PLATFORM_MULTIPLIER;
+  const normalizedPlatform = platform.toLowerCase().trim().replace(/\s+/g, "_") as Platform;
+  return PLATFORM_MULTIPLIERS[normalizedPlatform] ?? DEFAULT_PLATFORM_MULTIPLIER;
+}
+
+/**
+ * Get display name for a platform.
+ */
+function getPlatformDisplayName(platform: Platform | string | undefined): string {
+  if (!platform) return "Unknown Platform";
+  const normalizedPlatform = platform.toLowerCase().trim().replace(/\s+/g, "_") as Platform;
+  return PLATFORM_DISPLAY_NAMES[normalizedPlatform] || platform;
 }
 
 /**
@@ -168,6 +471,63 @@ function getEngagementMultiplier(engagementRate: number): number {
 }
 
 /**
+ * Get niche/industry premium multiplier.
+ * Looks up the niche in the NICHE_PREMIUMS map, returning the default if not found.
+ *
+ * @param niche - The creator's primary niche or content category
+ * @returns Multiplier value (e.g., 2.0 for finance, 1.0 for lifestyle)
+ */
+export function getNichePremium(niche: string): number {
+  const normalizedNiche = niche.toLowerCase().trim();
+  return NICHE_PREMIUMS[normalizedNiche] ?? DEFAULT_NICHE_PREMIUM;
+}
+
+/**
+ * Get the display name for a niche premium.
+ * Maps the niche to a human-readable category name.
+ */
+function getNicheCategoryName(niche: string): string {
+  const normalizedNiche = niche.toLowerCase().trim();
+
+  // Map niches to display categories
+  const categoryMap: Record<string, string> = {
+    finance: "Finance/Investing",
+    investing: "Finance/Investing",
+    "b2b": "B2B/Business",
+    business: "B2B/Business",
+    tech: "Tech/Software",
+    software: "Tech/Software",
+    technology: "Tech/Software",
+    legal: "Legal/Medical",
+    medical: "Legal/Medical",
+    healthcare: "Legal/Medical",
+    luxury: "Luxury/High-end Fashion",
+    "high-end fashion": "Luxury/High-end Fashion",
+    beauty: "Beauty/Skincare",
+    skincare: "Beauty/Skincare",
+    cosmetics: "Beauty/Skincare",
+    fitness: "Fitness/Wellness",
+    wellness: "Fitness/Wellness",
+    health: "Fitness/Wellness",
+    food: "Food/Cooking",
+    cooking: "Food/Cooking",
+    recipes: "Food/Cooking",
+    travel: "Travel",
+    parenting: "Parenting/Family",
+    family: "Parenting/Family",
+    motherhood: "Parenting/Family",
+    lifestyle: "Lifestyle",
+    entertainment: "Entertainment/Comedy",
+    comedy: "Entertainment/Comedy",
+    music: "Entertainment/Comedy",
+    gaming: "Gaming",
+    esports: "Gaming",
+  };
+
+  return categoryMap[normalizedNiche] || "Other";
+}
+
+/**
  * Get duration-based usage rights premium.
  */
 function getDurationPremium(durationDays: number): number {
@@ -177,6 +537,114 @@ function getDurationPremium(durationDays: number): number {
     }
   }
   return DURATION_TIERS[DURATION_TIERS.length - 1].premium;
+}
+
+/**
+ * Get whitelisting premium based on type.
+ * Returns the premium multiplier for how brand can use creator content
+ * in their own channels.
+ *
+ * @param type - The whitelisting type
+ * @returns Premium value (e.g., 0 for none, 0.5 for organic, 1.0 for paid_social, 2.0 for full_media)
+ */
+export function getWhitelistingPremium(type: string | undefined): number {
+  if (!type) return WHITELISTING_PREMIUMS[DEFAULT_WHITELISTING_TYPE];
+  const normalizedType = type.toLowerCase().trim() as WhitelistingType;
+  return WHITELISTING_PREMIUMS[normalizedType] ?? WHITELISTING_PREMIUMS[DEFAULT_WHITELISTING_TYPE];
+}
+
+/**
+ * Get display name for whitelisting type.
+ * Maps the whitelisting type to a human-readable description.
+ */
+function getWhitelistingDisplayName(type: WhitelistingType | undefined): string {
+  const displayNames: Record<WhitelistingType, string> = {
+    none: "No whitelisting",
+    organic: "Organic reposts only",
+    paid_social: "Paid social ads",
+    full_media: "Full media buy (TV, OOH, digital)",
+  };
+  return displayNames[type || DEFAULT_WHITELISTING_TYPE];
+}
+
+/**
+ * Determine the seasonal period for a given date.
+ * Returns the appropriate seasonal period based on date ranges.
+ *
+ * Priority order (for overlapping dates like Aug 1-31):
+ * 1. Back to School (Aug 1 - Sep 15) takes priority in Aug
+ * 2. Summer (Jun 1 - Aug 31) applies Jun 1 - Jul 31 only due to overlap
+ *
+ * @param date - The date to check (defaults to current date)
+ * @returns The seasonal period identifier
+ */
+function getSeasonalPeriod(date: Date): SeasonalPeriod {
+  const month = date.getMonth(); // 0-indexed (0 = Jan, 11 = Dec)
+  const day = date.getDate();
+
+  // Q4 Holiday: Nov 1 - Dec 31 (months 10-11)
+  if (month === 10 || month === 11) {
+    return "q4_holiday";
+  }
+
+  // Back to School: Aug 1 - Sep 15 (month 7 or month 8 day 1-15)
+  if (month === 7 || (month === 8 && day <= 15)) {
+    return "back_to_school";
+  }
+
+  // Valentine's: Feb 1-14 (month 1, days 1-14)
+  if (month === 1 && day <= 14) {
+    return "valentines";
+  }
+
+  // Summer: Jun 1 - Jul 31 (months 5-6, Aug is handled by back_to_school)
+  if (month === 5 || month === 6) {
+    return "summer";
+  }
+
+  // Default: Rest of year
+  return "default";
+}
+
+/**
+ * Get seasonal pricing premium based on campaign date.
+ * Auto-detects the current season and returns appropriate premium.
+ *
+ * Seasonal periods and premiums:
+ * - Q4 Holiday (Nov 1 - Dec 31): +25%
+ * - Back to School (Aug 1 - Sep 15): +15%
+ * - Valentine's (Feb 1-14): +10%
+ * - Summer (Jun 1 - Aug 31): +5% (Note: Aug overlaps with Back to School)
+ * - Default (rest of year): 0%
+ *
+ * @param date - Optional date for seasonal calculation (defaults to current date)
+ * @returns Object containing the premium value and period info
+ */
+export function getSeasonalPremium(date?: Date | string): {
+  premium: number;
+  period: SeasonalPeriod;
+  displayName: string;
+} {
+  // Parse date if string, default to current date if not provided
+  let targetDate: Date;
+  if (date instanceof Date) {
+    targetDate = date;
+  } else if (typeof date === "string") {
+    targetDate = new Date(date);
+    // If invalid date, default to now
+    if (isNaN(targetDate.getTime())) {
+      targetDate = new Date();
+    }
+  } else {
+    targetDate = new Date();
+  }
+
+  const period = getSeasonalPeriod(targetDate);
+  return {
+    premium: SEASONAL_PREMIUMS[period],
+    period,
+    displayName: SEASONAL_DISPLAY_NAMES[period],
+  };
 }
 
 /**
@@ -203,11 +671,172 @@ function formatPremium(value: number): string {
 }
 
 // =============================================================================
+// UGC PRICING FUNCTION
+// =============================================================================
+
+/**
+ * Calculate pricing for UGC (User-Generated Content) deals.
+ *
+ * UGC is a SERVICE, not audience-based content. Pricing is based on:
+ * - Base rate per deliverable type (video $175, photo $100)
+ * - Usage rights (duration + exclusivity)
+ * - Complexity
+ *
+ * UGC pricing does NOT consider:
+ * - Follower count (audience size is irrelevant)
+ * - Engagement rate
+ * - Niche premium
+ * - Fit score
+ *
+ * @param brief - Parsed brand brief with UGC requirements
+ * @param profile - Creator profile (only used for currency)
+ * @returns Complete pricing result with layer-by-layer breakdown
+ */
+export function calculateUGCPrice(
+  brief: ParsedBrief,
+  profile: CreatorProfile
+): PricingResult {
+  const layers: PricingLayer[] = [];
+
+  // -------------------------------------------------------------------------
+  // Layer 1: UGC Base Rate (deliverable-based)
+  // -------------------------------------------------------------------------
+  const ugcFormat = brief.ugcFormat || "video";
+  const baseRate = UGC_BASE_RATES[ugcFormat];
+
+  layers.push({
+    name: "UGC Base Rate",
+    description: `${ugcFormat.charAt(0).toUpperCase() + ugcFormat.slice(1)} content base rate`,
+    baseValue: `$${baseRate}`,
+    multiplier: 1,
+    adjustment: baseRate,
+  });
+
+  let currentPrice = baseRate;
+
+  // -------------------------------------------------------------------------
+  // Layer 2: Usage Rights
+  // -------------------------------------------------------------------------
+  const durationDays = brief.usageRights.durationDays;
+  const exclusivity = brief.usageRights.exclusivity;
+  const durationPremium = getDurationPremium(durationDays);
+  const exclusivityPremium = EXCLUSIVITY_PREMIUMS[exclusivity];
+  const totalRightsPremium = durationPremium + exclusivityPremium;
+
+  let rightsDescription = "";
+  if (durationDays === 0) {
+    rightsDescription = "Content only, no paid usage";
+  } else if (durationDays >= 365) {
+    rightsDescription = "Perpetual usage rights";
+  } else {
+    rightsDescription = `${durationDays}-day usage rights`;
+  }
+  if (exclusivity !== "none") {
+    rightsDescription += `, ${exclusivity} exclusivity`;
+  }
+
+  layers.push({
+    name: "Usage Rights",
+    description: rightsDescription,
+    baseValue: `${durationDays} days`,
+    multiplier: 1 + totalRightsPremium,
+    adjustment: currentPrice * totalRightsPremium,
+  });
+
+  currentPrice *= 1 + totalRightsPremium;
+
+  // -------------------------------------------------------------------------
+  // Layer 2.5: Whitelisting Premium (UGC)
+  // -------------------------------------------------------------------------
+  const whitelistingType = brief.usageRights.whitelistingType || "none";
+  const whitelistingPremium = getWhitelistingPremium(whitelistingType);
+  const whitelistingDisplayName = getWhitelistingDisplayName(whitelistingType);
+
+  layers.push({
+    name: "Whitelisting",
+    description: whitelistingDisplayName,
+    baseValue: whitelistingType,
+    multiplier: 1 + whitelistingPremium,
+    adjustment: currentPrice * whitelistingPremium,
+  });
+
+  currentPrice *= 1 + whitelistingPremium;
+
+  // -------------------------------------------------------------------------
+  // Layer 3: Complexity
+  // -------------------------------------------------------------------------
+  const complexityLevel = UGC_FORMAT_COMPLEXITY[ugcFormat];
+  const complexityPremium = COMPLEXITY_PREMIUMS[complexityLevel];
+
+  layers.push({
+    name: "Complexity",
+    description: `${complexityLevel.charAt(0).toUpperCase() + complexityLevel.slice(1)} production requirements`,
+    baseValue: complexityLevel,
+    multiplier: 1 + complexityPremium,
+    adjustment: currentPrice * complexityPremium,
+  });
+
+  currentPrice *= 1 + complexityPremium;
+
+  // -------------------------------------------------------------------------
+  // Layer 3.5: Seasonal Premium (UGC)
+  // -------------------------------------------------------------------------
+  let seasonalPremium = 0;
+  let seasonalDisplayName = "Standard Period";
+
+  // Only apply seasonal pricing if not disabled
+  if (!brief.disableSeasonalPricing) {
+    const seasonalInfo = getSeasonalPremium(brief.campaignDate);
+    seasonalPremium = seasonalInfo.premium;
+    seasonalDisplayName = seasonalInfo.displayName;
+  }
+
+  layers.push({
+    name: "Seasonal",
+    description: seasonalDisplayName,
+    baseValue: brief.disableSeasonalPricing ? "disabled" : "auto",
+    multiplier: 1 + seasonalPremium,
+    adjustment: currentPrice * seasonalPremium,
+  });
+
+  currentPrice *= 1 + seasonalPremium;
+
+  // -------------------------------------------------------------------------
+  // Final Calculations
+  // -------------------------------------------------------------------------
+  const pricePerDeliverable = roundToNearestFive(currentPrice);
+  const quantity = brief.content.quantity;
+  const totalPrice = pricePerDeliverable * quantity;
+
+  // Build formula string (simpler for UGC)
+  const formula =
+    `$${baseRate} × (1 ${formatPremium(totalRightsPremium)}) × (1 ${formatPremium(whitelistingPremium)}) × (1 ${formatPremium(complexityPremium)}) × (1 ${formatPremium(seasonalPremium)})`;
+
+  // Get currency info from profile
+  const currencyInfo = CURRENCIES.find(c => c.code === profile.currency) || CURRENCIES[0];
+
+  return {
+    pricePerDeliverable,
+    quantity,
+    totalPrice,
+    currency: currencyInfo.code,
+    currencySymbol: currencyInfo.symbol,
+    validDays: 14,
+    layers,
+    formula,
+  };
+}
+
+// =============================================================================
 // MAIN PRICING FUNCTION
 // =============================================================================
 
 /**
  * Calculate the complete pricing breakdown for a creator-brand partnership.
+ *
+ * Routes to the appropriate pricing function based on deal type:
+ * - "sponsored" (default): Audience-based pricing using the 7-layer engine
+ * - "ugc": Deliverable-based pricing using flat rates
  *
  * @param profile - Creator's profile with platform metrics
  * @param brief - Parsed brand brief with campaign requirements
@@ -219,6 +848,12 @@ export function calculatePrice(
   brief: ParsedBrief,
   fitScore: FitScoreResult
 ): PricingResult {
+  // Route to UGC pricing if deal type is "ugc"
+  if (brief.dealType === "ugc") {
+    return calculateUGCPrice(brief, profile);
+  }
+
+  // Otherwise, use standard sponsored content pricing
   const layers: PricingLayer[] = [];
 
   // -------------------------------------------------------------------------
@@ -238,6 +873,40 @@ export function calculatePrice(
   let currentPrice = baseRate;
 
   // -------------------------------------------------------------------------
+  // Layer 1.25: Platform Multiplier
+  // -------------------------------------------------------------------------
+  const platform = brief.content.platform;
+  const platformMultiplier = getPlatformMultiplier(platform);
+  const platformDisplayName = getPlatformDisplayName(platform);
+
+  layers.push({
+    name: "Platform",
+    description: `${platformDisplayName} content rate`,
+    baseValue: platform,
+    multiplier: platformMultiplier,
+    adjustment: currentPrice * platformMultiplier - currentPrice,
+  });
+
+  currentPrice *= platformMultiplier;
+
+  // -------------------------------------------------------------------------
+  // Layer 1.5: Regional Multiplier
+  // -------------------------------------------------------------------------
+  const region = profile.region || DEFAULT_REGION;
+  const regionalMultiplier = getRegionalMultiplier(region);
+  const regionDisplayName = getRegionDisplayName(region);
+
+  layers.push({
+    name: "Regional",
+    description: `${regionDisplayName} market rate`,
+    baseValue: region,
+    multiplier: regionalMultiplier,
+    adjustment: currentPrice * regionalMultiplier - currentPrice,
+  });
+
+  currentPrice *= regionalMultiplier;
+
+  // -------------------------------------------------------------------------
   // Layer 2: Engagement Multiplier
   // -------------------------------------------------------------------------
   const engagementRate = profile.avgEngagementRate;
@@ -252,6 +921,24 @@ export function calculatePrice(
   });
 
   currentPrice *= engagementMultiplier;
+
+  // -------------------------------------------------------------------------
+  // Layer 2.5: Niche Premium
+  // -------------------------------------------------------------------------
+  // Use the creator's primary niche (first in the list) for premium calculation
+  const primaryNiche = profile.niches[0] || "lifestyle";
+  const nichePremiumMultiplier = getNichePremium(primaryNiche);
+  const nicheCategoryName = getNicheCategoryName(primaryNiche);
+
+  layers.push({
+    name: "Niche Premium",
+    description: `${nicheCategoryName} content commands ${nichePremiumMultiplier}x rates`,
+    baseValue: primaryNiche,
+    multiplier: nichePremiumMultiplier,
+    adjustment: currentPrice * nichePremiumMultiplier - currentPrice,
+  });
+
+  currentPrice *= nichePremiumMultiplier;
 
   // -------------------------------------------------------------------------
   // Layer 3: Format Premium
@@ -317,6 +1004,23 @@ export function calculatePrice(
   currentPrice *= 1 + totalRightsPremium;
 
   // -------------------------------------------------------------------------
+  // Layer 5.5: Whitelisting Premium
+  // -------------------------------------------------------------------------
+  const whitelistingType = brief.usageRights.whitelistingType || "none";
+  const whitelistingPremium = getWhitelistingPremium(whitelistingType);
+  const whitelistingDisplayName = getWhitelistingDisplayName(whitelistingType);
+
+  layers.push({
+    name: "Whitelisting",
+    description: whitelistingDisplayName,
+    baseValue: whitelistingType,
+    multiplier: 1 + whitelistingPremium,
+    adjustment: currentPrice * whitelistingPremium,
+  });
+
+  currentPrice *= 1 + whitelistingPremium;
+
+  // -------------------------------------------------------------------------
   // Layer 6: Complexity
   // -------------------------------------------------------------------------
   const complexityLevel = getComplexity(format);
@@ -333,6 +1037,29 @@ export function calculatePrice(
   currentPrice *= 1 + complexityPremium;
 
   // -------------------------------------------------------------------------
+  // Layer 6.5: Seasonal Premium
+  // -------------------------------------------------------------------------
+  let seasonalPremium = 0;
+  let seasonalDisplayName = "Standard Period";
+
+  // Only apply seasonal pricing if not disabled
+  if (!brief.disableSeasonalPricing) {
+    const seasonalInfo = getSeasonalPremium(brief.campaignDate);
+    seasonalPremium = seasonalInfo.premium;
+    seasonalDisplayName = seasonalInfo.displayName;
+  }
+
+  layers.push({
+    name: "Seasonal",
+    description: seasonalDisplayName,
+    baseValue: brief.disableSeasonalPricing ? "disabled" : "auto",
+    multiplier: 1 + seasonalPremium,
+    adjustment: currentPrice * seasonalPremium,
+  });
+
+  currentPrice *= 1 + seasonalPremium;
+
+  // -------------------------------------------------------------------------
   // Final Calculations
   // -------------------------------------------------------------------------
   const pricePerDeliverable = roundToNearestFive(currentPrice);
@@ -341,11 +1068,13 @@ export function calculatePrice(
 
   // Build formula string
   const formula =
-    `($${baseRate} × ${engagementMultiplier.toFixed(1)}) ` +
+    `($${baseRate} × ${platformMultiplier.toFixed(2)} × ${regionalMultiplier.toFixed(2)} × ${engagementMultiplier.toFixed(1)} × ${nichePremiumMultiplier.toFixed(1)}) ` +
     `× (1 ${formatPremium(formatPremiumValue)}) ` +
     `× (1 ${formatPremium(fitAdjustment)}) ` +
     `× (1 ${formatPremium(totalRightsPremium)}) ` +
-    `× (1 ${formatPremium(complexityPremium)})`;
+    `× (1 ${formatPremium(whitelistingPremium)}) ` +
+    `× (1 ${formatPremium(complexityPremium)}) ` +
+    `× (1 ${formatPremium(seasonalPremium)})`;
 
   // Get currency info from profile
   const currencyInfo = CURRENCIES.find(c => c.code === profile.currency) || CURRENCIES[0];

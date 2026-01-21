@@ -51,8 +51,35 @@ export interface PlatformMetrics {
 
 /**
  * Supported social media platforms for rate card generation.
+ * Each platform has different base rate multipliers in the pricing engine.
+ *
+ * Platform multipliers (relative to Instagram baseline):
+ * - instagram: 1.0x (baseline)
+ * - tiktok: 0.9x
+ * - youtube: 1.4x (long-form premium)
+ * - youtube_shorts: 0.7x (short-form, separate from long-form)
+ * - twitter: 0.7x
+ * - threads: 0.6x (newer, less proven ROI)
+ * - pinterest: 0.8x (high purchase intent)
+ * - linkedin: 1.3x (B2B premium)
+ * - bluesky: 0.5x (emerging)
+ * - lemon8: 0.6x (emerging, shopping-focused)
+ * - snapchat: 0.75x
+ * - twitch: 1.1x (live streaming premium)
  */
-export type Platform = "instagram" | "tiktok" | "youtube" | "twitter";
+export type Platform =
+  | "instagram"
+  | "tiktok"
+  | "youtube"
+  | "youtube_shorts"
+  | "twitter"
+  | "threads"
+  | "pinterest"
+  | "linkedin"
+  | "bluesky"
+  | "lemon8"
+  | "snapchat"
+  | "twitch";
 
 /**
  * Content format types supported for deliverables.
@@ -93,8 +120,42 @@ export interface AudienceDemographics {
 /**
  * Creator tier based on total follower count.
  * Determines the base rate in Layer 1 of the pricing engine.
+ *
+ * Tier boundaries (2025 industry standards):
+ * - nano: 1K-10K followers ($150)
+ * - micro: 10K-50K followers ($400)
+ * - mid: 50K-100K followers ($800)
+ * - rising: 100K-250K followers ($1,500)
+ * - macro: 250K-500K followers ($3,000)
+ * - mega: 500K-1M followers ($6,000)
+ * - celebrity: 1M+ followers ($12,000)
  */
-export type CreatorTier = "nano" | "micro" | "mid" | "macro";
+export type CreatorTier = "nano" | "micro" | "mid" | "rising" | "macro" | "mega" | "celebrity";
+
+/**
+ * Geographic region for regional rate adjustments.
+ * Determines the regional multiplier in Layer 1.5 of the pricing engine.
+ *
+ * Regional multipliers reflect market differences in advertiser budgets
+ * and creator earning potential by geography.
+ */
+export type Region =
+  | "united_states"
+  | "united_kingdom"
+  | "canada"
+  | "australia"
+  | "western_europe"
+  | "uae_gulf"
+  | "singapore_hk"
+  | "japan"
+  | "south_korea"
+  | "brazil"
+  | "mexico"
+  | "india"
+  | "southeast_asia"
+  | "eastern_europe"
+  | "africa"
+  | "other";
 
 /**
  * Complete creator profile with platform metrics and audience data.
@@ -113,6 +174,12 @@ export interface CreatorProfile {
   bio: string;
   /** Geographic location (e.g., "United States") */
   location: string;
+  /**
+   * Geographic region for rate adjustments.
+   * Defaults to "united_states" if not specified.
+   * Used in Layer 1.5 of the pricing engine.
+   */
+  region?: Region;
   /** Content niches/categories (max 5, e.g., ["lifestyle", "fashion"]) */
   niches: string[];
   /** Instagram platform metrics (optional) */
@@ -150,12 +217,47 @@ export interface CreatorProfile {
 export type ExclusivityLevel = "none" | "category" | "full";
 
 /**
+ * Deal type determines the pricing model used.
+ * - "sponsored": Audience-based pricing (follower count, engagement, niche matter)
+ * - "ugc": Deliverable-based pricing (flat rate per asset, audience size irrelevant)
+ */
+export type DealType = "sponsored" | "ugc";
+
+/**
+ * UGC content format for deliverable-based pricing.
+ * Used when dealType is "ugc".
+ */
+export type UGCFormat = "video" | "photo";
+
+/**
+ * Whitelisting type determines how the brand can use creator content in their own channels.
+ * This is separate from usage rights (duration + exclusivity) and represents additional value.
+ *
+ * - "none": No whitelisting, content stays on creator's channels only
+ * - "organic": Brand can repost content organically (no paid amplification)
+ * - "paid_social": Brand can run content as paid social ads
+ * - "full_media": Full media buy rights (TV, OOH, digital ads, all channels)
+ */
+export type WhitelistingType = "none" | "organic" | "paid_social" | "full_media";
+
+/**
  * Parsed and structured brand brief data.
  * Extracted from uploaded PDF/DOCX files or pasted text using LLM parsing.
  */
 export interface ParsedBrief {
   /** Unique identifier (set after database persistence) */
   id?: string;
+  /**
+   * Deal type determines pricing model.
+   * - "sponsored": Audience-based (default, current behavior)
+   * - "ugc": Deliverable-based (flat rate per asset)
+   */
+  dealType?: DealType;
+  /**
+   * UGC format when dealType is "ugc".
+   * Determines base rate: video ($175) or photo ($100).
+   */
+  ugcFormat?: UGCFormat;
   /** Brand/company information */
   brand: {
     /** Company or brand name */
@@ -193,12 +295,28 @@ export interface ParsedBrief {
     exclusivity: ExclusivityLevel;
     /** Whether brand can use content in paid ads */
     paidAmplification: boolean;
+    /**
+     * Whitelisting type - how brand can use content in their own channels.
+     * Separate from usage rights duration/exclusivity. Defaults to "none".
+     */
+    whitelistingType?: WhitelistingType;
   };
   /** Timeline information */
   timeline: {
     /** Content delivery deadline */
     deadline: string;
   };
+  /**
+   * Campaign date for seasonal pricing calculation.
+   * If not specified, defaults to current date.
+   * Used to determine if Q4 holiday, Back to School, etc. premiums apply.
+   */
+  campaignDate?: Date | string;
+  /**
+   * If true, disables automatic seasonal pricing adjustments.
+   * Useful when creator wants to offer consistent year-round rates.
+   */
+  disableSeasonalPricing?: boolean;
   /** Original unprocessed text from the brief */
   rawText: string;
 }
