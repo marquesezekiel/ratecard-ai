@@ -1778,3 +1778,313 @@ export type GiftDealResponse = ApiResponse<GiftDeal>;
  * Response from the gift tracker API for analytics.
  */
 export type GiftAnalyticsResponse = ApiResponse<GiftAnalytics>;
+
+// =============================================================================
+// OUTCOME TRACKING TYPES
+// =============================================================================
+
+/**
+ * Source type for outcomes - what generated this outcome record.
+ */
+export type OutcomeSourceType = "rate_card" | "dm_analysis" | "gift_evaluation";
+
+/**
+ * Proposed deal type for outcomes.
+ */
+export type OutcomeProposedType = "paid" | "gift" | "hybrid" | "affiliate";
+
+/**
+ * Outcome status - what happened with the deal.
+ */
+export type OutcomeStatus =
+  | "accepted"
+  | "negotiated"
+  | "rejected"
+  | "ghosted"
+  | "pending"
+  | "gift_accepted"
+  | "gift_converted";
+
+/**
+ * Gift-specific outcome - detailed status for gift deals.
+ */
+export type GiftOutcomeStatus =
+  | "accepted_gift"
+  | "countered_to_paid"
+  | "declined"
+  | "converted_later";
+
+/**
+ * Complete outcome record for tracking deal results.
+ *
+ * This tracks what happens after a rate card is sent, DM is analyzed,
+ * or gift evaluation is completed. Essential for building market intelligence
+ * and the data flywheel.
+ */
+export interface Outcome {
+  /** Unique identifier */
+  id: string;
+  /** Reference to the creator who tracked this outcome */
+  creatorId: string;
+
+  // Source tracking
+  /** What generated this outcome (rate_card, dm_analysis, gift_evaluation) */
+  sourceType: OutcomeSourceType;
+  /** ID of the source record (rate card ID, DM ID, or gift ID) */
+  sourceId: string | null;
+
+  // What was proposed
+  /** Proposed rate in dollars (null for gift-only offers) */
+  proposedRate: number | null;
+  /** Type of deal proposed */
+  proposedType: OutcomeProposedType;
+  /** Platform for the deal */
+  platform: string;
+  /** Deal type (sponsored, ugc) */
+  dealType: string;
+  /** Niche/industry for benchmarking */
+  niche: string | null;
+
+  // What happened
+  /** Final outcome status */
+  outcome: OutcomeStatus;
+  /** Final rate if different from proposed */
+  finalRate: number | null;
+  /** Percentage change from proposed to final (positive = increased) */
+  negotiationDelta: number | null;
+
+  // Gift-specific outcomes
+  /** Detailed gift outcome (for gift deals only) */
+  giftOutcome: GiftOutcomeStatus | null;
+  /** Days from gift to paid conversion (for converted gifts) */
+  giftConversionDays: number | null;
+
+  // Metadata
+  /** Brand name for tracking */
+  brandName: string | null;
+  /** Brand's follower count */
+  brandFollowers: number | null;
+  /** Deal length (one_time, monthly, 3_month, etc.) */
+  dealLength: string | null;
+  /** Whether this deal started as a gift before converting */
+  wasGiftFirst: boolean;
+
+  // Timestamps
+  /** When this outcome record was created */
+  createdAt: Date;
+  /** When this outcome record was last updated */
+  updatedAt: Date;
+  /** When the deal was closed/finalized */
+  closedAt: Date | null;
+}
+
+/**
+ * Input for creating a new outcome record.
+ */
+export interface OutcomeCreateInput {
+  // Source tracking (required)
+  /** What generated this outcome */
+  sourceType: OutcomeSourceType;
+  /** ID of the source record */
+  sourceId?: string;
+
+  // What was proposed (required)
+  /** Proposed rate in dollars */
+  proposedRate?: number;
+  /** Type of deal proposed */
+  proposedType: OutcomeProposedType;
+  /** Platform for the deal */
+  platform: string;
+  /** Deal type (sponsored, ugc) */
+  dealType: string;
+  /** Niche/industry */
+  niche?: string;
+
+  // Initial outcome (defaults to "pending")
+  /** Initial outcome status */
+  outcome?: OutcomeStatus;
+
+  // Metadata (optional)
+  /** Brand name */
+  brandName?: string;
+  /** Brand's follower count */
+  brandFollowers?: number;
+  /** Deal length */
+  dealLength?: string;
+  /** Did this start as a gift? */
+  wasGiftFirst?: boolean;
+}
+
+/**
+ * Input for updating an outcome record.
+ */
+export interface OutcomeUpdateInput {
+  // Update outcome
+  /** New outcome status */
+  outcome?: OutcomeStatus;
+  /** Final rate achieved */
+  finalRate?: number;
+  /** Percentage change from proposed */
+  negotiationDelta?: number;
+
+  // Gift-specific updates
+  /** Gift outcome status */
+  giftOutcome?: GiftOutcomeStatus;
+  /** Days to conversion */
+  giftConversionDays?: number;
+
+  // Metadata updates
+  /** Brand name */
+  brandName?: string;
+  /** Brand followers */
+  brandFollowers?: number;
+  /** Deal length */
+  dealLength?: string;
+
+  // Close the outcome
+  /** When the deal was closed */
+  closedAt?: Date | string;
+}
+
+/**
+ * Acceptance rate breakdown by deal type.
+ */
+export interface AcceptanceRates {
+  /** Acceptance rate for paid deals (0-1) */
+  paid: number;
+  /** Acceptance rate for gift deals (0-1) */
+  gift: number;
+  /** Overall acceptance rate (0-1) */
+  overall: number;
+  /** Total outcomes tracked for each type */
+  counts: {
+    paid: number;
+    gift: number;
+    total: number;
+  };
+}
+
+/**
+ * Market benchmark data for comparison.
+ * Aggregated from all creators in the same segment.
+ */
+export interface MarketBenchmark {
+  /** Average acceptance rate for this segment */
+  avgAcceptanceRate: number;
+  /** Average rate for this segment */
+  avgRate: number;
+  /** Average negotiation delta (how much rates change) */
+  avgNegotiationDelta: number;
+  /** Gift to paid conversion rate */
+  giftConversionRate: number;
+  /** Number of data points used */
+  sampleSize: number;
+  /** Segment criteria */
+  segment: {
+    platform: string | null;
+    niche: string | null;
+    tier: string | null;
+  };
+}
+
+/**
+ * Comprehensive outcome analytics for a creator.
+ */
+export interface OutcomeAnalytics {
+  // Overview stats
+  /** Total number of outcomes tracked */
+  totalOutcomes: number;
+  /** Outcomes by status */
+  byStatus: Record<OutcomeStatus, number>;
+
+  // Acceptance rates
+  /** Acceptance rates by deal type */
+  acceptanceRates: AcceptanceRates;
+
+  // Negotiation metrics
+  /** Average negotiation delta (percentage) */
+  avgNegotiationDelta: number;
+  /** Outcomes where rate was negotiated */
+  negotiatedCount: number;
+
+  // Gift-specific metrics
+  /** Gift to paid conversion rate (0-1) */
+  giftConversionRate: number;
+  /** Average days from gift to conversion */
+  avgGiftConversionDays: number | null;
+  /** Total gifts tracked */
+  totalGifts: number;
+  /** Gifts that converted to paid */
+  giftsConverted: number;
+
+  // Revenue metrics (for closed deals)
+  /** Total revenue from accepted/negotiated deals */
+  totalRevenue: number;
+  /** Average deal value */
+  avgDealValue: number;
+
+  // Time-based metrics
+  /** Outcomes in the last 30 days */
+  last30Days: number;
+  /** Outcomes in the last 90 days */
+  last90Days: number;
+
+  // Comparison to market (if benchmark available)
+  benchmark: MarketBenchmark | null;
+
+  // Insights based on data
+  insights: OutcomeInsight[];
+}
+
+/**
+ * A single insight generated from outcome data.
+ */
+export interface OutcomeInsight {
+  /** Type of insight */
+  type: "positive" | "negative" | "neutral" | "suggestion";
+  /** The insight message */
+  message: string;
+  /** Supporting data */
+  data?: {
+    value: number;
+    comparison?: number;
+    unit?: string;
+  };
+}
+
+/**
+ * Filter options for querying outcomes.
+ */
+export interface OutcomeFilters {
+  /** Filter by source type */
+  sourceType?: OutcomeSourceType;
+  /** Filter by proposed type */
+  proposedType?: OutcomeProposedType;
+  /** Filter by outcome status */
+  outcome?: OutcomeStatus;
+  /** Filter by platform */
+  platform?: string;
+  /** Filter by niche */
+  niche?: string;
+  /** Filter by date range - start */
+  startDate?: Date | string;
+  /** Filter by date range - end */
+  endDate?: Date | string;
+  /** Include only closed outcomes */
+  closedOnly?: boolean;
+}
+
+/**
+ * Response from the outcome API for listing outcomes.
+ */
+export type OutcomeListResponse = ApiResponse<Outcome[]>;
+
+/**
+ * Response from the outcome API for a single outcome.
+ */
+export type OutcomeResponse = ApiResponse<Outcome>;
+
+/**
+ * Response from the outcome API for analytics.
+ */
+export type OutcomeAnalyticsResponse = ApiResponse<OutcomeAnalytics>;
