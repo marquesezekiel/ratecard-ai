@@ -747,3 +747,179 @@ export function isLikelyGiftOffer(dmText: string): boolean {
 export function isLikelyMassOutreach(dmText: string): boolean {
   return containsMassOutreachSignals(dmText);
 }
+
+// =============================================================================
+// IMAGE PARSING
+// =============================================================================
+
+import {
+  extractTextFromImage,
+  processUploadedImage,
+  processClipboardImage,
+} from "./dm-image-processor";
+import type { DMImageAnalysis } from "./types";
+
+/**
+ * Parse a DM screenshot image and return structured analysis with gift detection.
+ *
+ * Uses Gemini Vision to extract text from the screenshot, then runs the same
+ * analysis as the text parser including gift detection.
+ *
+ * @param imageData - Base64 encoded image data (without data URL prefix)
+ * @param mimeType - MIME type of the image
+ * @param creatorProfile - The creator's profile for rate calculations
+ * @returns Complete DM analysis with extraction details
+ * @throws Error if image processing fails or no text could be extracted
+ */
+export async function parseDMImage(
+  imageData: string,
+  mimeType: string,
+  creatorProfile: CreatorProfile
+): Promise<DMImageAnalysis> {
+  // Extract text from the image
+  const extraction = await extractTextFromImage(imageData, mimeType);
+
+  // If extraction failed or image is not a valid DM
+  if (!extraction.isValidDMScreenshot) {
+    throw new Error(
+      extraction.error ||
+        "This doesn't appear to be a DM screenshot. Please upload a clear screenshot of a brand message."
+    );
+  }
+
+  // If no text was extracted
+  if (!extraction.extractedText || extraction.extractedText.trim().length < MIN_DM_LENGTH) {
+    throw new Error(
+      "Could not extract enough text from the screenshot. Please ensure the image is clear and the text is readable."
+    );
+  }
+
+  // Run the standard text analysis on the extracted text
+  const textAnalysis = await parseDMText(extraction.extractedText, creatorProfile);
+
+  // Enhance the result with image-specific data
+  const imageAnalysis: DMImageAnalysis = {
+    ...textAnalysis,
+    source: "image",
+    imageExtraction: extraction,
+  };
+
+  // If we detected a platform from the screenshot, use it to inform the analysis
+  if (extraction.detectedPlatform !== "unknown") {
+    // Map detected platform to our Platform type if applicable
+    const platformMapping: Record<string, string> = {
+      instagram: "instagram",
+      tiktok: "tiktok",
+      twitter: "twitter",
+      linkedin: "linkedin",
+    };
+
+    const mappedPlatform = platformMapping[extraction.detectedPlatform];
+    if (mappedPlatform && imageAnalysis.extractedRequirements) {
+      if (!imageAnalysis.extractedRequirements.content) {
+        imageAnalysis.extractedRequirements.content = {
+          platform: mappedPlatform as Platform,
+          format: "static",
+          quantity: 1,
+          creativeDirection: "",
+        };
+      } else if (!imageAnalysis.extractedRequirements.content.platform) {
+        imageAnalysis.extractedRequirements.content.platform = mappedPlatform as Platform;
+      }
+    }
+  }
+
+  return imageAnalysis;
+}
+
+/**
+ * Parse a DM from an uploaded file.
+ *
+ * @param file - The uploaded file
+ * @param creatorProfile - The creator's profile for rate calculations
+ * @returns Complete DM analysis with extraction details
+ */
+export async function parseDMFromFile(
+  file: File,
+  creatorProfile: CreatorProfile
+): Promise<DMImageAnalysis> {
+  // Process the uploaded file
+  const extraction = await processUploadedImage(file);
+
+  // If extraction failed or image is not a valid DM
+  if (!extraction.isValidDMScreenshot) {
+    throw new Error(
+      extraction.error ||
+        "This doesn't appear to be a DM screenshot. Please upload a clear screenshot of a brand message."
+    );
+  }
+
+  // If no text was extracted
+  if (!extraction.extractedText || extraction.extractedText.trim().length < MIN_DM_LENGTH) {
+    throw new Error(
+      "Could not extract enough text from the screenshot. Please ensure the image is clear and the text is readable."
+    );
+  }
+
+  // Run the standard text analysis on the extracted text
+  const textAnalysis = await parseDMText(extraction.extractedText, creatorProfile);
+
+  // Enhance the result with image-specific data
+  return {
+    ...textAnalysis,
+    source: "image",
+    imageExtraction: extraction,
+  };
+}
+
+/**
+ * Parse a DM from clipboard paste (data URL).
+ *
+ * @param dataUrl - The data URL from clipboard (e.g., "data:image/png;base64,...")
+ * @param creatorProfile - The creator's profile for rate calculations
+ * @returns Complete DM analysis with extraction details
+ */
+export async function parseDMFromClipboard(
+  dataUrl: string,
+  creatorProfile: CreatorProfile
+): Promise<DMImageAnalysis> {
+  // Process the clipboard data
+  const extraction = await processClipboardImage(dataUrl);
+
+  // If extraction failed or image is not a valid DM
+  if (!extraction.isValidDMScreenshot) {
+    throw new Error(
+      extraction.error ||
+        "This doesn't appear to be a DM screenshot. Please paste a clear screenshot of a brand message."
+    );
+  }
+
+  // If no text was extracted
+  if (!extraction.extractedText || extraction.extractedText.trim().length < MIN_DM_LENGTH) {
+    throw new Error(
+      "Could not extract enough text from the screenshot. Please ensure the image is clear and the text is readable."
+    );
+  }
+
+  // Run the standard text analysis on the extracted text
+  const textAnalysis = await parseDMText(extraction.extractedText, creatorProfile);
+
+  // Enhance the result with image-specific data
+  return {
+    ...textAnalysis,
+    source: "image",
+    imageExtraction: extraction,
+  };
+}
+
+// Re-export image processing utilities for convenience
+export {
+  extractTextFromImage,
+  processUploadedImage,
+  processClipboardImage,
+  isValidMimeType,
+  isValidFileSize,
+  getMaxFileSizeMB,
+  SUPPORTED_MIME_TYPES,
+  SUPPORTED_MIME_TYPE_LIST,
+} from "./dm-image-processor";

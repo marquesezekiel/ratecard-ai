@@ -2088,3 +2088,76 @@ export type OutcomeResponse = ApiResponse<Outcome>;
  * Response from the outcome API for analytics.
  */
 export type OutcomeAnalyticsResponse = ApiResponse<OutcomeAnalytics>;
+
+// =============================================================================
+// DM IMAGE PARSING TYPES
+// =============================================================================
+
+/**
+ * Supported image formats for DM screenshot parsing.
+ */
+export type SupportedImageFormat = "png" | "jpg" | "jpeg" | "webp" | "heic";
+
+/**
+ * Detected platform from screenshot UI elements.
+ */
+export type DetectedPlatform =
+  | "instagram"
+  | "tiktok"
+  | "twitter"
+  | "email"
+  | "linkedin"
+  | "whatsapp"
+  | "unknown";
+
+/**
+ * Result of extracting text from a DM screenshot.
+ */
+export interface DMImageExtractionResult {
+  /** Extracted text content from the image */
+  extractedText: string;
+  /** Platform detected from UI elements */
+  detectedPlatform: DetectedPlatform;
+  /** Confidence level of the extraction (0-1) */
+  confidence: number;
+  /** Whether the image appears to be a valid DM screenshot */
+  isValidDMScreenshot: boolean;
+  /** Error message if extraction failed */
+  error?: string;
+  /** Additional metadata about the extraction */
+  metadata?: {
+    /** Whether multiple messages were detected */
+    multipleMessages: boolean;
+    /** Sender name if detected */
+    senderName?: string;
+    /** Any profile picture or brand logo detected */
+    hasProfilePic: boolean;
+  };
+}
+
+/**
+ * Input for parsing a DM image.
+ */
+export interface DMImageParseInput {
+  /** Base64 encoded image data */
+  imageData: string;
+  /** MIME type of the image */
+  mimeType: string;
+  /** Original filename (optional) */
+  filename?: string;
+}
+
+/**
+ * Extended DM analysis result that includes image parsing info.
+ */
+export interface DMImageAnalysis extends DMAnalysis {
+  /** Source of the analysis */
+  source: "text" | "image";
+  /** Image extraction details (only present for image source) */
+  imageExtraction?: DMImageExtractionResult;
+}
+
+/**
+ * Response from the DM parsing API that supports both text and image.
+ */
+export type DMParseResponse = ApiResponse<DMImageAnalysis>;
