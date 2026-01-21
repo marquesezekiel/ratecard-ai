@@ -1300,3 +1300,176 @@ export interface DMParserInput {
  * Response from the DM parser API.
  */
 export type DMParserResponse = ApiResponse<DMAnalysis>;
+
+// =============================================================================
+// GIFT EVALUATOR TYPES
+// =============================================================================
+
+/**
+ * Brand quality level for gift evaluation.
+ */
+export type GiftBrandQuality = "major_brand" | "established_indie" | "new_unknown" | "suspicious";
+
+/**
+ * Content required for a gift deal.
+ */
+export type GiftContentRequired = "organic_mention" | "dedicated_post" | "multiple_posts" | "video_content";
+
+/**
+ * Recommendation for how to respond to a gift offer.
+ */
+export type GiftRecommendation =
+  | "accept_with_hook"
+  | "counter_hybrid"
+  | "decline_politely"
+  | "ask_budget_first"
+  | "run_away";
+
+/**
+ * Input for evaluating a gift deal.
+ */
+export interface GiftEvaluationInput {
+  /** Description of the product being offered */
+  productDescription: string;
+  /** Estimated retail value of the product in dollars */
+  estimatedProductValue: number;
+  /** Type of content the brand expects */
+  contentRequired: GiftContentRequired;
+  /** Estimated hours to create the content */
+  estimatedHoursToCreate: number;
+  /** Quality/legitimacy of the brand */
+  brandQuality: GiftBrandQuality;
+  /** Would the creator buy this product themselves? */
+  wouldYouBuyIt: boolean;
+  /** Brand's follower count (if known) */
+  brandFollowers: number | null;
+  /** Does the brand have a legitimate website? */
+  hasWebsite: boolean;
+  /** Has the brand worked with creators before? */
+  previousCreatorCollabs: boolean;
+}
+
+/**
+ * Analysis breakdown of the value exchange in a gift deal.
+ */
+export interface GiftAnalysisBreakdown {
+  /** Retail value of the product */
+  productValue: number;
+  /** Value of creator's time (hours × hourly rate) */
+  yourTimeValue: number;
+  /** Value of creator's audience reach */
+  audienceValue: number;
+  /** Total value the creator is providing */
+  totalValueProviding: number;
+  /** Gap between what creator provides vs receives (negative = bad deal) */
+  valueGap: number;
+  /** Effective hourly rate if accepting (product value / hours) */
+  effectiveHourlyRate: number;
+}
+
+/**
+ * Strategic assessment of a gift deal beyond monetary value.
+ */
+export interface GiftStrategicValue {
+  /** Strategic score (0-10) */
+  score: number;
+  /** Is this deal worth adding to portfolio? */
+  portfolioWorth: boolean;
+  /** Likelihood of converting to paid partnership */
+  conversionPotential: GiftConversionPotential;
+  /** Does this brand add credibility to creator's profile? */
+  brandReputationBoost: boolean;
+  /** Reasons supporting the strategic assessment */
+  reasons: string[];
+}
+
+/**
+ * Boundaries for accepting a gift-only deal.
+ * Helps creators protect themselves when accepting gifts.
+ */
+export interface GiftAcceptanceBoundaries {
+  /** Maximum content type to provide (e.g., "organic story only") */
+  maxContentType: string;
+  /** Time limit for content (e.g., "24-hour story, not permanent post") */
+  timeLimit: string;
+  /** Usage rights limit (e.g., "no usage rights beyond your post") */
+  rightsLimit: string;
+}
+
+/**
+ * Complete evaluation result for a gift deal.
+ */
+export interface GiftEvaluation {
+  /** Worth score (0-100) - overall assessment of the deal */
+  worthScore: number;
+  /** Recommendation for how to respond */
+  recommendation: GiftRecommendation;
+  /** Detailed math breakdown of the value exchange */
+  analysis: GiftAnalysisBreakdown;
+  /** Strategic value assessment beyond monetary */
+  strategicValue: GiftStrategicValue;
+  /** Minimum $ amount to add for a hybrid deal */
+  minimumAcceptableAddOn: number;
+  /** Suggested counter-offer message */
+  suggestedCounterOffer: string;
+  /** When to walk away from this deal */
+  walkAwayPoint: string;
+  /** If accepting gift-only, these boundaries apply */
+  acceptanceBoundaries: GiftAcceptanceBoundaries;
+}
+
+/**
+ * Response type for gift response templates.
+ */
+export type GiftResponseType =
+  | "accept_with_hook"
+  | "counter_hybrid"
+  | "ask_budget_first"
+  | "decline_politely"
+  | "run_away";
+
+/**
+ * Context for generating a gift response.
+ */
+export interface GiftResponseContext {
+  /** Brand name (if known) */
+  brandName?: string;
+  /** Product name/description */
+  productName?: string;
+  /** Creator's normal rate for reference */
+  creatorRate?: number;
+  /** Suggested hybrid rate (reduced + product) */
+  hybridRate?: number;
+  /** Type of content requested */
+  contentType?: string;
+}
+
+/**
+ * Generated response for a gift offer.
+ */
+export interface GiftResponse {
+  /** Type of response being generated */
+  responseType: GiftResponseType;
+  /** The main response message to send */
+  message: string;
+  /** Follow-up reminder (for accepted gifts) */
+  followUpReminder: string | null;
+  /** Conversion script (for use after successful gift collab) */
+  conversionScript: string | null;
+}
+
+/**
+ * Input for the gift evaluator API.
+ */
+export interface GiftEvaluatorInput {
+  /** The gift evaluation input data */
+  evaluation: GiftEvaluationInput;
+}
+
+/**
+ * Response from the gift evaluator API.
+ */
+export type GiftEvaluatorResponse = ApiResponse<{
+  evaluation: GiftEvaluation;
+  response: GiftResponse;
+}>;
