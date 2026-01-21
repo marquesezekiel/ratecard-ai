@@ -1473,3 +1473,308 @@ export type GiftEvaluatorResponse = ApiResponse<{
   evaluation: GiftEvaluation;
   response: GiftResponse;
 }>;
+
+// =============================================================================
+// GIFT TRACKER TYPES
+// =============================================================================
+
+/**
+ * Status of a gift deal in the tracker.
+ * Represents the lifecycle of a gift relationship.
+ */
+export type GiftDealStatus =
+  | "received"       // Gift has been received, no content created yet
+  | "content_created" // Content has been posted
+  | "followed_up"    // Follow-up message has been sent
+  | "converted"      // Successfully converted to paid partnership
+  | "declined"       // Brand declined paid conversion
+  | "archived";      // No longer actively tracking
+
+/**
+ * Conversion status for gift deals attempting paid conversion.
+ */
+export type GiftDealConversionStatus = "attempting" | "converted" | "rejected" | null;
+
+/**
+ * Content type created for a gift deal.
+ */
+export type GiftDealContentType = "post" | "reel" | "story" | "video";
+
+/**
+ * Performance metrics for content created from a gift deal.
+ */
+export interface GiftDealPerformance {
+  /** Number of views */
+  views?: number;
+  /** Number of likes */
+  likes?: number;
+  /** Number of comments */
+  comments?: number;
+  /** Number of saves */
+  saves?: number;
+  /** Number of shares */
+  shares?: number;
+}
+
+/**
+ * Complete gift deal record.
+ * Represents a tracked gift relationship with a brand.
+ */
+export interface GiftDeal {
+  /** Unique identifier */
+  id: string;
+  /** Reference to the creator who received the gift */
+  creatorId: string;
+
+  // Brand info
+  /** Brand name */
+  brandName: string;
+  /** Brand's social handle (optional) */
+  brandHandle?: string | null;
+  /** Brand's website (optional) */
+  brandWebsite?: string | null;
+  /** Brand's follower count (optional) */
+  brandFollowers?: number | null;
+
+  // Gift details
+  /** Description of the product received */
+  productDescription: string;
+  /** Estimated retail value of the product */
+  productValue: number;
+  /** Date the gift was received */
+  dateReceived: Date;
+
+  // Content created
+  /** Type of content created (optional) */
+  contentType?: GiftDealContentType | null;
+  /** URL to the created content (optional) */
+  contentUrl?: string | null;
+  /** Date content was posted (optional) */
+  contentDate?: Date | null;
+
+  // Performance metrics
+  /** Number of views on the content */
+  views?: number | null;
+  /** Number of likes on the content */
+  likes?: number | null;
+  /** Number of comments on the content */
+  comments?: number | null;
+  /** Number of saves on the content */
+  saves?: number | null;
+  /** Number of shares on the content */
+  shares?: number | null;
+
+  // Conversion tracking
+  /** Current status in the gift lifecycle */
+  status: GiftDealStatus;
+  /** Status of conversion attempt (null if not attempting) */
+  conversionStatus?: GiftDealConversionStatus;
+  /** ID of the RateCard if converted to paid deal */
+  convertedDealId?: string | null;
+  /** Amount of the converted paid deal */
+  convertedAmount?: number | null;
+
+  // Follow-up
+  /** Scheduled date for follow-up */
+  followUpDate?: Date | null;
+  /** Whether follow-up has been sent */
+  followUpSent: boolean;
+  /** Creator's notes about this gift deal */
+  notes?: string | null;
+
+  // Timestamps
+  /** When this record was created */
+  createdAt: Date;
+  /** When this record was last updated */
+  updatedAt: Date;
+}
+
+/**
+ * Input for creating a new gift deal.
+ */
+export interface GiftDealCreateInput {
+  // Brand info (required)
+  /** Brand name */
+  brandName: string;
+  /** Brand's social handle (optional) */
+  brandHandle?: string;
+  /** Brand's website (optional) */
+  brandWebsite?: string;
+  /** Brand's follower count (optional) */
+  brandFollowers?: number;
+
+  // Gift details (required)
+  /** Description of the product received */
+  productDescription: string;
+  /** Estimated retail value of the product */
+  productValue: number;
+  /** Date the gift was received (defaults to now) */
+  dateReceived?: Date | string;
+
+  // Optional initial notes
+  /** Creator's notes about this gift deal */
+  notes?: string;
+}
+
+/**
+ * Input for updating an existing gift deal.
+ */
+export interface GiftDealUpdateInput {
+  // Brand info
+  /** Brand name */
+  brandName?: string;
+  /** Brand's social handle */
+  brandHandle?: string | null;
+  /** Brand's website */
+  brandWebsite?: string | null;
+  /** Brand's follower count */
+  brandFollowers?: number | null;
+
+  // Gift details
+  /** Description of the product received */
+  productDescription?: string;
+  /** Estimated retail value of the product */
+  productValue?: number;
+  /** Date the gift was received */
+  dateReceived?: Date | string;
+
+  // Content created
+  /** Type of content created */
+  contentType?: GiftDealContentType | null;
+  /** URL to the created content */
+  contentUrl?: string | null;
+  /** Date content was posted */
+  contentDate?: Date | string | null;
+
+  // Performance metrics
+  /** Number of views on the content */
+  views?: number | null;
+  /** Number of likes on the content */
+  likes?: number | null;
+  /** Number of comments on the content */
+  comments?: number | null;
+  /** Number of saves on the content */
+  saves?: number | null;
+  /** Number of shares on the content */
+  shares?: number | null;
+
+  // Status and conversion
+  /** Current status in the gift lifecycle */
+  status?: GiftDealStatus;
+  /** Status of conversion attempt */
+  conversionStatus?: GiftDealConversionStatus;
+  /** ID of the RateCard if converted to paid deal */
+  convertedDealId?: string | null;
+  /** Amount of the converted paid deal */
+  convertedAmount?: number | null;
+
+  // Follow-up
+  /** Scheduled date for follow-up */
+  followUpDate?: Date | string | null;
+  /** Whether follow-up has been sent */
+  followUpSent?: boolean;
+  /** Creator's notes about this gift deal */
+  notes?: string | null;
+}
+
+/**
+ * Input for adding content to a gift deal.
+ */
+export interface GiftDealAddContentInput {
+  /** Type of content created */
+  contentType: GiftDealContentType;
+  /** URL to the created content */
+  contentUrl?: string;
+  /** Date content was posted (defaults to now) */
+  contentDate?: Date | string;
+}
+
+/**
+ * Input for adding performance metrics to a gift deal.
+ */
+export interface GiftDealAddPerformanceInput {
+  /** Number of views on the content */
+  views?: number;
+  /** Number of likes on the content */
+  likes?: number;
+  /** Number of comments on the content */
+  comments?: number;
+  /** Number of saves on the content */
+  saves?: number;
+  /** Number of shares on the content */
+  shares?: number;
+}
+
+/**
+ * Input for logging a follow-up attempt.
+ */
+export interface GiftDealFollowUpInput {
+  /** Notes about the follow-up */
+  notes?: string;
+  /** Script type used for follow-up */
+  scriptType?: ConversionScriptStage;
+}
+
+/**
+ * Input for marking a gift deal as converted.
+ */
+export interface GiftDealConvertInput {
+  /** Amount of the converted paid deal */
+  convertedAmount: number;
+  /** ID of the RateCard if one was created */
+  convertedDealId?: string;
+  /** Notes about the conversion */
+  notes?: string;
+}
+
+/**
+ * Stage in the conversion playbook for follow-up scripts.
+ */
+export type ConversionScriptStage =
+  | "performance_share"     // Share results after content posted
+  | "follow_up_30_day"     // 30-day check-in
+  | "new_launch_pitch"     // Pitch when brand has new product
+  | "returning_brand_offer"; // Offer returning brand discount
+
+/**
+ * Analytics for a creator's gift deals.
+ */
+export interface GiftAnalytics {
+  /** Total number of gifts received */
+  totalGiftsReceived: number;
+  /** Total value of products received */
+  totalProductValue: number;
+  /** Number of gifts that converted to paid */
+  giftsConverted: number;
+  /** Conversion rate (giftsConverted / totalGiftsReceived) */
+  conversionRate: number;
+  /** Total revenue from converted deals */
+  revenueFromConverted: number;
+  /** ROI on gift work (revenue / product value) */
+  roiOnGiftWork: number;
+  /** Average days from gift to conversion */
+  avgTimeToConversion: number | null;
+  /** Which brand category converts best */
+  topConvertingCategory: string | null;
+  /** Number of follow-ups due */
+  followUpsDue: number;
+  /** Number of gifts with content created */
+  giftsWithContent: number;
+  /** Number of gifts ready to convert (good performance, no follow-up yet) */
+  readyToConvert: number;
+}
+
+/**
+ * Response from the gift tracker API for listing gifts.
+ */
+export type GiftListResponse = ApiResponse<GiftDeal[]>;
+
+/**
+ * Response from the gift tracker API for a single gift.
+ */
+export type GiftDealResponse = ApiResponse<GiftDeal>;
+
+/**
+ * Response from the gift tracker API for analytics.
+ */
+export type GiftAnalyticsResponse = ApiResponse<GiftAnalytics>;

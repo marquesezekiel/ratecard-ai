@@ -27,6 +27,7 @@ model User {
   profile   CreatorProfile?
   briefs    Brief[]
   rateCards RateCard[]
+  giftDeals GiftDeal[]
 }
 
 model Session {
@@ -134,5 +135,57 @@ model RateCard {
   brief               Brief?   @relation(fields: [briefId], references: [id])
 
   @@index([userId])
+  @@index([createdAt])
+}
+
+// =============================================================================
+// GIFT RELATIONSHIP TRACKER
+// =============================================================================
+
+model GiftDeal {
+  id                 String    @id @default(cuid())
+  creatorId          String
+  creator            User      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Brand info
+  brandName          String
+  brandHandle        String?
+  brandWebsite       String?
+  brandFollowers     Int?
+
+  // Gift details
+  productDescription String
+  productValue       Float
+  dateReceived       DateTime
+
+  // Content created
+  contentType        String?   // "post", "reel", "story", "video"
+  contentUrl         String?
+  contentDate        DateTime?
+
+  // Performance (if tracked)
+  views              Int?
+  likes              Int?
+  comments           Int?
+  saves              Int?
+  shares             Int?
+
+  // Conversion tracking
+  status             String    @default("received") // received, content_created, followed_up, converted, declined, archived
+  conversionStatus   String?   // null, "attempting", "converted", "rejected"
+  convertedDealId    String?   // links to RateCard if converted
+  convertedAmount    Float?
+
+  // Follow-up
+  followUpDate       DateTime?
+  followUpSent       Boolean   @default(false)
+  notes              String?
+
+  // Timestamps
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([creatorId])
+  @@index([status])
   @@index([createdAt])
 }
