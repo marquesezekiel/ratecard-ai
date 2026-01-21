@@ -291,12 +291,13 @@ export function BriefUploader({ onBriefParsed }: BriefUploaderProps) {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Button onClick={handleProceed} className="flex-1">
               Continue to Generate Rate Card
             </Button>
-            <Button variant="outline" onClick={handleReset}>
-              Upload Different Brief
+            <Button variant="outline" onClick={handleReset} className="sm:flex-initial">
+              <span className="hidden sm:inline">Upload Different Brief</span>
+              <span className="sm:hidden">Try Another Brief</span>
             </Button>
           </div>
         </CardContent>
@@ -348,14 +349,16 @@ export function BriefUploader({ onBriefParsed }: BriefUploaderProps) {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="upload">
-          <TabsList className="w-full">
-            <TabsTrigger value="upload" className="flex-1">
-              <Upload className="h-4 w-4 mr-2" />
-              Upload File
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="upload" className="flex-1 gap-2">
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">Upload File</span>
+              <span className="sm:hidden">Upload</span>
             </TabsTrigger>
-            <TabsTrigger value="paste" className="flex-1">
-              <FileText className="h-4 w-4 mr-2" />
-              Paste Text
+            <TabsTrigger value="paste" className="flex-1 gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Paste Text</span>
+              <span className="sm:hidden">Paste</span>
             </TabsTrigger>
           </TabsList>
 

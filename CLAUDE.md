@@ -87,40 +87,139 @@ pnpm prisma studio    # Open Prisma Studio GUI
 
 ## Architecture
 
-### Core Flow
+### Core Flows
+
+**Flow 1: Rate Card Generation**
 1. **Brief Upload** → `src/lib/brief-parser.ts` parses PDF/DOCX using LLM extraction
-2. **Fit Score** → `src/lib/fit-score.ts` calculates creator-brand compatibility (0-100)
-3. **Pricing** → `src/lib/pricing-engine.ts` runs 6-layer calculation
-4. **PDF Generation** → `src/lib/pdf-generator.tsx` creates rate card via React-PDF
+2. **Deal Quality Score** → `src/lib/deal-quality-score.ts` calculates creator-centric deal assessment (0-100)
+3. **Pricing** → `src/lib/pricing-engine.ts` runs 11-layer calculation
+4. **Supporting Content** → Negotiation talking points, FTC guidance, contract checklist
+5. **PDF Generation** → `src/lib/pdf-generator.tsx` creates rate card via React-PDF
 
-### 6-Layer Pricing Engine (`src/lib/pricing-engine.ts`)
+**Flow 2: DM Analysis**
+1. **DM Input** → Text paste or screenshot upload
+2. **DM Parser** → `src/lib/dm-parser.ts` extracts opportunity details + detects gift offers
+3. **If Gift** → Route to Gift Evaluator for worth assessment
+4. **Response Generation** → Ready-to-copy response templates
+5. **Outcome Tracking** → Track what happens for market intelligence
 
-This is the intellectual property at the heart of RateCard.AI. Each layer transforms the price sequentially:
+**Flow 3: Gift-to-Paid Conversion**
+1. **Gift Evaluation** → `src/lib/gift-evaluator.ts` calculates value exchange
+2. **Response Generation** → `src/lib/gift-responses.ts` provides smart responses
+3. **Gift Tracking** → `src/lib/gift-tracker.ts` manages brand relationships
+4. **Conversion** → Follow-up scripts + outcome tracking
+
+### Enhanced Pricing Engine (`src/lib/pricing-engine.ts`)
+
+The pricing engine has expanded from 6 to 11+ layers for comprehensive rate calculation:
 
 | Layer | Purpose | Range |
 |-------|---------|-------|
-| 1. Base Rate | Follower tier (Nano $100 → Macro $2,500) | $100-$2,500 |
+| 1. Base Rate | Follower tier (Nano $150 → Celebrity $12,000) | $150-$12,000 |
+| 1.25. Platform | Platform-specific multiplier | 0.5x - 1.4x |
+| 1.5. Regional | Geographic market adjustment | 0.4x - 1.1x |
 | 2. Engagement | Audience quality multiplier | 0.8x - 2.0x |
-| 3. Format | Content type premium | -25% to +40% |
-| 4. Fit Score | Brand-creator alignment | -10% to +25% |
-| 5. Usage Rights | Licensing duration + exclusivity | 0% to +150% |
-| 6. Complexity | Production difficulty | 0% to +50% |
+| 2.5. Niche Premium | Industry/niche multiplier | 0.95x - 2.0x |
+| 3. Format | Content type premium | -15% to +40% |
+| 4. Deal Quality | Creator-centric alignment score | -10% to +25% |
+| 5. Usage Rights | Duration + exclusivity | 0% to +100% |
+| 5.5. Whitelisting | Brand usage in their channels | 0% to +200% |
+| 6. Complexity | Production requirements | 0% to +50% |
+| 6.5. Seasonal | Q4/holiday demand premium | 0% to +25% |
 
-**Formula:** `(Base × Engagement) × (1+Format) × (1+Fit) × (1+Rights) × (1+Complexity)`
+**Creator Tiers (2025 Standards):**
+- Nano (1K-10K): $150 | Micro (10K-50K): $400 | Mid (50K-100K): $800
+- Rising (100K-250K): $1,500 | Macro (250K-500K): $3,000
+- Mega (500K-1M): $6,000 | Celebrity (1M+): $12,000
 
-**Framework Principles:**
-- All 6 layers must be visible in the pricing breakdown
-- Users must understand how each layer affected their price
-- Modifications to the formula require explicit justification
+**Pricing Models:**
+- `flat_fee` - Standard one-time payment (default)
+- `affiliate` - Commission-only based on sales
+- `hybrid` - 50% base fee + commission
+- `performance` - Base fee + bonus for hitting targets
+- `ugc` - Deliverable-based (flat rate per asset, ignores follower count)
+- `retainer` - Volume discounts for ongoing partnerships (15-35% off)
 
-### Fit Score Categories (`src/lib/fit-score.ts`)
+### Deal Quality Score (`src/lib/deal-quality-score.ts`)
 
-Weighted scoring system (0-100):
-- Niche Match (30%) - Industry/niche alignment
-- Demographic Match (25%) - Age, gender, location overlap
-- Platform Match (20%) - Target platform presence
-- Engagement Quality (15%) - Rate vs tier benchmarks
-- Content Capability (10%) - Format production ability
+Creator-centric replacement for Fit Score. Answers: "How good is this deal FOR the creator?"
+
+**6 Scoring Dimensions (100 points):**
+| Dimension | Points | Purpose |
+|-----------|--------|---------|
+| Rate Fairness | 25 | Is rate at/above market? |
+| Brand Legitimacy | 20 | Real brand with verified presence? |
+| Portfolio Value | 20 | Good for creator's portfolio? |
+| Growth Potential | 15 | Ongoing partnership opportunity? |
+| Terms Fairness | 10 | Reasonable payment/usage terms? |
+| Creative Freedom | 10 | Creative control level? |
+
+**Deal Quality Levels:**
+- Excellent (85-100): Take this deal!
+- Good (70-84): Worth pursuing
+- Fair (50-69): Consider negotiating
+- Caution (<50): Proceed carefully
+
+### DM Parser System (`src/lib/dm-parser.ts`)
+
+Analyzes brand DMs to extract opportunity details and detect gift offers.
+
+**Key Features:**
+- Brand/request identification via LLM (Groq primary, Gemini fallback)
+- Compensation type detection: paid, gifted, hybrid, unclear
+- Tone analysis: professional, casual, mass_outreach, scam_likely
+- Gift detection with conversion potential scoring
+- Recommended response generation
+- Screenshot parsing via `src/lib/dm-image-processor.ts`
+
+### Gift Deal Manager
+
+**Gift Evaluator (`src/lib/gift-evaluator.ts`):**
+- Calculates value exchange (product vs time + audience value)
+- Strategic scoring (portfolio worth, conversion potential, brand reputation)
+- Recommendations: accept_with_hook, counter_hybrid, decline_politely, ask_budget, run_away
+- Counter-offer generation with minimum acceptable add-on
+
+**Gift Responses (`src/lib/gift-responses.ts`):**
+- Smart response templates for each scenario
+- Follow-up reminders
+- Conversion scripts for turning gifts into paid partnerships
+
+**Gift Tracker (`src/lib/gift-tracker.ts`):**
+- CRM-lite for gift relationships
+- Status tracking: received → content_created → followed_up → converted
+- Performance metrics tracking
+- Conversion analytics
+
+### Outcome Tracking (`src/lib/outcome-analytics.ts`)
+
+Tracks deal outcomes to build market intelligence.
+
+**Metrics:**
+- Acceptance rates (paid vs gift vs overall)
+- Negotiation delta (how much rates change)
+- Gift conversion rate and average time to conversion
+- Revenue tracking
+- "Creators like you" market benchmarks
+
+### Supporting Features
+
+**FTC Guidance (`src/lib/ftc-guidance.ts`):**
+- Platform-specific disclosure requirements
+- Compensation type rules (paid, gifted, affiliate)
+- AI content disclosure guidance (2025)
+- Compliance checklist
+
+**Contract Checklist (`src/lib/contract-checklist.ts`):**
+- Essential terms by category: payment, content/rights, exclusivity, legal
+- Red flag detection
+- Deal-specific recommendations
+
+**Negotiation Talking Points (`src/lib/negotiation-talking-points.ts`):**
+- "Why This Rate" section (for brands)
+- "Confidence Boosters" (for creator)
+- Counter-offer scripts
+- Quick response templates
 
 ### Authentication
 
@@ -130,18 +229,81 @@ Uses Better Auth with Prisma adapter. Auth config in `src/lib/auth.ts`, client i
 
 PostgreSQL via Prisma. Schema at `src/prisma/schema.prisma`. Key models:
 - `User` → `CreatorProfile` (1:1)
-- `CreatorProfile` → `PlatformData`, `PortfolioItem` (1:many)
+- `CreatorProfile` → `PlatformData`, `PortfolioItem`, `GiftDeal`, `Outcome` (1:many)
 - `Brief` → `RateCard` (1:many)
+- `GiftDeal` - Tracks gift collaborations and conversion status
+- `Outcome` - Records deal outcomes for market intelligence
 
 ### Type System
 
-All shared types in `src/lib/types.ts`: `CreatorProfile`, `BriefData`, `PricingResult`, `FitScoreResult`, `RateCardData`.
+All shared types in `src/lib/types.ts`. Key type categories:
+
+**Core Types:**
+- `CreatorProfile`, `CreatorTier`, `Platform`, `ContentFormat`
+- `BriefData`, `ParsedBrief`, `PricingResult`, `RateCardData`
+- `DealQualityResult` (replaced FitScoreResult)
+
+**DM Analysis Types:**
+- `DMAnalysis`, `DMCompensationType`, `DMTone`, `DMUrgency`
+- `DMImageAnalysis`, `ImageTextExtraction`
+- `GiftAnalysis`, `GiftConversionPotential`
+
+**Gift System Types:**
+- `GiftEvaluationInput`, `GiftEvaluation`, `GiftRecommendation`
+- `GiftDeal`, `GiftDealStatus`, `TrackedGiftDeal`
+
+**Outcome Types:**
+- `Outcome`, `OutcomeStatus`, `OutcomeSourceType`
+- `OutcomeAnalytics`, `AcceptanceRates`, `MarketBenchmark`
+
+### API Routes
+
+All routes use `ApiResponse<T>` format: `{ success: boolean, data?: T, error?: string }`
+
+**Rate Card Generation:**
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/parse-brief` | POST | Yes | Parse uploaded PDF/DOCX brief |
+| `/api/calculate` | POST | Yes | Calculate pricing for authenticated users |
+| `/api/public-calculate` | POST | No | Calculate pricing for anonymous users |
+| `/api/generate-pdf` | POST | Yes | Generate rate card PDF |
+
+**DM Analysis:**
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/parse-dm` | POST | Yes | Parse DM text/screenshot |
+| `/api/evaluate-gift` | POST | Yes | Evaluate gift deal worth |
+
+**Gift Tracking:**
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/gifts` | GET | Yes | List creator's gift deals |
+| `/api/gifts` | POST | Yes | Create new gift deal |
+| `/api/gifts/[id]` | GET | Yes | Get gift deal details |
+| `/api/gifts/[id]` | PUT | Yes | Update gift deal |
+| `/api/gifts/[id]` | DELETE | Yes | Delete gift deal |
+| `/api/gifts/[id]/convert` | POST | Yes | Convert gift to paid |
+| `/api/gifts/[id]/convert` | DELETE | Yes | Reject conversion |
+| `/api/gifts/[id]/follow-up` | POST | Yes | Record follow-up action |
+| `/api/gifts/[id]/follow-up` | GET | Yes | Get follow-up script |
+
+**Outcome Tracking:**
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/outcomes` | GET | Yes | List outcomes with filters |
+| `/api/outcomes` | POST | Yes | Create outcome record |
+| `/api/outcomes/[id]` | GET | Yes | Get outcome details |
+| `/api/outcomes/[id]` | PUT | Yes | Update outcome |
+| `/api/outcomes/[id]` | DELETE | Yes | Delete outcome |
+| `/api/outcomes/analytics` | GET | Yes | Get outcome analytics |
 
 ## Key Patterns
 
 - Client components use `"use client"` directive (forms, interactive UI)
 - API routes return `ApiResponse<T>` shape with `success`, `data`, `error` fields
 - Pricing adjustments use `type: "add" | "multiply"` for transparent breakdowns
+- All authenticated routes verify session via `auth.api.getSession()`
+- LLM calls use Groq primary with Gemini fallback, exponential backoff retry
 
 ---
 
@@ -208,7 +370,7 @@ Claude should actively challenge the developer when:
 
 7. **Mobile neglect** - "How does this work on a phone? That's where 70% of our users are."
 
-8. **Framework deviation** - "This changes the 6-Layer model. What's the justification?"
+8. **Framework deviation** - "This changes the Pricing Engine. What's the justification?"
 
 9. **Dependency bloat** - "Do we really need this library? Can we write 20 lines instead?"
 

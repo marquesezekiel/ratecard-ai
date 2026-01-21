@@ -11,7 +11,7 @@
  * - Emerging platforms
  */
 
-import { calculatePrice, calculateTier, calculateUGCPrice } from "../src/lib/pricing-engine";
+import { calculatePrice, calculateTier } from "../src/lib/pricing-engine";
 import { calculateFitScore } from "../src/lib/fit-score";
 import type { CreatorProfile, ParsedBrief } from "../src/lib/types";
 

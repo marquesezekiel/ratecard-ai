@@ -535,11 +535,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="instagram" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="instagram">Instagram</TabsTrigger>
-                <TabsTrigger value="tiktok">TikTok</TabsTrigger>
-                <TabsTrigger value="youtube">YouTube</TabsTrigger>
-                <TabsTrigger value="twitter">Twitter</TabsTrigger>
+              {/* Mobile: horizontally scrollable tabs; Desktop: grid */}
+              <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-4 gap-1 p-1">
+                <TabsTrigger value="instagram" className="flex-shrink-0 min-w-[80px] sm:min-w-0">Instagram</TabsTrigger>
+                <TabsTrigger value="tiktok" className="flex-shrink-0 min-w-[70px] sm:min-w-0">TikTok</TabsTrigger>
+                <TabsTrigger value="youtube" className="flex-shrink-0 min-w-[75px] sm:min-w-0">YouTube</TabsTrigger>
+                <TabsTrigger value="twitter" className="flex-shrink-0 min-w-[65px] sm:min-w-0">Twitter</TabsTrigger>
               </TabsList>
 
               {(["instagram", "tiktok", "youtube", "twitter"] as const).map((platform) => (

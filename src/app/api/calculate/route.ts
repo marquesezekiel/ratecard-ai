@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { calculateFitScore } from "@/lib/fit-score";
+import { calculateDealQualityWithCompat } from "@/lib/deal-quality-score";
 import { calculatePrice } from "@/lib/pricing-engine";
-import type { ApiResponse, CreatorProfile, ParsedBrief, FitScoreResult, PricingResult } from "@/lib/types";
+import type {
+  ApiResponse,
+  CreatorProfile,
+  ParsedBrief,
+  FitScoreResult,
+  DealQualityResult,
+  DealQualityInput,
+  PricingResult,
+} from "@/lib/types";
 import { headers } from "next/headers";
 
 interface CalculationResult {
+  /** @deprecated Use dealQuality instead */
   fitScore: FitScoreResult;
+  /** New creator-centric deal quality score */
+  dealQuality: DealQualityResult;
   pricing: PricingResult;
 }
 
@@ -37,9 +48,10 @@ export async function POST(
 
     // Parse JSON body
     const body = await request.json();
-    const { profile, brief } = body as {
+    const { profile, brief, dealQualityInput } = body as {
       profile: CreatorProfile | undefined;
       brief: ParsedBrief | undefined;
+      dealQualityInput?: DealQualityInput;
     };
 
     // Validate required inputs
@@ -57,16 +69,22 @@ export async function POST(
       );
     }
 
-    // Calculate fit score (must run first - pricing depends on it)
-    const fitScore = calculateFitScore(profile, brief);
+    // Calculate deal quality score (returns both new and legacy formats)
+    // Pass empty input if not provided - the function will use sensible defaults
+    const { dealQuality, fitScore } = calculateDealQualityWithCompat(
+      profile,
+      brief,
+      dealQualityInput || {}
+    );
 
-    // Calculate pricing using fit score result
-    const pricing = calculatePrice(profile, brief, fitScore);
+    // Calculate pricing using the new deal quality score
+    const pricing = calculatePrice(profile, brief, dealQuality);
 
     return NextResponse.json({
       success: true,
       data: {
-        fitScore,
+        fitScore, // Deprecated - for backward compatibility
+        dealQuality, // New creator-centric score
         pricing,
       },
     });
