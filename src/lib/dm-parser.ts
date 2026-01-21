@@ -65,7 +65,7 @@ const GIFT_TRIGGER_PHRASES = [
   "love to send you",
 ];
 
-// Mass outreach signals
+// Mass outreach signals - strong indicators
 const MASS_OUTREACH_SIGNALS = [
   "hey babe",
   "hey girl",
@@ -74,9 +74,24 @@ const MASS_OUTREACH_SIGNALS = [
   "hey gorgeous",
   "hi there!",
   "hope this finds you well",
+  "we've been following",
+];
+
+// Weak mass outreach signals - only count if no budget mentioned
+const WEAK_MASS_OUTREACH_SIGNALS = [
   "we love your feed",
   "we love your content",
-  "we've been following",
+];
+
+// Professional signals that override mass outreach detection (as regex patterns with word boundaries)
+const PROFESSIONAL_SIGNAL_PATTERNS = [
+  /\$/,
+  /\bbudget\b/i,
+  /\brate\b/i,
+  /\bcompensation\b/i,
+  /\bpaid\b/i,
+  /\bpayment\b/i,
+  /\bfee\b/i,
 ];
 
 // =============================================================================
@@ -221,10 +236,30 @@ export function containsGiftIndicators(text: string): boolean {
 
 /**
  * Check if the DM text shows mass outreach patterns.
+ * Considers both strong signals and weak signals with context.
  */
 export function containsMassOutreachSignals(text: string): boolean {
   const lowerText = text.toLowerCase();
-  return MASS_OUTREACH_SIGNALS.some((signal) => lowerText.includes(signal));
+
+  // Check for strong mass outreach signals
+  if (MASS_OUTREACH_SIGNALS.some((signal) => lowerText.includes(signal))) {
+    return true;
+  }
+
+  // Check for weak signals - only flag if no professional signals present
+  const hasWeakSignal = WEAK_MASS_OUTREACH_SIGNALS.some((signal) =>
+    lowerText.includes(signal)
+  );
+
+  if (hasWeakSignal) {
+    // If there are professional signals (budget, rate, etc.), don't flag as mass outreach
+    const hasProfessionalSignal = PROFESSIONAL_SIGNAL_PATTERNS.some((pattern) =>
+      pattern.test(lowerText)
+    );
+    return !hasProfessionalSignal;
+  }
+
+  return false;
 }
 
 /**
