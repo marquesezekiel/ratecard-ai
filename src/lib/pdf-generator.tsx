@@ -13,10 +13,10 @@ import type {
   FitScoreResult,
   PricingResult,
   PricingModel,
-  NegotiationTalkingPoints,
   PDFExportMode,
 } from "./types";
 import { generateNegotiationTalkingPoints } from "./negotiation-talking-points";
+import { getFTCGuidance, getCompensationType } from "./ftc-guidance";
 
 // Color palette
 const colors = {
@@ -495,6 +495,194 @@ const styles = StyleSheet.create({
   pageBreak: {
     marginTop: 20,
   },
+  // FTC Guidance Page styles
+  ftcPage: {
+    flexDirection: "column",
+    backgroundColor: colors.white,
+    padding: 40,
+    fontFamily: "Helvetica",
+  },
+  ftcHeader: {
+    marginBottom: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.danger,
+    paddingBottom: 15,
+  },
+  ftcTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.dark,
+    marginBottom: 4,
+  },
+  ftcSubtitle: {
+    fontSize: 11,
+    color: colors.gray,
+  },
+  ftcWarningBadge: {
+    fontSize: 9,
+    color: colors.white,
+    backgroundColor: colors.danger,
+    padding: "3 8",
+    borderRadius: 4,
+    alignSelf: "flex-start",
+    marginTop: 8,
+    textTransform: "uppercase",
+  },
+  ftcSection: {
+    marginBottom: 16,
+  },
+  ftcSectionTitle: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: colors.danger,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  ftcSummaryBox: {
+    backgroundColor: "#FEF2F2",
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 15,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.danger,
+  },
+  ftcSummaryHeadline: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: colors.danger,
+    marginBottom: 6,
+  },
+  ftcSummaryText: {
+    fontSize: 10,
+    color: colors.dark,
+    marginBottom: 4,
+  },
+  ftcChecklistContainer: {
+    marginBottom: 15,
+  },
+  ftcChecklistItem: {
+    flexDirection: "row",
+    marginBottom: 6,
+    paddingLeft: 4,
+  },
+  ftcCheckbox: {
+    width: 14,
+    height: 14,
+    borderWidth: 1,
+    borderColor: colors.gray,
+    borderRadius: 2,
+    marginRight: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  ftcChecklistText: {
+    fontSize: 10,
+    color: colors.dark,
+    flex: 1,
+  },
+  ftcChecklistPriority: {
+    fontSize: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 2,
+    marginLeft: 4,
+    textTransform: "uppercase",
+  },
+  ftcPriorityCritical: {
+    backgroundColor: colors.danger,
+    color: colors.white,
+  },
+  ftcPriorityImportant: {
+    backgroundColor: colors.warning,
+    color: colors.white,
+  },
+  ftcPriorityRecommended: {
+    backgroundColor: colors.lightGray,
+    color: colors.gray,
+  },
+  ftcPlatformBox: {
+    backgroundColor: colors.lightGray,
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 10,
+  },
+  ftcPlatformName: {
+    fontSize: 11,
+    fontWeight: "bold",
+    color: colors.primary,
+    marginBottom: 6,
+  },
+  ftcPlatformRequired: {
+    fontSize: 10,
+    color: colors.dark,
+    marginBottom: 8,
+    fontWeight: "bold",
+  },
+  ftcRecommendationItem: {
+    fontSize: 9,
+    color: colors.gray,
+    marginBottom: 3,
+    paddingLeft: 8,
+  },
+  ftcMistakeItem: {
+    fontSize: 9,
+    color: colors.danger,
+    marginBottom: 3,
+    paddingLeft: 8,
+  },
+  ftcAcceptableBox: {
+    backgroundColor: "#F0FDF4",
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success,
+  },
+  ftcUnacceptableBox: {
+    backgroundColor: "#FEF2F2",
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.danger,
+  },
+  ftcFormatTitle: {
+    fontSize: 10,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  ftcFormatItem: {
+    fontSize: 9,
+    color: colors.gray,
+    marginBottom: 2,
+    paddingLeft: 8,
+  },
+  ftcAiBox: {
+    backgroundColor: "#EFF6FF",
+    padding: 10,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    marginBottom: 10,
+  },
+  ftcAiTitle: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  ftcAiText: {
+    fontSize: 9,
+    color: colors.gray,
+    lineHeight: 1.4,
+  },
+  ftcReminderItem: {
+    fontSize: 9,
+    color: colors.gray,
+    marginBottom: 4,
+    paddingLeft: 8,
+  },
 });
 
 interface RateCardDocumentProps {
@@ -525,6 +713,31 @@ export function RateCardDocument({
   const negotiationTips = exportMode === "creator"
     ? generateNegotiationTalkingPoints(pricing, profile, brief)
     : null;
+
+  // Generate FTC guidance if in creator mode
+  const ftcGuidance = exportMode === "creator"
+    ? getFTCGuidance(
+        brief.content.platform,
+        getCompensationType(
+          brief.dealType,
+          false, // hasGift - could be derived from brief if available
+          brief.pricingModel === "affiliate" || brief.pricingModel === "hybrid"
+        ),
+        false // hasAIContent - could be a future brief field
+      )
+    : null;
+
+  // Helper to get priority style for FTC checklist items
+  const getPriorityStyle = (priority: "critical" | "important" | "recommended") => {
+    switch (priority) {
+      case "critical":
+        return styles.ftcPriorityCritical;
+      case "important":
+        return styles.ftcPriorityImportant;
+      default:
+        return styles.ftcPriorityRecommended;
+    }
+  };
 
   const formatAdjustment = (adjustment: number): string => {
     if (adjustment === 0) return "—";
@@ -1101,7 +1314,7 @@ export function RateCardDocument({
             <View style={styles.negotiationSection}>
               <Text style={styles.negotiationSectionTitle}>Confidence Boosters</Text>
               <Text style={[styles.bulletSupporting, { marginLeft: 0, marginBottom: 10 }]}>
-                Internal reminders - don't share with brands
+                {"Internal reminders - don't share with brands"}
               </Text>
 
               {/* Market Comparison */}
@@ -1129,7 +1342,7 @@ export function RateCardDocument({
                 <Text style={styles.footerText}>Confidence Stack - Page 2</Text>
               </View>
               <View>
-                <Text style={styles.validity}>For creator's reference only</Text>
+                <Text style={styles.validity}>{"For creator's reference only"}</Text>
               </View>
             </View>
           </Page>
@@ -1203,11 +1416,145 @@ export function RateCardDocument({
                 <Text style={styles.footerText}>Confidence Stack - Page 3</Text>
               </View>
               <View>
-                <Text style={styles.validity}>For creator's reference only</Text>
+                <Text style={styles.validity}>{"For creator's reference only"}</Text>
               </View>
             </View>
           </Page>
         </>
+      )}
+
+      {/* FTC Disclosure Guidance Page - Only in Creator Mode */}
+      {ftcGuidance && (
+        <Page size="A4" style={styles.ftcPage}>
+          {/* Header */}
+          <View style={styles.ftcHeader}>
+            <Text style={styles.ftcTitle}>FTC Disclosure Guide</Text>
+            <Text style={styles.ftcSubtitle}>
+              Stay compliant and avoid penalties up to $50,000+ per violation
+            </Text>
+            <Text style={styles.ftcWarningBadge}>Required Reading</Text>
+          </View>
+
+          {/* Quick Summary Box */}
+          <View style={styles.ftcSummaryBox}>
+            <Text style={styles.ftcSummaryHeadline}>{ftcGuidance.summary.headline}</Text>
+            <Text style={styles.ftcSummaryText}>
+              Required: {ftcGuidance.summary.requiredText}
+            </Text>
+            <Text style={styles.ftcSummaryText}>
+              Placement: {ftcGuidance.summary.placement}
+            </Text>
+          </View>
+
+          {/* Compliance Checklist */}
+          <View style={styles.ftcSection}>
+            <Text style={styles.ftcSectionTitle}>Compliance Checklist</Text>
+            <View style={styles.ftcChecklistContainer}>
+              {ftcGuidance.checklist.map((item, index) => (
+                <View key={index} style={styles.ftcChecklistItem}>
+                  <View style={styles.ftcCheckbox}>
+                    <Text style={{ fontSize: 8, color: colors.gray }}>☐</Text>
+                  </View>
+                  <Text style={styles.ftcChecklistText}>{item.text}</Text>
+                  <Text style={[styles.ftcChecklistPriority, getPriorityStyle(item.priority)]}>
+                    {item.priority}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Platform-Specific Guidance */}
+          <View style={styles.ftcSection}>
+            <Text style={styles.ftcSectionTitle}>
+              {ftcGuidance.platformGuidance.platformName} Guidelines
+            </Text>
+            <View style={styles.ftcPlatformBox}>
+              <Text style={styles.ftcPlatformRequired}>
+                Required: {ftcGuidance.platformGuidance.requiredDisclosure}
+              </Text>
+              {ftcGuidance.platformGuidance.builtInTools.length > 0 && (
+                <>
+                  <Text style={[styles.ftcFormatTitle, { color: colors.primary }]}>
+                    Built-in Tools:
+                  </Text>
+                  {ftcGuidance.platformGuidance.builtInTools.map((tool, index) => (
+                    <Text key={index} style={styles.ftcRecommendationItem}>
+                      • {tool}
+                    </Text>
+                  ))}
+                </>
+              )}
+              <Text style={[styles.ftcFormatTitle, { color: colors.success, marginTop: 8 }]}>
+                Recommendations:
+              </Text>
+              {ftcGuidance.platformGuidance.recommendations.slice(0, 4).map((rec, index) => (
+                <Text key={index} style={styles.ftcRecommendationItem}>
+                  ✓ {rec}
+                </Text>
+              ))}
+            </View>
+          </View>
+
+          {/* Common Mistakes to Avoid */}
+          <View style={styles.ftcSection}>
+            <Text style={styles.ftcSectionTitle}>Common Mistakes to Avoid</Text>
+            {ftcGuidance.platformGuidance.mistakes.map((mistake, index) => (
+              <Text key={index} style={styles.ftcMistakeItem}>
+                ✗ {mistake}
+              </Text>
+            ))}
+          </View>
+
+          {/* Acceptable vs Unacceptable Formats */}
+          <View style={styles.ftcSection}>
+            <Text style={styles.ftcSectionTitle}>Disclosure Formats</Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <View style={[styles.ftcAcceptableBox, { flex: 1 }]}>
+                <Text style={[styles.ftcFormatTitle, { color: colors.success }]}>
+                  ✓ Acceptable
+                </Text>
+                {ftcGuidance.contentRules.acceptableFormats.slice(0, 4).map((format, index) => (
+                  <Text key={index} style={styles.ftcFormatItem}>
+                    • {format}
+                  </Text>
+                ))}
+              </View>
+              <View style={[styles.ftcUnacceptableBox, { flex: 1 }]}>
+                <Text style={[styles.ftcFormatTitle, { color: colors.danger }]}>
+                  ✗ Not Acceptable
+                </Text>
+                {ftcGuidance.contentRules.unacceptableFormats.slice(0, 4).map((format, index) => (
+                  <Text key={index} style={styles.ftcFormatItem}>
+                    • {format}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          {/* AI Disclosure Note (if applicable) */}
+          {ftcGuidance.aiDisclosure && (
+            <View style={styles.ftcAiBox}>
+              <Text style={styles.ftcAiTitle}>AI Content Disclosure (2025 Guidance)</Text>
+              <Text style={styles.ftcAiText}>{ftcGuidance.aiDisclosure.explanation}</Text>
+              <Text style={[styles.ftcAiText, { marginTop: 4, fontWeight: "bold" }]}>
+                {`Suggested text: "${ftcGuidance.aiDisclosure.suggestedText}"`}
+              </Text>
+            </View>
+          )}
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <View>
+              <Text style={styles.footerBrand}>RateCard.AI</Text>
+              <Text style={styles.footerText}>FTC Disclosure Guide</Text>
+            </View>
+            <View>
+              <Text style={styles.validity}>Not legal advice - consult an attorney for specific situations</Text>
+            </View>
+          </View>
+        </Page>
       )}
     </Document>
   );

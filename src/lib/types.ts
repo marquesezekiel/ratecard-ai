@@ -915,6 +915,99 @@ export interface NegotiationTalkingPoints {
 export type PDFExportMode = "brand" | "creator";
 
 // =============================================================================
+// FTC GUIDANCE TYPES
+// =============================================================================
+
+/**
+ * Compensation type for FTC disclosure purposes.
+ * Determines which disclosure rules apply.
+ */
+export type CompensationType = "paid" | "gifted" | "affiliate" | "hybrid";
+
+/**
+ * Platform-specific disclosure guidance.
+ */
+export interface PlatformDisclosureGuidance {
+  /** The platform this guidance applies to */
+  platform: Platform;
+  /** Platform display name */
+  platformName: string;
+  /** Built-in disclosure tools (e.g., "Paid partnership" tag) */
+  builtInTools: string[];
+  /** Required hashtags/text */
+  requiredDisclosure: string;
+  /** Additional recommendations */
+  recommendations: string[];
+  /** Common mistakes to avoid */
+  mistakes: string[];
+}
+
+/**
+ * Content-specific disclosure rules.
+ */
+export interface ContentDisclosureRule {
+  /** Type of content/compensation */
+  type: CompensationType;
+  /** What must be disclosed */
+  requirement: string;
+  /** Acceptable disclosure formats */
+  acceptableFormats: string[];
+  /** Formats to avoid */
+  unacceptableFormats: string[];
+}
+
+/**
+ * AI content disclosure guidance (new 2025).
+ */
+export interface AIDisclosureGuidance {
+  /** Whether AI disclosure is recommended */
+  recommended: boolean;
+  /** Explanation of when AI disclosure is needed */
+  explanation: string;
+  /** Suggested disclosure text */
+  suggestedText: string;
+}
+
+/**
+ * Single checklist item for FTC compliance.
+ */
+export interface FTCChecklistItem {
+  /** Checklist item ID */
+  id: string;
+  /** Item text */
+  text: string;
+  /** Priority: critical items must be done */
+  priority: "critical" | "important" | "recommended";
+  /** Why this matters */
+  reason: string;
+}
+
+/**
+ * Complete FTC guidance result.
+ */
+export interface FTCGuidance {
+  /** Platform-specific guidance */
+  platformGuidance: PlatformDisclosureGuidance;
+  /** Content-specific rules */
+  contentRules: ContentDisclosureRule;
+  /** AI content disclosure (if applicable) */
+  aiDisclosure: AIDisclosureGuidance | null;
+  /** Quick reference summary */
+  summary: {
+    /** One-line summary */
+    headline: string;
+    /** Required disclosure text */
+    requiredText: string;
+    /** Where to place it */
+    placement: string;
+  };
+  /** Compliance checklist */
+  checklist: FTCChecklistItem[];
+  /** General reminders applicable to all deals */
+  generalReminders: string[];
+}
+
+// =============================================================================
 // RATE CARD TYPES
 // =============================================================================
 
