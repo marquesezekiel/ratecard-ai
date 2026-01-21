@@ -159,12 +159,36 @@ export interface CreatorProfile {
 export type ExclusivityLevel = "none" | "category" | "full";
 
 /**
+ * Deal type determines the pricing model used.
+ * - "sponsored": Audience-based pricing (follower count, engagement, niche matter)
+ * - "ugc": Deliverable-based pricing (flat rate per asset, audience size irrelevant)
+ */
+export type DealType = "sponsored" | "ugc";
+
+/**
+ * UGC content format for deliverable-based pricing.
+ * Used when dealType is "ugc".
+ */
+export type UGCFormat = "video" | "photo";
+
+/**
  * Parsed and structured brand brief data.
  * Extracted from uploaded PDF/DOCX files or pasted text using LLM parsing.
  */
 export interface ParsedBrief {
   /** Unique identifier (set after database persistence) */
   id?: string;
+  /**
+   * Deal type determines pricing model.
+   * - "sponsored": Audience-based (default, current behavior)
+   * - "ugc": Deliverable-based (flat rate per asset)
+   */
+  dealType?: DealType;
+  /**
+   * UGC format when dealType is "ugc".
+   * Determines base rate: video ($175) or photo ($100).
+   */
+  ugcFormat?: UGCFormat;
   /** Brand/company information */
   brand: {
     /** Company or brand name */

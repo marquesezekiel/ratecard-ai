@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculateTier, calculatePrice, getNichePremium } from "@/lib/pricing-engine";
+import { calculateTier, calculatePrice, getNichePremium, calculateUGCPrice } from "@/lib/pricing-engine";
 import type { CreatorProfile, ParsedBrief, FitScoreResult } from "@/lib/types";
 
 describe("pricing-engine", () => {
@@ -561,6 +561,368 @@ describe("pricing-engine", () => {
         expect(megaPrice).toBeGreaterThan(macroPrice);
         expect(celebrityPrice).toBeGreaterThan(megaPrice);
       });
+    });
+  });
+
+  // ============================================================================
+  // UGC Pricing Tests
+  // ============================================================================
+  describe("calculateUGCPrice", () => {
+    // Helper function to create a mock profile
+    function createMockProfile(
+      tier: "nano" | "micro" | "mid" | "rising" | "macro" | "mega" | "celebrity",
+      followers: number
+    ): CreatorProfile {
+      return {
+        id: "test-1",
+        userId: "user-1",
+        displayName: "Test Creator",
+        handle: "testcreator",
+        bio: "Test bio",
+        location: "United States",
+        niches: ["lifestyle"],
+        instagram: {
+          followers,
+          engagementRate: 4.5,
+          avgLikes: Math.round(followers * 0.045),
+          avgComments: 50,
+          avgViews: followers * 0.2,
+        },
+        audience: {
+          ageRange: "18-24",
+          genderSplit: { male: 30, female: 65, other: 5 },
+          topLocations: ["United States", "United Kingdom"],
+          interests: ["fashion", "lifestyle"],
+        },
+        tier,
+        totalReach: followers,
+        avgEngagementRate: 4.5,
+        currency: "USD",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
+    function createUGCBrief(
+      ugcFormat: "video" | "photo",
+      durationDays: number = 30,
+      exclusivity: "none" | "category" | "full" = "none",
+      quantity: number = 1
+    ): ParsedBrief {
+      return {
+        dealType: "ugc",
+        ugcFormat,
+        brand: {
+          name: "Test Brand",
+          industry: "fashion",
+          product: "Clothing line",
+        },
+        campaign: {
+          objective: "awareness",
+          targetAudience: "women 18-24",
+          budgetRange: "$500-1000",
+        },
+        content: {
+          platform: "instagram",
+          format: "static", // This is ignored for UGC
+          quantity,
+          creativeDirection: "Product showcase",
+        },
+        usageRights: {
+          durationDays,
+          exclusivity,
+          paidAmplification: false,
+        },
+        timeline: {
+          deadline: "2 weeks",
+        },
+        rawText: "UGC brief content",
+      };
+    }
+
+    const mockFitScore: FitScoreResult = {
+      totalScore: 75,
+      fitLevel: "high",
+      priceAdjustment: 0.15,
+      breakdown: {
+        nicheMatch: { score: 80, weight: 0.3, insight: "Good niche match" },
+        demographicMatch: { score: 70, weight: 0.25, insight: "Good demo match" },
+        platformMatch: { score: 85, weight: 0.2, insight: "Strong platform" },
+        engagementQuality: { score: 75, weight: 0.15, insight: "Above average" },
+        contentCapability: { score: 60, weight: 0.1, insight: "Capable" },
+      },
+      insights: ["Good fit overall"],
+    };
+
+    // ==========================================================================
+    // UGC Base Rate Tests
+    // ==========================================================================
+    describe("UGC base rates", () => {
+      it("applies $175 base rate for UGC video", () => {
+        const profile = createMockProfile("nano", 5000);
+        const brief = createUGCBrief("video", 0); // No usage rights to isolate base rate
+
+        const result = calculateUGCPrice(brief, profile);
+
+        expect(result.layers[0].name).toBe("UGC Base Rate");
+        expect(result.layers[0].adjustment).toBe(175);
+      });
+
+      it("applies $100 base rate for UGC photo", () => {
+        const profile = createMockProfile("nano", 5000);
+        const brief = createUGCBrief("photo", 0);
+
+        const result = calculateUGCPrice(brief, profile);
+
+        expect(result.layers[0].name).toBe("UGC Base Rate");
+        expect(result.layers[0].adjustment).toBe(100);
+      });
+    });
+
+    // ==========================================================================
+    // UGC Ignores Follower Count
+    // ==========================================================================
+    describe("UGC pricing ignores follower count", () => {
+      it("nano and celebrity creators get same UGC price", () => {
+        const nanoProfile = createMockProfile("nano", 5000);
+        const celebrityProfile = createMockProfile("celebrity", 5000000);
+        const brief = createUGCBrief("video");
+
+        const nanoResult = calculateUGCPrice(brief, nanoProfile);
+        const celebrityResult = calculateUGCPrice(brief, celebrityProfile);
+
+        // UGC price should be the same regardless of follower count
+        expect(nanoResult.pricePerDeliverable).toBe(celebrityResult.pricePerDeliverable);
+      });
+
+      it("UGC price is independent of engagement rate", () => {
+        const lowEngagementProfile = createMockProfile("micro", 25000);
+        lowEngagementProfile.avgEngagementRate = 0.5;
+
+        const highEngagementProfile = createMockProfile("micro", 25000);
+        highEngagementProfile.avgEngagementRate = 10.0;
+
+        const brief = createUGCBrief("video");
+
+        const lowResult = calculateUGCPrice(brief, lowEngagementProfile);
+        const highResult = calculateUGCPrice(brief, highEngagementProfile);
+
+        expect(lowResult.pricePerDeliverable).toBe(highResult.pricePerDeliverable);
+      });
+    });
+
+    // ==========================================================================
+    // UGC Usage Rights Still Apply
+    // ==========================================================================
+    describe("UGC usage rights", () => {
+      it("applies usage rights premium to UGC price", () => {
+        const profile = createMockProfile("micro", 25000);
+        const noRightsBrief = createUGCBrief("video", 0, "none");
+        const withRightsBrief = createUGCBrief("video", 90, "none"); // 3 months
+
+        const noRightsResult = calculateUGCPrice(noRightsBrief, profile);
+        const withRightsResult = calculateUGCPrice(withRightsBrief, profile);
+
+        expect(withRightsResult.pricePerDeliverable).toBeGreaterThan(
+          noRightsResult.pricePerDeliverable
+        );
+      });
+
+      it("applies exclusivity premium to UGC price", () => {
+        const profile = createMockProfile("micro", 25000);
+        const noExclusivityBrief = createUGCBrief("video", 30, "none");
+        const fullExclusivityBrief = createUGCBrief("video", 30, "full");
+
+        const noExclusivityResult = calculateUGCPrice(noExclusivityBrief, profile);
+        const fullExclusivityResult = calculateUGCPrice(fullExclusivityBrief, profile);
+
+        expect(fullExclusivityResult.pricePerDeliverable).toBeGreaterThan(
+          noExclusivityResult.pricePerDeliverable
+        );
+      });
+    });
+
+    // ==========================================================================
+    // UGC Complexity Still Applies
+    // ==========================================================================
+    describe("UGC complexity", () => {
+      it("video UGC has higher complexity than photo UGC", () => {
+        const profile = createMockProfile("micro", 25000);
+        const photoBrief = createUGCBrief("photo", 30);
+        const videoBrief = createUGCBrief("video", 30);
+
+        const photoResult = calculateUGCPrice(photoBrief, profile);
+        const videoResult = calculateUGCPrice(videoBrief, profile);
+
+        // Video ($175 base + standard complexity) should be higher than photo ($100 base + simple complexity)
+        expect(videoResult.pricePerDeliverable).toBeGreaterThan(
+          photoResult.pricePerDeliverable
+        );
+      });
+    });
+
+    // ==========================================================================
+    // UGC Has 3 Layers (not 7)
+    // ==========================================================================
+    describe("UGC layer structure", () => {
+      it("UGC pricing has exactly 3 layers", () => {
+        const profile = createMockProfile("micro", 25000);
+        const brief = createUGCBrief("video");
+
+        const result = calculateUGCPrice(brief, profile);
+
+        expect(result.layers).toHaveLength(3);
+        expect(result.layers[0].name).toBe("UGC Base Rate");
+        expect(result.layers[1].name).toBe("Usage Rights");
+        expect(result.layers[2].name).toBe("Complexity");
+      });
+    });
+
+    // ==========================================================================
+    // UGC Quantity Calculation
+    // ==========================================================================
+    describe("UGC quantity", () => {
+      it("multiplies price by quantity", () => {
+        const profile = createMockProfile("micro", 25000);
+        const singleBrief = createUGCBrief("video", 30, "none", 1);
+        const tripleBrief = createUGCBrief("video", 30, "none", 3);
+
+        const singleResult = calculateUGCPrice(singleBrief, profile);
+        const tripleResult = calculateUGCPrice(tripleBrief, profile);
+
+        expect(tripleResult.totalPrice).toBe(singleResult.pricePerDeliverable * 3);
+      });
+    });
+  });
+
+  // ============================================================================
+  // calculatePrice routing tests
+  // ============================================================================
+  describe("calculatePrice routing", () => {
+    function createMockProfile(
+      tier: "nano" | "micro" | "mid" | "rising" | "macro" | "mega" | "celebrity",
+      followers: number
+    ): CreatorProfile {
+      return {
+        id: "test-1",
+        userId: "user-1",
+        displayName: "Test Creator",
+        handle: "testcreator",
+        bio: "Test bio",
+        location: "United States",
+        niches: ["lifestyle"],
+        instagram: {
+          followers,
+          engagementRate: 4.5,
+          avgLikes: Math.round(followers * 0.045),
+          avgComments: 50,
+          avgViews: followers * 0.2,
+        },
+        audience: {
+          ageRange: "18-24",
+          genderSplit: { male: 30, female: 65, other: 5 },
+          topLocations: ["United States", "United Kingdom"],
+          interests: ["fashion", "lifestyle"],
+        },
+        tier,
+        totalReach: followers,
+        avgEngagementRate: 4.5,
+        currency: "USD",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
+    const mockFitScore: FitScoreResult = {
+      totalScore: 75,
+      fitLevel: "high",
+      priceAdjustment: 0.15,
+      breakdown: {
+        nicheMatch: { score: 80, weight: 0.3, insight: "Good niche match" },
+        demographicMatch: { score: 70, weight: 0.25, insight: "Good demo match" },
+        platformMatch: { score: 85, weight: 0.2, insight: "Strong platform" },
+        engagementQuality: { score: 75, weight: 0.15, insight: "Above average" },
+        contentCapability: { score: 60, weight: 0.1, insight: "Capable" },
+      },
+      insights: ["Good fit overall"],
+    };
+
+    it("routes to UGC pricing when dealType is ugc", () => {
+      const profile = createMockProfile("micro", 25000);
+      const ugcBrief: ParsedBrief = {
+        dealType: "ugc",
+        ugcFormat: "video",
+        brand: { name: "Test", industry: "fashion", product: "Product" },
+        campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+        content: { platform: "instagram", format: "static", quantity: 1, creativeDirection: "Test" },
+        usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+        timeline: { deadline: "2 weeks" },
+        rawText: "Test",
+      };
+
+      const result = calculatePrice(profile, ugcBrief, mockFitScore);
+
+      // UGC has 3 layers, sponsored has 7
+      expect(result.layers).toHaveLength(3);
+      expect(result.layers[0].name).toBe("UGC Base Rate");
+    });
+
+    it("routes to sponsored pricing when dealType is sponsored", () => {
+      const profile = createMockProfile("micro", 25000);
+      const sponsoredBrief: ParsedBrief = {
+        dealType: "sponsored",
+        brand: { name: "Test", industry: "fashion", product: "Product" },
+        campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+        content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+        usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+        timeline: { deadline: "2 weeks" },
+        rawText: "Test",
+      };
+
+      const result = calculatePrice(profile, sponsoredBrief, mockFitScore);
+
+      // Sponsored has 7 layers
+      expect(result.layers).toHaveLength(7);
+      expect(result.layers[0].name).toBe("Base Rate");
+    });
+
+    it("defaults to sponsored pricing when dealType is undefined", () => {
+      const profile = createMockProfile("micro", 25000);
+      const defaultBrief: ParsedBrief = {
+        // No dealType specified
+        brand: { name: "Test", industry: "fashion", product: "Product" },
+        campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+        content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+        usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+        timeline: { deadline: "2 weeks" },
+        rawText: "Test",
+      };
+
+      const result = calculatePrice(profile, defaultBrief, mockFitScore);
+
+      // Should default to sponsored (7 layers)
+      expect(result.layers).toHaveLength(7);
+      expect(result.layers[0].name).toBe("Base Rate");
+    });
+
+    it("sponsored pricing still works as before", () => {
+      const nanoProfile = createMockProfile("nano", 5000);
+      const microProfile = createMockProfile("micro", 25000);
+      const sponsoredBrief: ParsedBrief = {
+        dealType: "sponsored",
+        brand: { name: "Test", industry: "fashion", product: "Product" },
+        campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+        content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+        usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+        timeline: { deadline: "2 weeks" },
+        rawText: "Test",
+      };
+
+      const nanoResult = calculatePrice(nanoProfile, sponsoredBrief, mockFitScore);
+      const microResult = calculatePrice(microProfile, sponsoredBrief, mockFitScore);
+
+      // Micro should have higher price than nano (audience-based)
+      expect(microResult.pricePerDeliverable).toBeGreaterThan(nanoResult.pricePerDeliverable);
     });
   });
 });

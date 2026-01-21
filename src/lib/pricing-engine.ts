@@ -18,6 +18,7 @@ import type {
   PricingResult,
   PricingLayer,
   ExclusivityLevel,
+  UGCFormat,
 } from "./types";
 import { CURRENCIES } from "./types";
 
@@ -38,6 +39,16 @@ const BASE_RATES: Record<CreatorTier, number> = {
   macro: 3000, // 250K-500K followers
   mega: 6000, // 500K-1M followers
   celebrity: 12000, // 1M+ followers
+};
+
+/**
+ * UGC (User-Generated Content) base rates.
+ * UGC is priced as a SERVICE, not based on audience size.
+ * These are flat rates per deliverable.
+ */
+const UGC_BASE_RATES: Record<UGCFormat, number> = {
+  video: 175, // UGC video content
+  photo: 100, // UGC photo content
 };
 
 // =============================================================================
@@ -126,7 +137,7 @@ const FORMAT_PREMIUMS: Record<ContentFormat, number> = {
   reel: 0.25, // Short-form video
   video: 0.35, // Long-form video
   live: 0.4, // Real-time, high effort
-  ugc: -0.25, // User-generated, less polish expected
+  ugc: 0, // Deprecated: UGC is now a deal type, not a format
 };
 
 // =============================================================================
@@ -193,11 +204,20 @@ const COMPLEXITY_PREMIUMS: Record<ComplexityLevel, number> = {
 const FORMAT_COMPLEXITY: Record<ContentFormat, ComplexityLevel> = {
   static: "simple",
   story: "simple",
-  ugc: "simple",
+  ugc: "simple", // Deprecated: UGC is now a deal type
   carousel: "standard",
   reel: "standard",
   video: "production",
   live: "complex",
+};
+
+/**
+ * Map UGC format to complexity level.
+ * UGC complexity is generally simpler than sponsored content.
+ */
+const UGC_FORMAT_COMPLEXITY: Record<UGCFormat, ComplexityLevel> = {
+  photo: "simple",
+  video: "standard",
 };
 
 // =============================================================================
@@ -331,11 +351,132 @@ function formatPremium(value: number): string {
 }
 
 // =============================================================================
+// UGC PRICING FUNCTION
+// =============================================================================
+
+/**
+ * Calculate pricing for UGC (User-Generated Content) deals.
+ *
+ * UGC is a SERVICE, not audience-based content. Pricing is based on:
+ * - Base rate per deliverable type (video $175, photo $100)
+ * - Usage rights (duration + exclusivity)
+ * - Complexity
+ *
+ * UGC pricing does NOT consider:
+ * - Follower count (audience size is irrelevant)
+ * - Engagement rate
+ * - Niche premium
+ * - Fit score
+ *
+ * @param brief - Parsed brand brief with UGC requirements
+ * @param profile - Creator profile (only used for currency)
+ * @returns Complete pricing result with layer-by-layer breakdown
+ */
+export function calculateUGCPrice(
+  brief: ParsedBrief,
+  profile: CreatorProfile
+): PricingResult {
+  const layers: PricingLayer[] = [];
+
+  // -------------------------------------------------------------------------
+  // Layer 1: UGC Base Rate (deliverable-based)
+  // -------------------------------------------------------------------------
+  const ugcFormat = brief.ugcFormat || "video";
+  const baseRate = UGC_BASE_RATES[ugcFormat];
+
+  layers.push({
+    name: "UGC Base Rate",
+    description: `${ugcFormat.charAt(0).toUpperCase() + ugcFormat.slice(1)} content base rate`,
+    baseValue: `$${baseRate}`,
+    multiplier: 1,
+    adjustment: baseRate,
+  });
+
+  let currentPrice = baseRate;
+
+  // -------------------------------------------------------------------------
+  // Layer 2: Usage Rights
+  // -------------------------------------------------------------------------
+  const durationDays = brief.usageRights.durationDays;
+  const exclusivity = brief.usageRights.exclusivity;
+  const durationPremium = getDurationPremium(durationDays);
+  const exclusivityPremium = EXCLUSIVITY_PREMIUMS[exclusivity];
+  const totalRightsPremium = durationPremium + exclusivityPremium;
+
+  let rightsDescription = "";
+  if (durationDays === 0) {
+    rightsDescription = "Content only, no paid usage";
+  } else if (durationDays >= 365) {
+    rightsDescription = "Perpetual usage rights";
+  } else {
+    rightsDescription = `${durationDays}-day usage rights`;
+  }
+  if (exclusivity !== "none") {
+    rightsDescription += `, ${exclusivity} exclusivity`;
+  }
+
+  layers.push({
+    name: "Usage Rights",
+    description: rightsDescription,
+    baseValue: `${durationDays} days`,
+    multiplier: 1 + totalRightsPremium,
+    adjustment: currentPrice * totalRightsPremium,
+  });
+
+  currentPrice *= 1 + totalRightsPremium;
+
+  // -------------------------------------------------------------------------
+  // Layer 3: Complexity
+  // -------------------------------------------------------------------------
+  const complexityLevel = UGC_FORMAT_COMPLEXITY[ugcFormat];
+  const complexityPremium = COMPLEXITY_PREMIUMS[complexityLevel];
+
+  layers.push({
+    name: "Complexity",
+    description: `${complexityLevel.charAt(0).toUpperCase() + complexityLevel.slice(1)} production requirements`,
+    baseValue: complexityLevel,
+    multiplier: 1 + complexityPremium,
+    adjustment: currentPrice * complexityPremium,
+  });
+
+  currentPrice *= 1 + complexityPremium;
+
+  // -------------------------------------------------------------------------
+  // Final Calculations
+  // -------------------------------------------------------------------------
+  const pricePerDeliverable = roundToNearestFive(currentPrice);
+  const quantity = brief.content.quantity;
+  const totalPrice = pricePerDeliverable * quantity;
+
+  // Build formula string (simpler for UGC)
+  const formula =
+    `$${baseRate} × (1 ${formatPremium(totalRightsPremium)}) × (1 ${formatPremium(complexityPremium)})`;
+
+  // Get currency info from profile
+  const currencyInfo = CURRENCIES.find(c => c.code === profile.currency) || CURRENCIES[0];
+
+  return {
+    pricePerDeliverable,
+    quantity,
+    totalPrice,
+    currency: currencyInfo.code,
+    currencySymbol: currencyInfo.symbol,
+    validDays: 14,
+    layers,
+    formula,
+  };
+}
+
+// =============================================================================
 // MAIN PRICING FUNCTION
 // =============================================================================
 
 /**
  * Calculate the complete pricing breakdown for a creator-brand partnership.
+ *
+ * Routes to the appropriate pricing function based on deal type:
+ * - "sponsored" (default): Audience-based pricing using the 7-layer engine
+ * - "ugc": Deliverable-based pricing using flat rates
  *
  * @param profile - Creator's profile with platform metrics
  * @param brief - Parsed brand brief with campaign requirements
@@ -347,6 +488,12 @@ export function calculatePrice(
   brief: ParsedBrief,
   fitScore: FitScoreResult
 ): PricingResult {
+  // Route to UGC pricing if deal type is "ugc"
+  if (brief.dealType === "ugc") {
+    return calculateUGCPrice(brief, profile);
+  }
+
+  // Otherwise, use standard sponsored content pricing
   const layers: PricingLayer[] = [];
 
   // -------------------------------------------------------------------------
