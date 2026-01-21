@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculateTier, calculatePrice, getNichePremium, calculateUGCPrice, getWhitelistingPremium, getSeasonalPremium } from "@/lib/pricing-engine";
+import { calculateTier, calculatePrice, getNichePremium, calculateUGCPrice, getWhitelistingPremium, getSeasonalPremium, getRegionalMultiplier } from "@/lib/pricing-engine";
 import type { CreatorProfile, ParsedBrief, FitScoreResult } from "@/lib/types";
 
 describe("pricing-engine", () => {
@@ -495,6 +495,113 @@ describe("pricing-engine", () => {
     });
   });
 
+  // ============================================================================
+  // getRegionalMultiplier Tests
+  // ============================================================================
+  describe("getRegionalMultiplier", () => {
+    describe("all regions return correct multipliers", () => {
+      it("returns 1.0x for United States (baseline)", () => {
+        expect(getRegionalMultiplier("united_states")).toBe(1.0);
+      });
+
+      it("returns 0.95x for United Kingdom", () => {
+        expect(getRegionalMultiplier("united_kingdom")).toBe(0.95);
+      });
+
+      it("returns 0.9x for Canada", () => {
+        expect(getRegionalMultiplier("canada")).toBe(0.9);
+      });
+
+      it("returns 0.9x for Australia", () => {
+        expect(getRegionalMultiplier("australia")).toBe(0.9);
+      });
+
+      it("returns 0.85x for Western Europe", () => {
+        expect(getRegionalMultiplier("western_europe")).toBe(0.85);
+      });
+
+      it("returns 1.1x for UAE/Gulf States", () => {
+        expect(getRegionalMultiplier("uae_gulf")).toBe(1.1);
+      });
+
+      it("returns 0.95x for Singapore/Hong Kong", () => {
+        expect(getRegionalMultiplier("singapore_hk")).toBe(0.95);
+      });
+
+      it("returns 0.8x for Japan", () => {
+        expect(getRegionalMultiplier("japan")).toBe(0.8);
+      });
+
+      it("returns 0.75x for South Korea", () => {
+        expect(getRegionalMultiplier("south_korea")).toBe(0.75);
+      });
+
+      it("returns 0.6x for Brazil", () => {
+        expect(getRegionalMultiplier("brazil")).toBe(0.6);
+      });
+
+      it("returns 0.55x for Mexico", () => {
+        expect(getRegionalMultiplier("mexico")).toBe(0.55);
+      });
+
+      it("returns 0.4x for India", () => {
+        expect(getRegionalMultiplier("india")).toBe(0.4);
+      });
+
+      it("returns 0.5x for Southeast Asia", () => {
+        expect(getRegionalMultiplier("southeast_asia")).toBe(0.5);
+      });
+
+      it("returns 0.5x for Eastern Europe", () => {
+        expect(getRegionalMultiplier("eastern_europe")).toBe(0.5);
+      });
+
+      it("returns 0.4x for Africa", () => {
+        expect(getRegionalMultiplier("africa")).toBe(0.4);
+      });
+
+      it("returns 0.7x for Other", () => {
+        expect(getRegionalMultiplier("other")).toBe(0.7);
+      });
+    });
+
+    describe("unknown region defaults to 0.7x", () => {
+      it("returns 0.7x for unknown region string", () => {
+        expect(getRegionalMultiplier("unknown")).toBe(0.7);
+        expect(getRegionalMultiplier("random_region")).toBe(0.7);
+        expect(getRegionalMultiplier("mars")).toBe(0.7);
+      });
+
+      it("returns 1.0x (US baseline) for undefined", () => {
+        expect(getRegionalMultiplier(undefined)).toBe(1.0);
+      });
+
+      it("returns 1.0x (US baseline) for empty string", () => {
+        // Empty string normalizes and doesn't match, so defaults to US
+        expect(getRegionalMultiplier("")).toBe(1.0);
+      });
+    });
+
+    describe("case and whitespace handling", () => {
+      it("handles different cases", () => {
+        expect(getRegionalMultiplier("UNITED_STATES")).toBe(1.0);
+        expect(getRegionalMultiplier("United_Kingdom")).toBe(0.95);
+        expect(getRegionalMultiplier("WESTERN_EUROPE")).toBe(0.85);
+      });
+
+      it("handles whitespace", () => {
+        expect(getRegionalMultiplier("  united_states  ")).toBe(1.0);
+        expect(getRegionalMultiplier("  india  ")).toBe(0.4);
+      });
+
+      it("handles spaces instead of underscores", () => {
+        expect(getRegionalMultiplier("united states")).toBe(1.0);
+        expect(getRegionalMultiplier("united kingdom")).toBe(0.95);
+        expect(getRegionalMultiplier("western europe")).toBe(0.85);
+      });
+    });
+  });
+
   describe("calculatePrice", () => {
     // Helper function to create a mock profile with specific tier and niches
     function createMockProfile(
@@ -575,20 +682,21 @@ describe("pricing-engine", () => {
       insights: ["Good fit overall"],
     };
 
-    it("calculates price with all 9 layers (including niche premium, whitelisting, and seasonal)", () => {
+    it("calculates price with all 10 layers (including regional, niche premium, whitelisting, and seasonal)", () => {
       const mockProfile = createMockProfile("micro", 25000);
       const result = calculatePrice(mockProfile, mockBrief, mockFitScore);
 
-      expect(result.layers).toHaveLength(9);
+      expect(result.layers).toHaveLength(10);
       expect(result.layers[0].name).toBe("Base Rate");
-      expect(result.layers[1].name).toBe("Engagement Multiplier");
-      expect(result.layers[2].name).toBe("Niche Premium");
-      expect(result.layers[3].name).toBe("Format Premium");
-      expect(result.layers[4].name).toBe("Fit Score");
-      expect(result.layers[5].name).toBe("Usage Rights");
-      expect(result.layers[6].name).toBe("Whitelisting");
-      expect(result.layers[7].name).toBe("Complexity");
-      expect(result.layers[8].name).toBe("Seasonal");
+      expect(result.layers[1].name).toBe("Regional");
+      expect(result.layers[2].name).toBe("Engagement Multiplier");
+      expect(result.layers[3].name).toBe("Niche Premium");
+      expect(result.layers[4].name).toBe("Format Premium");
+      expect(result.layers[5].name).toBe("Fit Score");
+      expect(result.layers[6].name).toBe("Usage Rights");
+      expect(result.layers[7].name).toBe("Whitelisting");
+      expect(result.layers[8].name).toBe("Complexity");
+      expect(result.layers[9].name).toBe("Seasonal");
     });
 
     it("returns price per deliverable and total", () => {
@@ -907,6 +1015,92 @@ describe("pricing-engine", () => {
         // Premium depends on current date, but layer should exist
         expect(seasonalLayer?.multiplier).toBeGreaterThanOrEqual(1.0);
         expect(seasonalLayer?.multiplier).toBeLessThanOrEqual(1.25);
+      });
+    });
+
+    // ==========================================================================
+    // Regional Pricing Integration Tests
+    // ==========================================================================
+    describe("regional pricing integration", () => {
+      it("regional layer shows correct multiplier for India", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        mockProfile.region = "india";
+
+        const result = calculatePrice(mockProfile, mockBrief, mockFitScore);
+
+        const regionalLayer = result.layers.find(l => l.name === "Regional");
+        expect(regionalLayer).toBeDefined();
+        expect(regionalLayer?.multiplier).toBe(0.4);
+      });
+
+      it("regional layer shows correct multiplier for UAE", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        mockProfile.region = "uae_gulf";
+
+        const result = calculatePrice(mockProfile, mockBrief, mockFitScore);
+
+        const regionalLayer = result.layers.find(l => l.name === "Regional");
+        expect(regionalLayer).toBeDefined();
+        expect(regionalLayer?.multiplier).toBe(1.1);
+      });
+
+      it("regional pricing affects final price", () => {
+        const usProfile = createMockProfile("micro", 25000);
+        usProfile.region = "united_states";
+
+        const indiaProfile = createMockProfile("micro", 25000);
+        indiaProfile.region = "india";
+
+        const usResult = calculatePrice(usProfile, mockBrief, mockFitScore);
+        const indiaResult = calculatePrice(indiaProfile, mockBrief, mockFitScore);
+
+        // India (0.4x) should be significantly lower than US (1.0x)
+        expect(indiaResult.pricePerDeliverable).toBeLessThan(usResult.pricePerDeliverable);
+        // Rough ratio check - India should be about 40% of US price
+        const ratio = indiaResult.pricePerDeliverable / usResult.pricePerDeliverable;
+        expect(ratio).toBeGreaterThan(0.35);
+        expect(ratio).toBeLessThan(0.45);
+      });
+
+      it("UAE creators earn more than US baseline", () => {
+        const usProfile = createMockProfile("micro", 25000);
+        usProfile.region = "united_states";
+
+        const uaeProfile = createMockProfile("micro", 25000);
+        uaeProfile.region = "uae_gulf";
+
+        const usResult = calculatePrice(usProfile, mockBrief, mockFitScore);
+        const uaeResult = calculatePrice(uaeProfile, mockBrief, mockFitScore);
+
+        // UAE (1.1x) should be higher than US (1.0x)
+        expect(uaeResult.pricePerDeliverable).toBeGreaterThan(usResult.pricePerDeliverable);
+      });
+
+      it("defaults to US baseline when region not specified", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        // Don't set region
+
+        const result = calculatePrice(mockProfile, mockBrief, mockFitScore);
+
+        const regionalLayer = result.layers.find(l => l.name === "Regional");
+        expect(regionalLayer).toBeDefined();
+        expect(regionalLayer?.multiplier).toBe(1.0); // US baseline
+      });
+
+      it("integration with base rate - India nano vs US nano", () => {
+        const usNanoProfile = createMockProfile("nano", 5000);
+        usNanoProfile.region = "united_states";
+
+        const indiaNanoProfile = createMockProfile("nano", 5000);
+        indiaNanoProfile.region = "india";
+
+        const usResult = calculatePrice(usNanoProfile, mockBrief, mockFitScore);
+        const indiaResult = calculatePrice(indiaNanoProfile, mockBrief, mockFitScore);
+
+        // Base rate is $150 for nano
+        // US: $150 × 1.0 = $150 base × regional
+        // India: $150 × 0.4 = $60 base × regional
+        expect(usResult.pricePerDeliverable).toBeGreaterThan(indiaResult.pricePerDeliverable);
       });
     });
 
@@ -1379,8 +1573,8 @@ describe("pricing-engine", () => {
 
       const result = calculatePrice(profile, sponsoredBrief, mockFitScore);
 
-      // Sponsored has 9 layers (with Whitelisting and Seasonal)
-      expect(result.layers).toHaveLength(9);
+      // Sponsored has 10 layers (with Regional, Whitelisting and Seasonal)
+      expect(result.layers).toHaveLength(10);
       expect(result.layers[0].name).toBe("Base Rate");
     });
 
@@ -1398,8 +1592,8 @@ describe("pricing-engine", () => {
 
       const result = calculatePrice(profile, defaultBrief, mockFitScore);
 
-      // Should default to sponsored (9 layers)
-      expect(result.layers).toHaveLength(9);
+      // Should default to sponsored (10 layers)
+      expect(result.layers).toHaveLength(10);
       expect(result.layers[0].name).toBe("Base Rate");
     });
 

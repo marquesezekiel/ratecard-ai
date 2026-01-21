@@ -106,6 +106,31 @@ export interface AudienceDemographics {
 export type CreatorTier = "nano" | "micro" | "mid" | "rising" | "macro" | "mega" | "celebrity";
 
 /**
+ * Geographic region for regional rate adjustments.
+ * Determines the regional multiplier in Layer 1.5 of the pricing engine.
+ *
+ * Regional multipliers reflect market differences in advertiser budgets
+ * and creator earning potential by geography.
+ */
+export type Region =
+  | "united_states"
+  | "united_kingdom"
+  | "canada"
+  | "australia"
+  | "western_europe"
+  | "uae_gulf"
+  | "singapore_hk"
+  | "japan"
+  | "south_korea"
+  | "brazil"
+  | "mexico"
+  | "india"
+  | "southeast_asia"
+  | "eastern_europe"
+  | "africa"
+  | "other";
+
+/**
  * Complete creator profile with platform metrics and audience data.
  * Core entity used for fit score and pricing calculations.
  */
@@ -122,6 +147,12 @@ export interface CreatorProfile {
   bio: string;
   /** Geographic location (e.g., "United States") */
   location: string;
+  /**
+   * Geographic region for rate adjustments.
+   * Defaults to "united_states" if not specified.
+   * Used in Layer 1.5 of the pricing engine.
+   */
+  region?: Region;
   /** Content niches/categories (max 5, e.g., ["lifestyle", "fashion"]) */
   niches: string[];
   /** Instagram platform metrics (optional) */

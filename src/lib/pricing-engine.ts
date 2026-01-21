@@ -20,6 +20,7 @@ import type {
   ExclusivityLevel,
   UGCFormat,
   WhitelistingType,
+  Region,
 } from "./types";
 import { CURRENCIES } from "./types";
 
@@ -50,6 +51,62 @@ const BASE_RATES: Record<CreatorTier, number> = {
 const UGC_BASE_RATES: Record<UGCFormat, number> = {
   video: 175, // UGC video content
   photo: 100, // UGC photo content
+};
+
+// =============================================================================
+// LAYER 1.5: REGIONAL MULTIPLIERS
+// =============================================================================
+
+/**
+ * Regional rate multipliers based on creator's primary market.
+ * These reflect differences in advertiser budgets and creator earning
+ * potential across different geographic regions.
+ *
+ * United States is the baseline (1.0x). Other regions are adjusted
+ * relative to US market rates.
+ */
+const REGIONAL_MULTIPLIERS: Record<Region, number> = {
+  united_states: 1.0, // Baseline
+  united_kingdom: 0.95,
+  canada: 0.9,
+  australia: 0.9,
+  western_europe: 0.85, // Germany, France, Netherlands, etc.
+  uae_gulf: 1.1, // UAE, Saudi Arabia, Qatar, etc.
+  singapore_hk: 0.95, // Singapore, Hong Kong
+  japan: 0.8,
+  south_korea: 0.75,
+  brazil: 0.6,
+  mexico: 0.55,
+  india: 0.4,
+  southeast_asia: 0.5, // Thailand, Vietnam, Philippines, Indonesia, etc.
+  eastern_europe: 0.5, // Poland, Romania, Czech Republic, etc.
+  africa: 0.4,
+  other: 0.7, // Default for unknown regions
+};
+
+/** Default region when not specified */
+const DEFAULT_REGION: Region = "united_states";
+
+/**
+ * Human-readable display names for regions.
+ */
+const REGION_DISPLAY_NAMES: Record<Region, string> = {
+  united_states: "United States",
+  united_kingdom: "United Kingdom",
+  canada: "Canada",
+  australia: "Australia",
+  western_europe: "Western Europe",
+  uae_gulf: "UAE/Gulf States",
+  singapore_hk: "Singapore/Hong Kong",
+  japan: "Japan",
+  south_korea: "South Korea",
+  brazil: "Brazil",
+  mexico: "Mexico",
+  india: "India",
+  southeast_asia: "Southeast Asia",
+  eastern_europe: "Eastern Europe",
+  africa: "Africa",
+  other: "Other",
 };
 
 // =============================================================================
@@ -309,6 +366,26 @@ export function calculateTier(followers: number): CreatorTier {
   if (followers >= 50000) return "mid";
   if (followers >= 10000) return "micro";
   return "nano";
+}
+
+/**
+ * Get regional rate multiplier based on creator's primary market.
+ * Returns the multiplier for the specified region, or default (0.7x) for unknown regions.
+ *
+ * @param region - The creator's region identifier
+ * @returns Multiplier value (e.g., 1.0 for US, 0.95 for UK, 0.4 for India)
+ */
+export function getRegionalMultiplier(region: string | undefined): number {
+  if (!region) return REGIONAL_MULTIPLIERS[DEFAULT_REGION];
+  const normalizedRegion = region.toLowerCase().trim().replace(/\s+/g, "_") as Region;
+  return REGIONAL_MULTIPLIERS[normalizedRegion] ?? REGIONAL_MULTIPLIERS.other;
+}
+
+/**
+ * Get display name for a region.
+ */
+function getRegionDisplayName(region: Region | undefined): string {
+  return REGION_DISPLAY_NAMES[region || DEFAULT_REGION];
 }
 
 /**
@@ -726,6 +803,23 @@ export function calculatePrice(
   let currentPrice = baseRate;
 
   // -------------------------------------------------------------------------
+  // Layer 1.5: Regional Multiplier
+  // -------------------------------------------------------------------------
+  const region = profile.region || DEFAULT_REGION;
+  const regionalMultiplier = getRegionalMultiplier(region);
+  const regionDisplayName = getRegionDisplayName(region);
+
+  layers.push({
+    name: "Regional",
+    description: `${regionDisplayName} market rate`,
+    baseValue: region,
+    multiplier: regionalMultiplier,
+    adjustment: currentPrice * regionalMultiplier - currentPrice,
+  });
+
+  currentPrice *= regionalMultiplier;
+
+  // -------------------------------------------------------------------------
   // Layer 2: Engagement Multiplier
   // -------------------------------------------------------------------------
   const engagementRate = profile.avgEngagementRate;
@@ -887,7 +981,7 @@ export function calculatePrice(
 
   // Build formula string
   const formula =
-    `($${baseRate} × ${engagementMultiplier.toFixed(1)} × ${nichePremiumMultiplier.toFixed(1)}) ` +
+    `($${baseRate} × ${regionalMultiplier.toFixed(2)} × ${engagementMultiplier.toFixed(1)} × ${nichePremiumMultiplier.toFixed(1)}) ` +
     `× (1 ${formatPremium(formatPremiumValue)}) ` +
     `× (1 ${formatPremium(fitAdjustment)}) ` +
     `× (1 ${formatPremium(totalRightsPremium)}) ` +
