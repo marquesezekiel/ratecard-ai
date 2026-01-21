@@ -12,8 +12,22 @@ import {
   calculateAffiliateEarnings,
   calculateHybridPrice,
   calculatePerformancePrice,
+  getVolumeDiscount,
+  getEventDayRate,
+  calculateDeliverableRates,
+  calculateAmbassadorPerks,
+  calculateRetainerPrice,
 } from "@/lib/pricing-engine";
-import type { CreatorProfile, ParsedBrief, FitScoreResult, Platform, AffiliateConfig, PerformanceConfig } from "@/lib/types";
+import type {
+  CreatorProfile,
+  ParsedBrief,
+  FitScoreResult,
+  Platform,
+  AffiliateConfig,
+  PerformanceConfig,
+  RetainerConfig,
+  AmbassadorPerks,
+} from "@/lib/types";
 
 describe("pricing-engine", () => {
   describe("calculateTier", () => {
@@ -2716,6 +2730,600 @@ describe("pricing-engine", () => {
 
         expect(explicitResult.totalPrice).toBe(defaultResult.totalPrice);
         expect(explicitResult.pricingModel).toBe("flat_fee");
+      });
+    });
+  });
+
+  // ============================================================================
+  // Retainer/Ambassador Pricing Tests (Prompt 9)
+  // ============================================================================
+  describe("getVolumeDiscount", () => {
+    describe("volume discount by deal length", () => {
+      it("returns 0% discount for one_time deals", () => {
+        expect(getVolumeDiscount("one_time")).toBe(0);
+      });
+
+      it("returns 0% discount for monthly deals (no commitment)", () => {
+        expect(getVolumeDiscount("monthly")).toBe(0);
+      });
+
+      it("returns 15% discount for 3-month deals", () => {
+        expect(getVolumeDiscount("3_month")).toBe(0.15);
+      });
+
+      it("returns 25% discount for 6-month deals", () => {
+        expect(getVolumeDiscount("6_month")).toBe(0.25);
+      });
+
+      it("returns 35% discount for 12-month ambassador deals", () => {
+        expect(getVolumeDiscount("12_month")).toBe(0.35);
+      });
+    });
+  });
+
+  describe("getEventDayRate", () => {
+    describe("event day rates by tier", () => {
+      it("returns $500 for nano tier", () => {
+        expect(getEventDayRate("nano")).toBe(500);
+      });
+
+      it("returns $750 for micro tier", () => {
+        expect(getEventDayRate("micro")).toBe(750);
+      });
+
+      it("returns $1000 for mid tier", () => {
+        expect(getEventDayRate("mid")).toBe(1000);
+      });
+
+      it("returns $1250 for rising tier", () => {
+        expect(getEventDayRate("rising")).toBe(1250);
+      });
+
+      it("returns $1500 for macro tier", () => {
+        expect(getEventDayRate("macro")).toBe(1500);
+      });
+
+      it("returns $1750 for mega tier", () => {
+        expect(getEventDayRate("mega")).toBe(1750);
+      });
+
+      it("returns $2000 for celebrity tier", () => {
+        expect(getEventDayRate("celebrity")).toBe(2000);
+      });
+    });
+  });
+
+  describe("calculateDeliverableRates", () => {
+    describe("format multipliers", () => {
+      it("calculates post rate at 100% of base", () => {
+        const rates = calculateDeliverableRates(400);
+        expect(rates.postRate).toBe(400);
+      });
+
+      it("calculates story rate at 30% of base", () => {
+        const rates = calculateDeliverableRates(400);
+        expect(rates.storyRate).toBe(120); // 400 * 0.3 = 120
+      });
+
+      it("calculates reel rate at 125% of base", () => {
+        const rates = calculateDeliverableRates(400);
+        expect(rates.reelRate).toBe(500); // 400 * 1.25 = 500
+      });
+
+      it("calculates video rate at 150% of base", () => {
+        const rates = calculateDeliverableRates(400);
+        expect(rates.videoRate).toBe(600); // 400 * 1.5 = 600
+      });
+
+      it("rounds all rates to nearest $5", () => {
+        const rates = calculateDeliverableRates(347);
+        expect(rates.postRate % 5).toBe(0);
+        expect(rates.storyRate % 5).toBe(0);
+        expect(rates.reelRate % 5).toBe(0);
+        expect(rates.videoRate % 5).toBe(0);
+      });
+    });
+  });
+
+  describe("calculateAmbassadorPerks", () => {
+    describe("exclusivity premiums", () => {
+      it("returns 0 exclusivity premium when exclusivity not required", () => {
+        const perks: AmbassadorPerks = {
+          exclusivityRequired: false,
+          exclusivityType: "none",
+          productSeeding: false,
+          productValue: 0,
+          eventsIncluded: 0,
+          eventDayRate: 0,
+        };
+
+        const result = calculateAmbassadorPerks(perks, "micro", 1000, 12);
+
+        expect(result.exclusivityPremium).toBe(0);
+      });
+
+      it("returns 50% premium for category exclusivity", () => {
+        const perks: AmbassadorPerks = {
+          exclusivityRequired: true,
+          exclusivityType: "category",
+          productSeeding: false,
+          productValue: 0,
+          eventsIncluded: 0,
+          eventDayRate: 0,
+        };
+
+        const result = calculateAmbassadorPerks(perks, "micro", 1000, 12);
+
+        // $1000/mo * 50% * 12 months = $6,000
+        expect(result.exclusivityPremium).toBe(6000);
+        expect(result.exclusivityType).toBe("category");
+      });
+
+      it("returns 100% premium for full exclusivity", () => {
+        const perks: AmbassadorPerks = {
+          exclusivityRequired: true,
+          exclusivityType: "full",
+          productSeeding: false,
+          productValue: 0,
+          eventsIncluded: 0,
+          eventDayRate: 0,
+        };
+
+        const result = calculateAmbassadorPerks(perks, "micro", 1000, 12);
+
+        // $1000/mo * 100% * 12 months = $12,000
+        expect(result.exclusivityPremium).toBe(12000);
+        expect(result.exclusivityType).toBe("full");
+      });
+    });
+
+    describe("event appearances", () => {
+      it("calculates event value using provided day rate", () => {
+        const perks: AmbassadorPerks = {
+          exclusivityRequired: false,
+          exclusivityType: "none",
+          productSeeding: false,
+          productValue: 0,
+          eventsIncluded: 3,
+          eventDayRate: 1000,
+        };
+
+        const result = calculateAmbassadorPerks(perks, "micro", 1000, 12);
+
+        expect(result.eventsIncluded).toBe(3);
+        expect(result.eventDayRate).toBe(1000);
+        expect(result.eventAppearancesValue).toBe(3000); // 3 * $1000
+      });
+
+      it("uses tier day rate when eventDayRate not specified", () => {
+        const perks: AmbassadorPerks = {
+          exclusivityRequired: false,
+          exclusivityType: "none",
+          productSeeding: false,
+          productValue: 0,
+          eventsIncluded: 2,
+          eventDayRate: 0, // Will use tier default
+        };
+
+        const result = calculateAmbassadorPerks(perks, "micro", 1000, 12);
+
+        expect(result.eventDayRate).toBe(750); // Micro tier default
+        expect(result.eventAppearancesValue).toBe(1500); // 2 * $750
+      });
+
+      it("returns 0 event value when no events included", () => {
+        const perks: AmbassadorPerks = {
+          exclusivityRequired: false,
+          exclusivityType: "none",
+          productSeeding: false,
+          productValue: 0,
+          eventsIncluded: 0,
+          eventDayRate: 1000,
+        };
+
+        const result = calculateAmbassadorPerks(perks, "micro", 1000, 12);
+
+        expect(result.eventsIncluded).toBe(0);
+        expect(result.eventDayRate).toBe(0); // Not used when no events
+        expect(result.eventAppearancesValue).toBe(0);
+      });
+    });
+
+    describe("product seeding", () => {
+      it("includes product value when seeding is enabled", () => {
+        const perks: AmbassadorPerks = {
+          exclusivityRequired: false,
+          exclusivityType: "none",
+          productSeeding: true,
+          productValue: 500,
+          eventsIncluded: 0,
+          eventDayRate: 0,
+        };
+
+        const result = calculateAmbassadorPerks(perks, "micro", 1000, 12);
+
+        expect(result.productSeedingValue).toBe(500);
+      });
+
+      it("returns 0 product value when seeding is disabled", () => {
+        const perks: AmbassadorPerks = {
+          exclusivityRequired: false,
+          exclusivityType: "none",
+          productSeeding: false,
+          productValue: 500, // Ignored because seeding is false
+          eventsIncluded: 0,
+          eventDayRate: 0,
+        };
+
+        const result = calculateAmbassadorPerks(perks, "micro", 1000, 12);
+
+        expect(result.productSeedingValue).toBe(0);
+      });
+    });
+
+    describe("total perks value", () => {
+      it("combines exclusivity and events for total", () => {
+        const perks: AmbassadorPerks = {
+          exclusivityRequired: true,
+          exclusivityType: "category",
+          productSeeding: true,
+          productValue: 500,
+          eventsIncluded: 2,
+          eventDayRate: 1000,
+        };
+
+        const result = calculateAmbassadorPerks(perks, "micro", 1000, 12);
+
+        // Exclusivity: $1000 * 50% * 12 = $6,000
+        // Events: 2 * $1000 = $2,000
+        // Total perks: $8,000 (product seeding not included in totalPerksValue)
+        expect(result.totalPerksValue).toBe(8000);
+      });
+    });
+  });
+
+  describe("calculateRetainerPrice", () => {
+    describe("3-month retainer (15% discount)", () => {
+      it("applies 15% volume discount to deliverable rates", () => {
+        const config: RetainerConfig = {
+          dealLength: "3_month",
+          monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 0 },
+        };
+
+        const result = calculateRetainerPrice(400, config, "micro");
+
+        expect(result.volumeDiscount).toBe(15);
+        expect(result.contractMonths).toBe(3);
+        // Discounted post rate: $400 * 0.85 = $340
+        expect(result.discountedRates.postRate).toBe(340);
+      });
+
+      it("calculates correct monthly savings", () => {
+        const config: RetainerConfig = {
+          dealLength: "3_month",
+          monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 0 },
+        };
+
+        const result = calculateRetainerPrice(400, config, "micro");
+
+        // Full monthly value vs discounted should show savings
+        expect(result.monthlySavings).toBe(
+          result.monthlyContentValueFull - result.monthlyContentValueDiscounted
+        );
+        expect(result.monthlySavings).toBeGreaterThan(0);
+      });
+    });
+
+    describe("6-month retainer (25% discount)", () => {
+      it("applies 25% volume discount", () => {
+        const config: RetainerConfig = {
+          dealLength: "6_month",
+          monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 1 },
+        };
+
+        const result = calculateRetainerPrice(400, config, "micro");
+
+        expect(result.volumeDiscount).toBe(25);
+        expect(result.contractMonths).toBe(6);
+        // Discounted post rate: $400 * 0.75 = $300
+        expect(result.discountedRates.postRate).toBe(300);
+      });
+
+      it("calculates 6-month total contract value", () => {
+        const config: RetainerConfig = {
+          dealLength: "6_month",
+          monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 0 },
+        };
+
+        const result = calculateRetainerPrice(400, config, "micro");
+
+        expect(result.totalContractValue).toBe(result.monthlyRate * 6);
+      });
+    });
+
+    describe("12-month ambassador (35% discount)", () => {
+      it("applies 35% volume discount", () => {
+        const config: RetainerConfig = {
+          dealLength: "12_month",
+          monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 1 },
+        };
+
+        const result = calculateRetainerPrice(400, config, "micro");
+
+        expect(result.volumeDiscount).toBe(35);
+        expect(result.contractMonths).toBe(12);
+        // Discounted post rate: $400 * 0.65 = $260
+        expect(result.discountedRates.postRate).toBe(260);
+      });
+
+      it("includes ambassador perks in total", () => {
+        const config: RetainerConfig = {
+          dealLength: "12_month",
+          monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 0 },
+          ambassadorPerks: {
+            exclusivityRequired: true,
+            exclusivityType: "category",
+            productSeeding: true,
+            productValue: 500,
+            eventsIncluded: 3,
+            eventDayRate: 1000,
+          },
+        };
+
+        const result = calculateRetainerPrice(400, config, "micro");
+
+        expect(result.ambassadorBreakdown).toBeDefined();
+        expect(result.ambassadorBreakdown?.exclusivityPremium).toBeGreaterThan(0);
+        expect(result.ambassadorBreakdown?.eventAppearancesValue).toBe(3000);
+
+        // Total should include content + perks
+        const contentValue = result.monthlyRate * 12;
+        const perksValue = result.ambassadorBreakdown?.totalPerksValue ?? 0;
+        expect(result.totalContractValue).toBeCloseTo(contentValue + perksValue, -1);
+      });
+    });
+
+    describe("monthly retainer (no discount)", () => {
+      it("applies 0% discount for month-to-month", () => {
+        const config: RetainerConfig = {
+          dealLength: "monthly",
+          monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 0 },
+        };
+
+        const result = calculateRetainerPrice(400, config, "micro");
+
+        expect(result.volumeDiscount).toBe(0);
+        expect(result.contractMonths).toBe(1);
+        expect(result.discountedRates.postRate).toBe(result.fullRates.postRate);
+      });
+    });
+
+    describe("deliverables calculation", () => {
+      it("calculates monthly content value correctly", () => {
+        const config: RetainerConfig = {
+          dealLength: "3_month",
+          monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 1 },
+        };
+
+        const result = calculateRetainerPrice(400, config, "micro");
+
+        // Calculate expected monthly value at discounted rates
+        const expected =
+          4 * result.discountedRates.postRate +
+          8 * result.discountedRates.storyRate +
+          2 * result.discountedRates.reelRate +
+          1 * result.discountedRates.videoRate;
+
+        expect(result.monthlyContentValueDiscounted).toBeCloseTo(expected, -1);
+      });
+    });
+  });
+
+  describe("calculatePrice with retainer config", () => {
+    function createMockProfile(
+      tier: "nano" | "micro" | "mid" | "rising" | "macro" | "mega" | "celebrity",
+      followers: number
+    ): CreatorProfile {
+      return {
+        id: "test-1",
+        userId: "user-1",
+        displayName: "Test Creator",
+        handle: "testcreator",
+        bio: "Test bio",
+        location: "United States",
+        niches: ["lifestyle"],
+        instagram: {
+          followers,
+          engagementRate: 4.5,
+          avgLikes: Math.round(followers * 0.045),
+          avgComments: 50,
+          avgViews: followers * 0.2,
+        },
+        audience: {
+          ageRange: "18-24",
+          genderSplit: { male: 30, female: 65, other: 5 },
+          topLocations: ["United States", "United Kingdom"],
+          interests: ["fashion", "lifestyle"],
+        },
+        tier,
+        totalReach: followers,
+        avgEngagementRate: 4.5,
+        currency: "USD",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
+    const mockFitScore: FitScoreResult = {
+      totalScore: 75,
+      fitLevel: "high",
+      priceAdjustment: 0.15,
+      breakdown: {
+        nicheMatch: { score: 80, weight: 0.3, insight: "Good niche match" },
+        demographicMatch: { score: 70, weight: 0.25, insight: "Good demo match" },
+        platformMatch: { score: 85, weight: 0.2, insight: "Strong platform" },
+        engagementQuality: { score: 75, weight: 0.15, insight: "Above average" },
+        contentCapability: { score: 60, weight: 0.1, insight: "Capable" },
+      },
+      insights: ["Good fit overall"],
+    };
+
+    describe("retainer pricing integration", () => {
+      it("routes to retainer pricing when retainerConfig is present", () => {
+        const profile = createMockProfile("micro", 25000);
+        const retainerBrief: ParsedBrief = {
+          retainerConfig: {
+            dealLength: "3_month",
+            monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 0 },
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$2000" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, retainerBrief, mockFitScore);
+
+        expect(result.retainerBreakdown).toBeDefined();
+        expect(result.retainerBreakdown?.dealLength).toBe("3_month");
+        expect(result.retainerBreakdown?.volumeDiscount).toBe(15);
+      });
+
+      it("includes retainer breakdown layers", () => {
+        const profile = createMockProfile("micro", 25000);
+        const retainerBrief: ParsedBrief = {
+          retainerConfig: {
+            dealLength: "6_month",
+            monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 1 },
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$5000" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, retainerBrief, mockFitScore);
+
+        const layerNames = result.layers.map(l => l.name);
+        expect(layerNames).toContain("Base Rate");
+        expect(layerNames).toContain("Volume Discount");
+        expect(layerNames).toContain("Monthly Deliverables");
+        expect(layerNames).toContain("Contract Length");
+      });
+
+      it("includes ambassador perks layer for 12-month deals with perks", () => {
+        const profile = createMockProfile("micro", 25000);
+        const ambassadorBrief: ParsedBrief = {
+          retainerConfig: {
+            dealLength: "12_month",
+            monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 0 },
+            ambassadorPerks: {
+              exclusivityRequired: true,
+              exclusivityType: "category",
+              productSeeding: true,
+              productValue: 500,
+              eventsIncluded: 3,
+              eventDayRate: 1000,
+            },
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$10000" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, ambassadorBrief, mockFitScore);
+
+        const layerNames = result.layers.map(l => l.name);
+        expect(layerNames).toContain("Ambassador Perks");
+        expect(result.retainerBreakdown?.ambassadorBreakdown).toBeDefined();
+      });
+
+      it("total price equals total contract value", () => {
+        const profile = createMockProfile("micro", 25000);
+        const retainerBrief: ParsedBrief = {
+          retainerConfig: {
+            dealLength: "6_month",
+            monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 0 },
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$5000" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, retainerBrief, mockFitScore);
+
+        expect(result.totalPrice).toBe(result.retainerBreakdown?.totalContractValue);
+      });
+
+      it("quantity equals contract months", () => {
+        const profile = createMockProfile("micro", 25000);
+        const retainerBrief: ParsedBrief = {
+          retainerConfig: {
+            dealLength: "12_month",
+            monthlyDeliverables: { posts: 4, stories: 8, reels: 2, videos: 0 },
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$10000" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+
+        const result = calculatePrice(profile, retainerBrief, mockFitScore);
+
+        expect(result.quantity).toBe(12);
+        expect(result.retainerBreakdown?.contractMonths).toBe(12);
+      });
+    });
+
+    describe("retainer vs flat fee comparison", () => {
+      it("retainer provides savings over equivalent flat fee purchases", () => {
+        const profile = createMockProfile("micro", 25000);
+
+        // Calculate flat fee for a single month of content
+        const flatFeeBrief: ParsedBrief = {
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$500" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+        const flatFeeResult = calculatePrice(profile, flatFeeBrief, mockFitScore);
+        const singleDeliverablePrice = flatFeeResult.pricePerDeliverable;
+
+        // Calculate 6-month retainer
+        const retainerBrief: ParsedBrief = {
+          retainerConfig: {
+            dealLength: "6_month",
+            monthlyDeliverables: { posts: 4, stories: 0, reels: 0, videos: 0 },
+          },
+          brand: { name: "Test", industry: "fashion", product: "Product" },
+          campaign: { objective: "awareness", targetAudience: "women", budgetRange: "$5000" },
+          content: { platform: "instagram", format: "reel", quantity: 1, creativeDirection: "Test" },
+          usageRights: { durationDays: 30, exclusivity: "none", paidAmplification: false },
+          timeline: { deadline: "2 weeks" },
+          rawText: "Test",
+        };
+        const retainerResult = calculatePrice(profile, retainerBrief, mockFitScore);
+
+        // 6 months * 4 posts = 24 posts
+        const flatFeeTotalFor24Posts = singleDeliverablePrice * 24;
+        const retainerTotalFor24Posts = retainerResult.totalPrice;
+
+        // Retainer should be cheaper due to 25% discount
+        expect(retainerTotalFor24Posts).toBeLessThan(flatFeeTotalFor24Posts);
       });
     });
   });

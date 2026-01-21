@@ -233,6 +233,75 @@ export type DealType = "sponsored" | "ugc";
 export type PricingModel = "flat_fee" | "affiliate" | "hybrid" | "performance";
 
 /**
+ * Deal length determines volume discounts for retainer/ambassador deals.
+ * Longer commitments receive better per-deliverable rates.
+ *
+ * Volume discounts:
+ * - one_time: 0% discount (single project)
+ * - monthly: 0% discount (month-to-month, no commitment)
+ * - 3_month: 15% discount per deliverable
+ * - 6_month: 25% discount per deliverable
+ * - 12_month: 35% discount per deliverable (ambassador level)
+ */
+export type DealLength = "one_time" | "monthly" | "3_month" | "6_month" | "12_month";
+
+/**
+ * Exclusivity type for ambassador deals.
+ * Determines additional compensation for exclusivity requirements.
+ *
+ * - "none": No exclusivity required
+ * - "category": Cannot work with competing brands in same category
+ * - "full": Cannot work with any other brands
+ */
+export type AmbassadorExclusivityType = "none" | "category" | "full";
+
+/**
+ * Monthly deliverables configuration for retainer deals.
+ * Specifies the number of each content type per month.
+ */
+export interface MonthlyDeliverables {
+  /** Number of static posts per month */
+  posts: number;
+  /** Number of stories per month */
+  stories: number;
+  /** Number of reels/short videos per month */
+  reels: number;
+  /** Number of long-form videos per month */
+  videos: number;
+}
+
+/**
+ * Ambassador perks configuration for long-term partnerships.
+ * These additional benefits affect total deal value.
+ */
+export interface AmbassadorPerks {
+  /** Whether exclusivity is required for this deal */
+  exclusivityRequired: boolean;
+  /** Type of exclusivity if required */
+  exclusivityType: AmbassadorExclusivityType;
+  /** Whether product seeding is included */
+  productSeeding: boolean;
+  /** Estimated retail value of seeded products */
+  productValue: number;
+  /** Number of event appearances included */
+  eventsIncluded: number;
+  /** Day rate for event appearances */
+  eventDayRate: number;
+}
+
+/**
+ * Retainer deal configuration for ongoing partnerships.
+ */
+export interface RetainerConfig {
+  /** Duration of the retainer agreement */
+  dealLength: DealLength;
+  /** Monthly deliverables breakdown */
+  monthlyDeliverables: MonthlyDeliverables;
+  /** Ambassador perks (optional, typically for 12-month deals) */
+  ambassadorPerks?: AmbassadorPerks;
+}
+
+/**
  * Affiliate product category for commission rate lookup.
  * Different categories have different typical commission rates.
  */
@@ -326,6 +395,11 @@ export interface ParsedBrief {
    * Required when pricingModel is "performance".
    */
   performanceConfig?: PerformanceConfig;
+  /**
+   * Retainer configuration for ongoing/ambassador deals.
+   * When present, enables retainer pricing with volume discounts.
+   */
+  retainerConfig?: RetainerConfig;
   /** Brand/company information */
   brand: {
     /** Company or brand name */
@@ -509,6 +583,70 @@ export interface HybridPricingBreakdown {
 }
 
 /**
+ * Per-deliverable rate breakdown for retainer pricing.
+ */
+export interface DeliverableRates {
+  /** Rate per static post */
+  postRate: number;
+  /** Rate per story */
+  storyRate: number;
+  /** Rate per reel/short video */
+  reelRate: number;
+  /** Rate per long-form video */
+  videoRate: number;
+}
+
+/**
+ * Retainer pricing breakdown showing monthly and total contract values.
+ */
+export interface RetainerPricingBreakdown {
+  /** Deal length (e.g., "3_month", "12_month") */
+  dealLength: DealLength;
+  /** Number of months in the contract */
+  contractMonths: number;
+  /** Volume discount percentage applied (0, 15, 25, or 35) */
+  volumeDiscount: number;
+  /** Per-deliverable rates before discount */
+  fullRates: DeliverableRates;
+  /** Per-deliverable rates after volume discount */
+  discountedRates: DeliverableRates;
+  /** Monthly deliverables configuration */
+  monthlyDeliverables: MonthlyDeliverables;
+  /** Value of monthly content at full rates */
+  monthlyContentValueFull: number;
+  /** Value of monthly content after discount */
+  monthlyContentValueDiscounted: number;
+  /** Savings per month from volume discount */
+  monthlySavings: number;
+  /** Monthly rate (content value after discount) */
+  monthlyRate: number;
+  /** Total contract value (monthly rate × months) */
+  totalContractValue: number;
+  /** Ambassador perks breakdown (if applicable) */
+  ambassadorBreakdown?: AmbassadorPerksBreakdown;
+}
+
+/**
+ * Ambassador perks value breakdown.
+ */
+export interface AmbassadorPerksBreakdown {
+  /** Exclusivity premium amount */
+  exclusivityPremium: number;
+  /** Exclusivity type */
+  exclusivityType: AmbassadorExclusivityType;
+  /** Value of product seeding */
+  productSeedingValue: number;
+  /** Number of events included */
+  eventsIncluded: number;
+  /** Day rate per event */
+  eventDayRate: number;
+  /** Total event appearances value */
+  eventAppearancesValue: number;
+  /** Total ambassador perks value */
+  totalPerksValue: number;
+}
+
+/**
  * Complete pricing calculation result from the 6-Layer Engine.
  * Formula: (Base × Engagement) × (1+Format) × (1+Fit) × (1+Rights) × (1+Complexity)
  */
@@ -539,6 +677,8 @@ export interface PricingResult {
   performanceBreakdown?: PerformanceBonusBreakdown;
   /** Hybrid pricing breakdown (for hybrid model) */
   hybridBreakdown?: HybridPricingBreakdown;
+  /** Retainer pricing breakdown (for retainer/ambassador deals) */
+  retainerBreakdown?: RetainerPricingBreakdown;
 }
 
 // =============================================================================

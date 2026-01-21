@@ -262,6 +262,9 @@ const styles = StyleSheet.create({
   flatFeeBadge: {
     backgroundColor: colors.primary, // Blue for flat fee
   },
+  retainerBadge: {
+    backgroundColor: "#6366F1", // Indigo for retainer/ambassador
+  },
   // Affiliate/Hybrid/Performance breakdown styles
   breakdownBox: {
     backgroundColor: colors.lightGray,
@@ -343,6 +346,15 @@ export function RateCardDocument({
 
   // Get pricing model display info
   const getPricingModelBadge = (model?: PricingModel) => {
+    // Check for retainer first (indicated by retainerBreakdown presence)
+    if (pricing.retainerBreakdown) {
+      const dealLength = pricing.retainerBreakdown.dealLength;
+      if (dealLength === "12_month") {
+        return { label: "Ambassador Deal", style: styles.retainerBadge };
+      }
+      return { label: "Retainer Deal", style: styles.retainerBadge };
+    }
+
     switch (model) {
       case "affiliate":
         return { label: "Affiliate Deal", style: styles.affiliateBadge };
@@ -456,6 +468,125 @@ export function RateCardDocument({
         </View>
         <Text style={styles.bonusNote}>
           Bonus paid when {bonusThreshold.toLocaleString()} {bonusMetric} milestone is reached
+        </Text>
+      </View>
+    );
+  };
+
+  // Render retainer breakdown section
+  const renderRetainerBreakdown = () => {
+    if (!pricing.retainerBreakdown) return null;
+    const {
+      dealLength,
+      contractMonths,
+      volumeDiscount,
+      discountedRates,
+      monthlyDeliverables,
+      monthlyRate,
+      monthlySavings,
+      totalContractValue,
+      ambassadorBreakdown,
+    } = pricing.retainerBreakdown;
+
+    const dealLengthLabel = dealLength === "12_month" ? "12-Month Ambassador" :
+      dealLength === "6_month" ? "6-Month Retainer" :
+      dealLength === "3_month" ? "3-Month Retainer" : "Monthly Retainer";
+
+    return (
+      <View style={styles.breakdownBox}>
+        <Text style={styles.breakdownTitle}>{dealLengthLabel} Structure</Text>
+
+        {/* Per-deliverable rates */}
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Post Rate</Text>
+          <Text style={styles.breakdownValue}>{pricing.currencySymbol}{discountedRates.postRate}</Text>
+        </View>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Story Rate</Text>
+          <Text style={styles.breakdownValue}>{pricing.currencySymbol}{discountedRates.storyRate}</Text>
+        </View>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Reel Rate</Text>
+          <Text style={styles.breakdownValue}>{pricing.currencySymbol}{discountedRates.reelRate}</Text>
+        </View>
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Video Rate</Text>
+          <Text style={styles.breakdownValue}>{pricing.currencySymbol}{discountedRates.videoRate}</Text>
+        </View>
+
+        <View style={styles.breakdownDivider} />
+
+        {/* Monthly deliverables */}
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Monthly Deliverables</Text>
+          <Text style={styles.breakdownValue}>
+            {monthlyDeliverables.posts} posts, {monthlyDeliverables.stories} stories, {monthlyDeliverables.reels} reels, {monthlyDeliverables.videos} videos
+          </Text>
+        </View>
+
+        {/* Volume discount */}
+        {volumeDiscount > 0 && (
+          <View style={styles.breakdownRow}>
+            <Text style={styles.breakdownLabel}>Volume Discount</Text>
+            <Text style={[styles.breakdownValue, { color: colors.success }]}>-{volumeDiscount}%</Text>
+          </View>
+        )}
+
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Monthly Savings</Text>
+          <Text style={[styles.breakdownValue, { color: colors.success }]}>{pricing.currencySymbol}{monthlySavings.toLocaleString()}</Text>
+        </View>
+
+        <View style={styles.breakdownDivider} />
+
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Monthly Rate</Text>
+          <Text style={styles.breakdownValue}>{pricing.currencySymbol}{monthlyRate.toLocaleString()}/mo</Text>
+        </View>
+
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Contract Length</Text>
+          <Text style={styles.breakdownValue}>{contractMonths} months</Text>
+        </View>
+
+        {/* Ambassador perks */}
+        {ambassadorBreakdown && (ambassadorBreakdown.exclusivityPremium > 0 || ambassadorBreakdown.eventsIncluded > 0) && (
+          <>
+            <View style={styles.breakdownDivider} />
+            <Text style={[styles.breakdownLabel, { marginBottom: 6, fontWeight: "bold" }]}>Ambassador Perks</Text>
+
+            {ambassadorBreakdown.exclusivityPremium > 0 && (
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>{ambassadorBreakdown.exclusivityType === "full" ? "Full" : "Category"} Exclusivity</Text>
+                <Text style={styles.breakdownValue}>+{pricing.currencySymbol}{ambassadorBreakdown.exclusivityPremium.toLocaleString()}</Text>
+              </View>
+            )}
+
+            {ambassadorBreakdown.eventsIncluded > 0 && (
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>{ambassadorBreakdown.eventsIncluded} Event{ambassadorBreakdown.eventsIncluded > 1 ? 's' : ''} ({pricing.currencySymbol}{ambassadorBreakdown.eventDayRate}/day)</Text>
+                <Text style={styles.breakdownValue}>+{pricing.currencySymbol}{ambassadorBreakdown.eventAppearancesValue.toLocaleString()}</Text>
+              </View>
+            )}
+
+            {ambassadorBreakdown.productSeedingValue > 0 && (
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>Product Seeding Value</Text>
+                <Text style={styles.breakdownValue}>{pricing.currencySymbol}{ambassadorBreakdown.productSeedingValue.toLocaleString()}</Text>
+              </View>
+            )}
+          </>
+        )}
+
+        <View style={styles.breakdownDivider} />
+
+        <View style={styles.breakdownRow}>
+          <Text style={styles.breakdownLabel}>Total Contract Value</Text>
+          <Text style={styles.highlightValue}>{pricing.currencySymbol}{totalContractValue.toLocaleString()}</Text>
+        </View>
+
+        <Text style={styles.bonusNote}>
+          {volumeDiscount > 0 ? `${volumeDiscount}% volume discount applied for ${contractMonths}-month commitment` : 'Month-to-month flexibility, no volume discount'}
         </Text>
       </View>
     );
@@ -576,9 +707,10 @@ export function RateCardDocument({
           {pricing.pricingModel === "affiliate" && renderAffiliateBreakdown()}
           {pricing.pricingModel === "hybrid" && renderHybridBreakdown()}
           {pricing.pricingModel === "performance" && renderPerformanceBreakdown()}
+          {pricing.retainerBreakdown && renderRetainerBreakdown()}
 
-          {/* Standard pricing layers table - show for flat_fee, hybrid, and performance */}
-          {pricing.pricingModel !== "affiliate" && (
+          {/* Standard pricing layers table - show for flat_fee, hybrid, and performance (not affiliate or retainer) */}
+          {pricing.pricingModel !== "affiliate" && !pricing.retainerBreakdown && (
             <View style={styles.pricingTable}>
               {pricing.layers.map((layer, index) => (
                 <View key={index} style={styles.pricingRow}>
@@ -659,6 +791,36 @@ export function RateCardDocument({
                 <Text style={styles.grandTotalLabel}>Potential Total</Text>
                 <Text style={styles.grandTotalValue}>
                   {pricing.currencySymbol}{pricing.performanceBreakdown?.potentialTotal.toLocaleString()} {pricing.currency}
+                </Text>
+              </View>
+            </>
+          ) : pricing.retainerBreakdown ? (
+            /* Retainer/Ambassador: Show monthly rate and total contract */
+            <>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Monthly Rate</Text>
+                <Text style={styles.totalValue}>
+                  {pricing.currencySymbol}{pricing.retainerBreakdown.monthlyRate.toLocaleString()}/mo
+                </Text>
+              </View>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Contract Length</Text>
+                <Text style={styles.totalValue}>
+                  {pricing.retainerBreakdown.contractMonths} months
+                </Text>
+              </View>
+              {pricing.retainerBreakdown.ambassadorBreakdown && pricing.retainerBreakdown.ambassadorBreakdown.totalPerksValue > 0 && (
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Ambassador Perks</Text>
+                  <Text style={styles.totalValue}>
+                    +{pricing.currencySymbol}{pricing.retainerBreakdown.ambassadorBreakdown.totalPerksValue.toLocaleString()}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.grandTotal}>
+                <Text style={styles.grandTotalLabel}>Total Contract Value</Text>
+                <Text style={styles.grandTotalValue}>
+                  {pricing.currencySymbol}{pricing.totalPrice.toLocaleString()} {pricing.currency}
                 </Text>
               </View>
             </>

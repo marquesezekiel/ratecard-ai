@@ -29,6 +29,14 @@ import type {
   PerformanceBonusBreakdown,
   HybridPricingBreakdown,
   PricingModel,
+  DealLength,
+  RetainerConfig,
+  MonthlyDeliverables,
+  AmbassadorPerks,
+  AmbassadorExclusivityType,
+  RetainerPricingBreakdown,
+  DeliverableRates,
+  AmbassadorPerksBreakdown,
 } from "./types";
 import { CURRENCIES } from "./types";
 
@@ -439,6 +447,68 @@ const AFFILIATE_CATEGORY_DISPLAY_NAMES: Record<AffiliateCategory, string> = {
 const HYBRID_BASE_FEE_DISCOUNT = 0.5;
 
 // =============================================================================
+// LAYER 8: RETAINER/AMBASSADOR PRICING
+// =============================================================================
+
+/**
+ * Volume discounts for retainer deals based on contract length.
+ * Longer commitments receive better per-deliverable rates.
+ */
+const VOLUME_DISCOUNTS: Record<DealLength, number> = {
+  one_time: 0, // No discount for single projects
+  monthly: 0, // No discount for month-to-month (no commitment)
+  "3_month": 0.15, // 15% discount for 3-month commitment
+  "6_month": 0.25, // 25% discount for 6-month commitment
+  "12_month": 0.35, // 35% discount for 12-month ambassador deals
+};
+
+/**
+ * Contract months for each deal length.
+ */
+const CONTRACT_MONTHS: Record<DealLength, number> = {
+  one_time: 1,
+  monthly: 1,
+  "3_month": 3,
+  "6_month": 6,
+  "12_month": 12,
+};
+
+/**
+ * Ambassador exclusivity premiums.
+ * These are multiplied by the base monthly rate.
+ */
+const AMBASSADOR_EXCLUSIVITY_PREMIUMS: Record<AmbassadorExclusivityType, number> = {
+  none: 0, // No exclusivity premium
+  category: 0.5, // +50% for category exclusivity
+  full: 1.0, // +100% for full exclusivity
+};
+
+/**
+ * Event day rates by creator tier.
+ * Ambassadors may include event appearances in their deals.
+ */
+const EVENT_DAY_RATES: Record<CreatorTier, number> = {
+  nano: 500,
+  micro: 750,
+  mid: 1000,
+  rising: 1250,
+  macro: 1500,
+  mega: 1750,
+  celebrity: 2000,
+};
+
+/**
+ * Content format multipliers for per-deliverable rates.
+ * Applied to base rate to get per-piece pricing.
+ */
+const DELIVERABLE_FORMAT_MULTIPLIERS: Record<keyof MonthlyDeliverables, number> = {
+  posts: 1.0, // Static posts = base rate
+  stories: 0.3, // Stories = 30% of base (ephemeral)
+  reels: 1.25, // Reels = 125% of base (video premium)
+  videos: 1.5, // Long-form videos = 150% of base
+};
+
+// =============================================================================
 // AFFILIATE/PERFORMANCE PRICING FUNCTIONS
 // =============================================================================
 
@@ -734,6 +804,284 @@ function calculatePerformancePricing(
     formula,
     pricingModel: "performance",
     performanceBreakdown,
+  };
+}
+
+// =============================================================================
+// RETAINER/AMBASSADOR PRICING FUNCTIONS
+// =============================================================================
+
+/**
+ * Get volume discount percentage for a deal length.
+ *
+ * @param dealLength - The deal length
+ * @returns Discount percentage (0-0.35)
+ */
+export function getVolumeDiscount(dealLength: DealLength): number {
+  return VOLUME_DISCOUNTS[dealLength] ?? 0;
+}
+
+/**
+ * Get event day rate for a creator tier.
+ *
+ * @param tier - Creator tier
+ * @returns Day rate for event appearances
+ */
+export function getEventDayRate(tier: CreatorTier): number {
+  return EVENT_DAY_RATES[tier] ?? EVENT_DAY_RATES.micro;
+}
+
+/**
+ * Calculate per-deliverable rates based on a base rate.
+ * Applies format multipliers for different content types.
+ *
+ * @param baseRate - The base rate for a single deliverable
+ * @returns Rates for each deliverable type
+ */
+export function calculateDeliverableRates(baseRate: number): DeliverableRates {
+  return {
+    postRate: roundToNearestFive(baseRate * DELIVERABLE_FORMAT_MULTIPLIERS.posts),
+    storyRate: roundToNearestFive(baseRate * DELIVERABLE_FORMAT_MULTIPLIERS.stories),
+    reelRate: roundToNearestFive(baseRate * DELIVERABLE_FORMAT_MULTIPLIERS.reels),
+    videoRate: roundToNearestFive(baseRate * DELIVERABLE_FORMAT_MULTIPLIERS.videos),
+  };
+}
+
+/**
+ * Apply volume discount to deliverable rates.
+ *
+ * @param rates - Full deliverable rates
+ * @param discountPercent - Discount percentage (0-1)
+ * @returns Discounted rates
+ */
+function applyVolumeDiscount(rates: DeliverableRates, discountPercent: number): DeliverableRates {
+  const multiplier = 1 - discountPercent;
+  return {
+    postRate: roundToNearestFive(rates.postRate * multiplier),
+    storyRate: roundToNearestFive(rates.storyRate * multiplier),
+    reelRate: roundToNearestFive(rates.reelRate * multiplier),
+    videoRate: roundToNearestFive(rates.videoRate * multiplier),
+  };
+}
+
+/**
+ * Calculate monthly content value from deliverables and rates.
+ *
+ * @param deliverables - Monthly deliverables configuration
+ * @param rates - Per-deliverable rates
+ * @returns Total monthly content value
+ */
+function calculateMonthlyContentValue(
+  deliverables: MonthlyDeliverables,
+  rates: DeliverableRates
+): number {
+  return (
+    deliverables.posts * rates.postRate +
+    deliverables.stories * rates.storyRate +
+    deliverables.reels * rates.reelRate +
+    deliverables.videos * rates.videoRate
+  );
+}
+
+/**
+ * Calculate ambassador perks breakdown.
+ *
+ * @param perks - Ambassador perks configuration
+ * @param tier - Creator tier (for event day rate)
+ * @param monthlyContentValue - Base monthly content value (for exclusivity calculation)
+ * @param contractMonths - Number of months in contract
+ * @returns Ambassador perks breakdown
+ */
+export function calculateAmbassadorPerks(
+  perks: AmbassadorPerks,
+  tier: CreatorTier,
+  monthlyContentValue: number,
+  contractMonths: number
+): AmbassadorPerksBreakdown {
+  // Calculate exclusivity premium
+  const exclusivityMultiplier = perks.exclusivityRequired
+    ? AMBASSADOR_EXCLUSIVITY_PREMIUMS[perks.exclusivityType]
+    : 0;
+  const exclusivityPremium = roundToNearestFive(monthlyContentValue * exclusivityMultiplier * contractMonths);
+
+  // Product seeding value
+  const productSeedingValue = perks.productSeeding ? perks.productValue : 0;
+
+  // Event appearances
+  const eventDayRate = perks.eventsIncluded > 0 ? (perks.eventDayRate || getEventDayRate(tier)) : 0;
+  const eventAppearancesValue = roundToNearestFive(perks.eventsIncluded * eventDayRate);
+
+  // Total perks value
+  const totalPerksValue = exclusivityPremium + eventAppearancesValue;
+
+  return {
+    exclusivityPremium,
+    exclusivityType: perks.exclusivityType,
+    productSeedingValue,
+    eventsIncluded: perks.eventsIncluded,
+    eventDayRate,
+    eventAppearancesValue,
+    totalPerksValue,
+  };
+}
+
+/**
+ * Calculate retainer pricing with volume discounts.
+ *
+ * @param baseRate - Base rate per deliverable
+ * @param retainerConfig - Retainer configuration
+ * @param tier - Creator tier
+ * @returns Retainer pricing breakdown
+ */
+export function calculateRetainerPrice(
+  baseRate: number,
+  retainerConfig: RetainerConfig,
+  tier: CreatorTier
+): RetainerPricingBreakdown {
+  const { dealLength, monthlyDeliverables, ambassadorPerks } = retainerConfig;
+
+  // Get discount and contract months
+  const volumeDiscount = getVolumeDiscount(dealLength);
+  const contractMonths = CONTRACT_MONTHS[dealLength];
+
+  // Calculate per-deliverable rates
+  const fullRates = calculateDeliverableRates(baseRate);
+  const discountedRates = applyVolumeDiscount(fullRates, volumeDiscount);
+
+  // Calculate monthly content values
+  const monthlyContentValueFull = calculateMonthlyContentValue(monthlyDeliverables, fullRates);
+  const monthlyContentValueDiscounted = calculateMonthlyContentValue(monthlyDeliverables, discountedRates);
+  const monthlySavings = monthlyContentValueFull - monthlyContentValueDiscounted;
+
+  // Base monthly rate (content only)
+  const monthlyRate = roundToNearestFive(monthlyContentValueDiscounted);
+
+  // Calculate ambassador perks if present
+  let ambassadorBreakdown: AmbassadorPerksBreakdown | undefined;
+  if (ambassadorPerks) {
+    ambassadorBreakdown = calculateAmbassadorPerks(
+      ambassadorPerks,
+      tier,
+      monthlyContentValueDiscounted,
+      contractMonths
+    );
+  }
+
+  // Total contract value
+  const contentContractValue = monthlyRate * contractMonths;
+  const perksValue = ambassadorBreakdown?.totalPerksValue ?? 0;
+  const totalContractValue = roundToNearestFive(contentContractValue + perksValue);
+
+  return {
+    dealLength,
+    contractMonths,
+    volumeDiscount: volumeDiscount * 100, // Convert to percentage
+    fullRates,
+    discountedRates,
+    monthlyDeliverables,
+    monthlyContentValueFull: roundToNearestFive(monthlyContentValueFull),
+    monthlyContentValueDiscounted: roundToNearestFive(monthlyContentValueDiscounted),
+    monthlySavings: roundToNearestFive(monthlySavings),
+    monthlyRate,
+    totalContractValue,
+    ambassadorBreakdown,
+  };
+}
+
+/**
+ * Calculate retainer pricing result for the full pricing flow.
+ *
+ * @param basePricing - Standard flat fee pricing result
+ * @param brief - Parsed brief with retainer configuration
+ * @param profile - Creator profile
+ * @returns Complete pricing result for retainer deal
+ */
+function calculateRetainerPricing(
+  basePricing: PricingResult,
+  brief: ParsedBrief,
+  profile: CreatorProfile
+): PricingResult {
+  const retainerConfig = brief.retainerConfig!;
+  const retainerBreakdown = calculateRetainerPrice(
+    basePricing.pricePerDeliverable,
+    retainerConfig,
+    profile.tier
+  );
+
+  // Get currency info
+  const currencyInfo = CURRENCIES.find(c => c.code === profile.currency) || CURRENCIES[0];
+
+  // Build retainer-specific layers
+  const retainerLayers: PricingLayer[] = [
+    {
+      name: "Base Rate",
+      description: `${profile.tier.charAt(0).toUpperCase() + profile.tier.slice(1)} tier base rate`,
+      baseValue: `${currencyInfo.symbol}${basePricing.pricePerDeliverable}`,
+      multiplier: 1,
+      adjustment: basePricing.pricePerDeliverable,
+    },
+    {
+      name: "Volume Discount",
+      description: `${retainerBreakdown.volumeDiscount}% discount for ${retainerBreakdown.contractMonths}-month commitment`,
+      baseValue: `-${retainerBreakdown.volumeDiscount}%`,
+      multiplier: 1 - retainerBreakdown.volumeDiscount / 100,
+      adjustment: -retainerBreakdown.monthlySavings,
+    },
+    {
+      name: "Monthly Deliverables",
+      description: `${retainerConfig.monthlyDeliverables.posts} posts, ${retainerConfig.monthlyDeliverables.stories} stories, ${retainerConfig.monthlyDeliverables.reels} reels, ${retainerConfig.monthlyDeliverables.videos} videos`,
+      baseValue: `${currencyInfo.symbol}${retainerBreakdown.monthlyRate}/mo`,
+      multiplier: 1,
+      adjustment: retainerBreakdown.monthlyRate,
+    },
+    {
+      name: "Contract Length",
+      description: `${retainerBreakdown.contractMonths} month${retainerBreakdown.contractMonths > 1 ? 's' : ''}`,
+      baseValue: `×${retainerBreakdown.contractMonths}`,
+      multiplier: retainerBreakdown.contractMonths,
+      adjustment: retainerBreakdown.monthlyRate * retainerBreakdown.contractMonths,
+    },
+  ];
+
+  // Add ambassador perks layer if present
+  if (retainerBreakdown.ambassadorBreakdown) {
+    const { ambassadorBreakdown: ab } = retainerBreakdown;
+    const perksDescription: string[] = [];
+
+    if (ab.exclusivityPremium > 0) {
+      perksDescription.push(`${ab.exclusivityType} exclusivity (+${currencyInfo.symbol}${ab.exclusivityPremium})`);
+    }
+    if (ab.eventsIncluded > 0) {
+      perksDescription.push(`${ab.eventsIncluded} event${ab.eventsIncluded > 1 ? 's' : ''} (+${currencyInfo.symbol}${ab.eventAppearancesValue})`);
+    }
+    if (ab.productSeedingValue > 0) {
+      perksDescription.push(`product seeding (${currencyInfo.symbol}${ab.productSeedingValue} value)`);
+    }
+
+    retainerLayers.push({
+      name: "Ambassador Perks",
+      description: perksDescription.join(', ') || 'No additional perks',
+      baseValue: `+${currencyInfo.symbol}${ab.totalPerksValue}`,
+      multiplier: 1,
+      adjustment: ab.totalPerksValue,
+    });
+  }
+
+  const formula = retainerBreakdown.ambassadorBreakdown
+    ? `${currencyInfo.symbol}${retainerBreakdown.monthlyRate}/mo × ${retainerBreakdown.contractMonths} months + ${currencyInfo.symbol}${retainerBreakdown.ambassadorBreakdown.totalPerksValue} perks = ${currencyInfo.symbol}${retainerBreakdown.totalContractValue}`
+    : `${currencyInfo.symbol}${retainerBreakdown.monthlyRate}/mo × ${retainerBreakdown.contractMonths} months = ${currencyInfo.symbol}${retainerBreakdown.totalContractValue}`;
+
+  return {
+    pricePerDeliverable: basePricing.pricePerDeliverable,
+    quantity: retainerBreakdown.contractMonths,
+    totalPrice: retainerBreakdown.totalContractValue,
+    currency: currencyInfo.code,
+    currencySymbol: currencyInfo.symbol,
+    validDays: 14,
+    layers: retainerLayers,
+    formula,
+    pricingModel: "flat_fee",
+    retainerBreakdown,
   };
 }
 
@@ -1217,6 +1565,11 @@ export function calculatePrice(
   // Route to performance pricing (base + bonus)
   if (brief.pricingModel === "performance" && brief.performanceConfig) {
     return calculatePerformancePricing(basePricingResult, brief, profile);
+  }
+
+  // Route to retainer pricing if retainer config is present
+  if (brief.retainerConfig) {
+    return calculateRetainerPricing(basePricingResult, brief, profile);
   }
 
   // Default: return standard sponsored pricing (flat_fee or unspecified)
