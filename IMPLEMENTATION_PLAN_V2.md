@@ -2,11 +2,21 @@
 
 ## Overview
 
-This document contains detailed prompts to run in Claude Code to implement the 17 features for the RateCard.AI platform upgrade. Each prompt is designed to be copy-pasted directly into Claude Code.
+This document contains detailed prompts to run in Claude Code to implement the 19 features for the RateCard.AI platform upgrade. Each prompt is designed to be copy-pasted directly into Claude Code.
 
 **Timeline**: 5 days
-**Total Features**: 17
+**Total Features**: 19 (including Gift Deal Manager system)
 **Testing**: Included after each major section
+
+### Feature Summary
+
+| Day | Focus | Features |
+|-----|-------|----------|
+| 1 | Pricing Engine | Base rates, Niche, UGC, Whitelisting, Seasonal, Regional, Platforms |
+| 2 | Pricing Models | Affiliate/Performance, Retainer/Ambassador |
+| 3 | Score & Output | Deal Quality Score, Negotiation, FTC, Contracts |
+| 4 | DM & Gifts | DM Parser, Gift Evaluator, Gift Tracker, Outcomes, Image Parser |
+| 5 | Polish & Ship | Mobile, Testing, Docs, Deployment |
 
 ---
 
@@ -686,14 +696,16 @@ Show me all test results and the generated PDF content for the integration test.
 
 ---
 
-## Day 4: DM Features (Features 14-16)
+## Day 4: DM & Gift Opportunity System (Features 14-19)
 
-### Prompt 14: DM Text Parser + Response Generator
+Day 4 builds the complete "opportunity intake" system - from the moment a creator receives a brand DM to tracking the outcome. This includes the Gift Deal Manager, which helps creators evaluate gift offers and convert them to paid partnerships.
+
+### Prompt 14: DM Text Parser with Gift Detection
 
 ```
 Build the DM text parser - the killer feature that meets creators where opportunities actually arrive.
 
-When a creator gets a brand DM, they can paste it and get instant analysis + response.
+When a creator gets a brand DM, they can paste it and get instant analysis + response. CRITICALLY, this must detect gift-only offers and route to appropriate handling.
 
 Implementation:
 
@@ -703,16 +715,37 @@ Implementation:
 
    DMAnalysis type:
    {
+     // Brand identification
      brandName: string | null,
      brandHandle: string | null,
+
+     // Request analysis
      deliverableRequest: string | null,
-     compensationType: "paid" | "gifted" | "unclear" | "none_mentioned",
+     compensationType: "paid" | "gifted" | "hybrid" | "unclear" | "none_mentioned",
      offeredAmount: number | null,
+     estimatedProductValue: number | null,  // NEW: for gift offers
+
+     // Tone & quality signals
      tone: "professional" | "casual" | "mass_outreach" | "scam_likely",
      urgency: "high" | "medium" | "low",
+
+     // Flags
      redFlags: string[],
      greenFlags: string[],
+
+     // Gift-specific analysis (NEW)
+     isGiftOffer: boolean,
+     giftAnalysis: {
+       productMentioned: string | null,
+       contentExpectation: "explicit" | "implied" | "none",
+       conversionPotential: "high" | "medium" | "low",
+       recommendedApproach: "accept_and_convert" | "counter_with_hybrid" | "decline" | "ask_budget"
+     } | null,
+
+     // Extracted data
      extractedRequirements: Partial<BriefData>,
+
+     // Recommendations
      recommendedResponse: string,
      suggestedRate: number,
      dealQualityEstimate: number,
@@ -722,38 +755,649 @@ Implementation:
 2. Use LLM (you already have Groq integration) to extract:
    - Brand identification
    - What they're asking for
-   - Any mentioned compensation
+   - Compensation type detection (CRITICAL: distinguish paid vs gift vs unclear)
    - Tone analysis
-   - Red flags (mass outreach, too good to be true, vague, no payment mention)
+   - Red flags:
+     * Mass outreach signals ("Hey babe!", excessive emojis, generic language)
+     * No payment mention when deliverables are expected
+     * Too good to be true offers
+     * Vague or missing details
+     * Pressure tactics
+   - Green flags:
+     * Specific mention of budget
+     * Professional tone
+     * Clear deliverable expectations
+     * Brand has legitimate presence
 
-3. Generate recommended response based on analysis:
+3. Gift detection logic:
+   - Trigger phrases: "send you product", "gift", "try our", "in exchange for", "free product"
+   - If gift detected AND deliverables expected = flag as "gifted" compensation type
+   - Set isGiftOffer = true
+   - Populate giftAnalysis object
+
+4. Generate recommended response based on analysis:
    - If professional + paid mention: Share rate card
-   - If gifted only: Politely ask about budget
-   - If vague: Ask clarifying questions
+   - If gift offer detected: Route to Gift Evaluator flow (Prompt 15)
+   - If vague: Ask clarifying questions about budget
    - If red flags: Polite decline or caution
 
-4. Create API route: POST /api/parse-dm
+5. Create API route: POST /api/parse-dm
    - Takes: { dmText: string }
    - Returns: DMAnalysis
+   - If isGiftOffer = true, include prompt to use Gift Evaluator
 
-5. Create UI component: DMParserForm
+6. Create UI component: DMParserForm
    - Textarea for pasting DM
    - "Analyze" button
    - Results display with:
      - Detected brand/request
+     - Compensation type badge (Paid 💰 / Gift 🎁 / Unclear ❓)
      - Red/green flags with explanations
      - Recommended response (copy button)
-     - Suggested rate
+     - If gift: "Evaluate This Gift" button → links to Gift Evaluator
+     - Suggested rate (for paid) or suggested counter (for gift)
      - Deal quality estimate
 
 Write tests for:
-- DM with clear brand and paid offer
-- DM with gift-only offer
+- DM with clear brand and paid offer → compensationType: "paid"
+- DM with gift-only offer → compensationType: "gifted", isGiftOffer: true
+- DM with product + payment → compensationType: "hybrid"
 - Suspicious/scam DM detection
-- Mass outreach template detection
-- Response generation quality
+- Mass outreach template detection ("Hey babe!" pattern)
+- Gift conversion potential scoring
+- Response generation for each compensation type
 
 Show me all changes and test results.
+```
+
+### Prompt 15: Gift Evaluator & Response Generator
+
+```
+Build the Gift Evaluator - helps creators decide if a gift offer is worth their time and provides smart responses.
+
+This is triggered when DM Parser detects a gift offer, or creators can evaluate gifts directly.
+
+Implementation:
+
+1. Create src/lib/gift-evaluator.ts with:
+
+   evaluateGiftDeal(input: GiftEvaluationInput, creatorProfile: CreatorProfile): GiftEvaluation
+
+   GiftEvaluationInput type:
+   {
+     productDescription: string,
+     estimatedProductValue: number,
+     contentRequired: "organic_mention" | "dedicated_post" | "multiple_posts" | "video_content",
+     estimatedHoursToCreate: number,
+     brandQuality: "major_brand" | "established_indie" | "new_unknown" | "suspicious",
+     wouldYouBuyIt: boolean,
+     brandFollowers: number | null,
+     hasWebsite: boolean,
+     previousCreatorCollabs: boolean
+   }
+
+   GiftEvaluation type:
+   {
+     // Core evaluation
+     worthScore: number,  // 0-100
+     recommendation: "accept_with_hook" | "counter_hybrid" | "decline_politely" | "ask_budget_first" | "run_away",
+
+     // The math breakdown
+     analysis: {
+       productValue: number,
+       yourTimeValue: number,       // hours × hourly rate
+       audienceValue: number,       // based on reach/engagement
+       totalValueProviding: number, // time + audience
+       valueGap: number,            // what you're providing - what you're getting
+       effectiveHourlyRate: number  // product value / hours
+     },
+
+     // Strategic assessment
+     strategicValue: {
+       score: number,  // 0-10
+       portfolioWorth: boolean,
+       conversionPotential: "high" | "medium" | "low",
+       brandReputationBoost: boolean,
+       reasons: string[]
+     },
+
+     // Recommendations
+     minimumAcceptableAddOn: number,  // $ to add for hybrid
+     suggestedCounterOffer: string,
+     walkAwayPoint: string,
+
+     // If accepting gift-only, what to limit
+     acceptanceBoundaries: {
+       maxContentType: string,  // e.g., "organic story only"
+       timeLimit: string,       // e.g., "24-hour story, not permanent post"
+       rightsLimit: string      // e.g., "no usage rights beyond your post"
+     }
+   }
+
+2. Evaluation logic:
+
+   a) Calculate creator's effective hourly rate:
+      - Use their tier to estimate hourly value
+      - Nano: $30/hr, Micro: $50/hr, Mid: $75/hr, Macro+: $100+/hr
+
+   b) Calculate total value creator is providing:
+      - Time value = hours × hourly rate
+      - Audience value = (followers × engagement rate × 0.001) × $5 CPM estimate
+      - Total = time + audience
+
+   c) Calculate value gap:
+      - Gap = totalValueProviding - productValue
+      - If gap > 50% of totalValue → recommend counter or decline
+
+   d) Strategic scoring (0-10):
+      - Major brand: +3
+      - Would buy product anyway: +2
+      - Has previous creator collabs: +2
+      - Good conversion potential: +2
+      - Portfolio worthy: +1
+      - Suspicious signals: -5
+
+   e) Decision matrix:
+      | Worth Score | Strategic Score | Recommendation |
+      |-------------|-----------------|----------------|
+      | 70+         | 7+              | Accept with conversion hook |
+      | 50-70       | 5+              | Counter with hybrid |
+      | 50-70       | <5              | Ask about budget first |
+      | 30-50       | Any             | Decline politely |
+      | <30         | Any             | Run away |
+
+3. Create src/lib/gift-responses.ts with:
+
+   generateGiftResponse(evaluation: GiftEvaluation, context: ResponseContext): GiftResponse
+
+   GiftResponse type:
+   {
+     responseType: string,
+     message: string,
+     followUpReminder: string | null,
+     conversionScript: string | null  // for use after successful gift collab
+   }
+
+   Response templates for each scenario:
+
+   ACCEPT_WITH_HOOK:
+   "Hi [Brand]! Thanks for reaching out - I'd love to try [product]!
+
+   I'm happy to share my honest experience with my audience. If the content performs well, I'd love to discuss a paid partnership for future campaigns!
+
+   Where should I send my shipping info?"
+
+   COUNTER_HYBRID:
+   "Hi [Brand]! Thank you for thinking of me - [product] looks amazing!
+
+   For a dedicated [post type], my rate is typically $[X]. I'd be happy to do a hybrid collaboration:
+
+   → Product gifted + $[reduced rate] = [deliverables]
+
+   This lets me create the high-quality content your brand deserves. Would that work with your budget?"
+
+   ASK_BUDGET_FIRST:
+   "Hi [Brand]! Thanks for reaching out!
+
+   Before I confirm, I have a few quick questions:
+   1. What's the retail value of the product?
+   2. What deliverables are you hoping for?
+   3. Is there a budget for this partnership, or is it product-only?
+
+   Looking forward to hearing more!"
+
+   DECLINE_POLITELY:
+   "Thanks so much for thinking of me!
+
+   I'm currently focused on paid partnerships, but I appreciate you reaching out. If you have budget for a collaboration in the future, I'd love to chat!
+
+   Best of luck with your campaign!"
+
+4. Create API route: POST /api/evaluate-gift
+   - Takes: GiftEvaluationInput
+   - Returns: GiftEvaluation + recommended response
+
+5. Create UI components:
+
+   GiftEvaluatorForm:
+   - Product description input
+   - Retail value input ($)
+   - Content required dropdown
+   - Time estimate slider (hours)
+   - Brand quality radio buttons
+   - "Would you buy this?" toggle
+   - [Evaluate] button
+
+   GiftEvaluationResult:
+   - Worth Score gauge (0-100 with color coding)
+   - Recommendation badge
+   - "The Math" breakdown showing:
+     * Product value: $X
+     * Your time: X hrs × $Y/hr = $Z
+     * Your audience value: ~$W
+     * Total you're providing: $Total
+     * Value gap: $Gap (You're giving $X more than receiving)
+   - Strategic value score with reasons
+   - Recommended response (with copy button)
+   - If accepting: "Set follow-up reminder" option
+   - "Track This Brand" button → saves to Gift Tracker
+
+Write tests for:
+- High-value product + low content = recommend accept
+- Low-value product + high content = recommend decline
+- Mid-range scenarios = recommend hybrid
+- Strategic score calculation
+- Response generation for each type
+- Hourly rate calculation by tier
+
+Show me all changes and test results.
+```
+
+### Prompt 16: Gift Relationship Tracker
+
+```
+Build the Gift Relationship Tracker - helps creators track gift deals and convert them to paid partnerships.
+
+This creates a CRM-lite for gift relationships, enabling systematic conversion.
+
+Implementation:
+
+1. Database schema (Prisma):
+
+   model GiftDeal {
+     id                String   @id @default(cuid())
+     creatorId         String
+     creator           User     @relation(fields: [creatorId], references: [id])
+
+     // Brand info
+     brandName         String
+     brandHandle       String?
+     brandWebsite      String?
+     brandFollowers    Int?
+
+     // Gift details
+     productDescription String
+     productValue      Float
+     dateReceived      DateTime
+
+     // Content created
+     contentType       String?   // "post", "reel", "story", "video"
+     contentUrl        String?
+     contentDate       DateTime?
+
+     // Performance (if tracked)
+     views             Int?
+     likes             Int?
+     comments          Int?
+     saves             Int?
+     shares            Int?
+
+     // Conversion tracking
+     status            String    @default("received")  // received, content_created, followed_up, converted, declined, archived
+     conversionStatus  String?   // null, "attempting", "converted", "rejected"
+     convertedDealId   String?   // links to RateCard if converted
+     convertedAmount   Float?
+
+     // Follow-up
+     followUpDate      DateTime?
+     followUpSent      Boolean   @default(false)
+     notes             String?
+
+     // Timestamps
+     createdAt         DateTime  @default(now())
+     updatedAt         DateTime  @updatedAt
+   }
+
+2. Create API routes:
+   - POST /api/gifts - Create new gift record
+   - GET /api/gifts - List all gifts for creator
+   - GET /api/gifts/:id - Get single gift details
+   - PATCH /api/gifts/:id - Update gift (add performance, status, etc.)
+   - DELETE /api/gifts/:id - Remove gift record
+   - POST /api/gifts/:id/follow-up - Log follow-up attempt
+   - POST /api/gifts/:id/convert - Mark as converted to paid
+
+3. Create src/lib/gift-tracker.ts with:
+
+   getGiftsByStatus(creatorId, status): GiftDeal[]
+   getReadyToConvert(creatorId): GiftDeal[]  // gifts with good performance, no follow-up yet
+   getFollowUpsDue(creatorId): GiftDeal[]    // past follow-up date
+   getConversionRate(creatorId): number
+   getGiftAnalytics(creatorId): GiftAnalytics
+
+   GiftAnalytics type:
+   {
+     totalGiftsReceived: number,
+     totalProductValue: number,
+     giftsConverted: number,
+     conversionRate: number,
+     revenueFromConverted: number,
+     roiOnGiftWork: number,            // revenue / product value
+     avgTimeToConversion: number,      // days
+     topConvertingCategory: string,
+     followUpsDue: number
+   }
+
+4. Create conversion playbook logic:
+
+   getConversionScript(giftDeal: GiftDeal, scriptType: string): string
+
+   Script types:
+   - "performance_share" (after content posted, share results)
+   - "follow_up_30_day" (check in after 30 days)
+   - "new_launch_pitch" (when brand has new product)
+   - "returning_brand_offer" (offer returning brand discount)
+
+   Example scripts:
+
+   PERFORMANCE_SHARE:
+   "Hi [Brand]! Wanted to share - the [product] content performed great!
+
+   📊 Results:
+   • [X] views
+   • [Y] likes
+   • [Z] saves
+
+   My audience loved it! I'd love to discuss a paid partnership for future campaigns. Here's my rate card: [link]"
+
+   FOLLOW_UP_30_DAY:
+   "Hi [Brand]! I've been using [product] for a month now and still loving it!
+
+   I noticed you have some exciting things coming up. I'd love to be part of your next campaign - I offer a 15% returning brand discount.
+
+   Would you be interested in discussing a paid collaboration?"
+
+5. Create UI components:
+
+   GiftDashboard:
+   - Summary stats (total gifts, conversion rate, revenue)
+   - Filter by status
+   - "Ready to Convert" section (gifts with good performance)
+   - "Follow-ups Due" section
+   - Recent activity
+
+   GiftList:
+   - Card view of all gift deals
+   - Status badges (Received, Content Created, Following Up, Converted!)
+   - Quick actions (Add Performance, Follow Up, Mark Converted)
+
+   GiftDetailModal:
+   - Full gift details
+   - Performance metrics input
+   - Conversion scripts (with copy buttons)
+   - Follow-up scheduler
+   - Notes section
+
+   AddGiftForm:
+   - Brand info inputs
+   - Product details
+   - Optionally import from DM Parser result
+
+6. Reminder system:
+   - When creator adds a gift, suggest follow-up date (14 days for performance share)
+   - Show "Follow-ups Due" badge on dashboard
+   - Optional email/push reminder (future feature)
+
+Write tests for:
+- Gift CRUD operations
+- Status transitions
+- Analytics calculations
+- Conversion rate calculation
+- Follow-up due logic
+- Script generation with dynamic data
+
+Show me all changes and test results.
+```
+
+### Prompt 17: Outcome Tracking (Expanded for Gifts)
+
+```
+Build comprehensive outcome tracking - expanded to include gift outcomes and build the data flywheel.
+
+After every rate card, DM analysis, or gift evaluation, track what happened to build market intelligence.
+
+Implementation:
+
+1. Database schema (Prisma) - EXPANDED:
+
+   model Outcome {
+     id                String   @id @default(cuid())
+     creatorId         String
+     creator           User     @relation(fields: [creatorId], references: [id])
+
+     // Source tracking
+     sourceType        String   // "rate_card" | "dm_analysis" | "gift_evaluation"
+     sourceId          String?  // ID of rate card, DM, or gift
+
+     // What was proposed
+     proposedRate      Float?
+     proposedType      String   // "paid" | "gift" | "hybrid" | "affiliate"
+     platform          String
+     dealType          String
+     niche             String?
+
+     // What happened
+     outcome           String   // "accepted" | "negotiated" | "rejected" | "ghosted" | "pending" | "gift_accepted" | "gift_converted"
+     finalRate         Float?
+     negotiationDelta  Float?   // percentage change from proposed
+
+     // Gift-specific outcomes (NEW)
+     giftOutcome       String?  // "accepted_gift" | "countered_to_paid" | "declined" | "converted_later"
+     giftConversionDays Int?    // days from gift to paid conversion
+
+     // Metadata
+     brandName         String?
+     brandFollowers    Int?
+     dealLength        String?
+     wasGiftFirst      Boolean  @default(false)  // Did this start as a gift?
+
+     // Timestamps
+     createdAt         DateTime @default(now())
+     updatedAt         DateTime @updatedAt
+     closedAt          DateTime?
+   }
+
+2. Create API routes:
+   - POST /api/outcomes - Create new outcome
+   - PATCH /api/outcomes/:id - Update outcome status
+   - GET /api/outcomes - Get creator's outcome history
+   - GET /api/outcomes/analytics - Get aggregated analytics
+
+3. Create src/lib/outcome-analytics.ts - EXPANDED:
+
+   calculateAcceptanceRate(outcomes): { paid: number, gift: number, overall: number }
+   calculateAverageNegotiationDelta(outcomes): number
+   calculateGiftConversionRate(outcomes): number
+   calculateAvgGiftConversionTime(outcomes): number
+   getMarketBenchmark(platform, niche, tier): MarketBenchmark
+
+   MarketBenchmark type:
+   {
+     avgAcceptanceRate: number,
+     avgRate: number,
+     avgNegotiationDelta: number,
+     giftConversionRate: number,
+     sampleSize: number
+   }
+
+4. Create UI components:
+
+   OutcomePrompt - Shows after rate card/DM/gift:
+   - "What happened with this opportunity?"
+   - Quick buttons:
+     * For paid: Accepted, Negotiated, Rejected, Ghosted
+     * For gift: Accepted Gift, Countered & Won, Countered & Lost, Declined
+   - If negotiated: "What was the final rate?"
+   - Optional: Brand name for tracking
+
+   OutcomeHistory:
+   - List of all tracked outcomes
+   - Filter by type (paid, gift, converted)
+   - Conversion funnel visualization
+
+   OutcomeDashboard - EXPANDED:
+   - Overall stats:
+     * Total opportunities tracked
+     * Acceptance rate (paid)
+     * Acceptance rate (gift)
+     * Gift → Paid conversion rate
+   - Comparison to market:
+     * "Your acceptance rate: 72%"
+     * "Average for your tier: 65%"
+     * "You're 10% above average!"
+   - Recommendations:
+     * "Your rates have 85% acceptance - you could increase by ~15%"
+     * "You convert 25% of gifts to paid - above the 12% average!"
+   - Gift insights:
+     * "Beauty brands convert 2x faster for you"
+     * "Average conversion time: 34 days"
+
+5. Integrate outcome tracking into existing flows:
+
+   After Rate Card generation:
+   - Show OutcomePrompt
+   - "Did you send this rate? What happened?"
+
+   After DM Analysis:
+   - Show OutcomePrompt
+   - Different options based on compensation type detected
+
+   After Gift Evaluation:
+   - Prompt to track result
+   - Connect to Gift Tracker for conversion follow-up
+
+6. Build data aggregation (anonymized):
+   - Aggregate outcomes across all creators
+   - Calculate market benchmarks by:
+     * Platform
+     * Niche
+     * Creator tier
+     * Deal type
+   - Update benchmarks weekly (cron job or on-demand)
+   - Use for "Creators like you" comparisons
+
+Write tests for:
+- Outcome creation for each source type
+- Status transitions
+- Analytics calculations
+- Gift conversion tracking
+- Benchmark aggregation (with mock data)
+- Comparison calculations ("X% above average")
+
+Show me all changes and test results.
+```
+
+### Prompt 18: DM Screenshot/Image Parser
+
+```
+Extend the DM parser to handle screenshots (images) of DMs.
+
+Creators often screenshot DMs rather than copy-pasting text. This should extract text and run the same analysis.
+
+Implementation:
+
+1. Update src/lib/dm-parser.ts:
+
+   Add parseDMImage(imageBuffer: Buffer, creatorProfile: CreatorProfile): Promise<DMAnalysis>
+
+   This should:
+   - Use vision/OCR to extract text from screenshot
+   - Then run same analysis as text parser (including gift detection)
+   - Handle common DM screenshot formats (Instagram, TikTok, Email, Twitter)
+
+2. Use Claude's vision capability or integrate a vision API:
+   - Option A: Use Claude API with vision (recommended if available)
+   - Option B: Use Tesseract.js for OCR (fallback)
+   - Option C: Use Google Cloud Vision API
+
+   For Claude vision, the prompt should:
+   - Extract all text from the DM screenshot
+   - Identify the platform based on UI elements
+   - Return structured text for analysis
+
+3. Update API route: POST /api/parse-dm
+   - Accept both text and image uploads
+   - Content-Type: multipart/form-data for images
+   - Content-Type: application/json for text
+   - Detect input type and route appropriately
+
+4. Update DMParserForm UI:
+   - Add image upload/drop zone (drag and drop)
+   - Support paste from clipboard (Cmd+V / Ctrl+V)
+   - Show image preview before analysis
+   - Handle loading state for image processing (slower than text)
+   - Clear visual distinction between text and image input modes
+
+5. Handle edge cases:
+   - Low quality/blurry images → helpful error message
+   - Multiple DMs in one screenshot → process first or ask user
+   - Non-DM images → detect and show error
+   - Supported formats: PNG, JPG, WEBP, HEIC
+   - Max file size: 10MB
+
+6. Platform detection from screenshots:
+   - Instagram DM: Characteristic bubbles, profile pics
+   - TikTok DM: Different UI pattern
+   - Twitter/X DM: Blue accents, specific layout
+   - Email: Formal header structure
+   - Use detected platform to inform analysis
+
+Write tests for:
+- Image upload handling
+- OCR text extraction (mock vision response)
+- Error handling for bad/unsupported images
+- Clipboard paste functionality
+- Platform detection from UI elements
+- Full flow: image → text extraction → analysis → gift detection
+
+Show me all changes and test results.
+```
+
+### Day 4 Testing Checkpoint
+
+```
+Run comprehensive tests for Day 4 features:
+
+1. Run: pnpm test
+2. Run: pnpm build
+3. Run: pnpm lint
+
+Then do manual integration testing of the complete opportunity flow:
+
+FLOW 1: Paid DM
+- Paste a DM: "Hi! We love your content. We have a $500 budget for an Instagram Reel promoting our new product. Interested?"
+- Verify: compensationType = "paid", suggested rate shown, response template ready
+
+FLOW 2: Gift DM → Evaluation → Tracking
+- Paste a DM: "Hey! We'd love to send you our new skincare line to try and share with your followers!"
+- Verify: compensationType = "gifted", isGiftOffer = true
+- Click "Evaluate This Gift" → enters Gift Evaluator
+- Fill in: $150 product, dedicated post, 2 hours, established indie brand
+- Verify: Worth score calculated, recommendation shown, response ready
+- Click "Track This Brand" → saved to Gift Tracker
+- Verify: Appears in Gift Dashboard
+
+FLOW 3: Gift Conversion
+- In Gift Tracker, find the tracked gift
+- Click "Add Performance" → enter metrics (10K views, 500 likes, 50 saves)
+- Verify: "Ready to Convert" badge appears
+- Click "Get Conversion Script" → performance share script generated
+- Click "Mark as Converted" → enter $400 paid deal
+- Verify: Conversion tracked, analytics updated
+
+FLOW 4: Outcome Analytics
+- Check Outcome Dashboard
+- Verify: Shows gift vs paid acceptance rates
+- Verify: Shows gift conversion rate
+- Verify: "Creators like you" comparison displayed
+
+FLOW 5: Image Upload
+- Upload a screenshot of an Instagram DM
+- Verify: Text extracted, analysis runs, gift detection works
+
+Fix any issues before proceeding to Day 5.
+
+Show me all test results and the complete flow screenshots/outputs.
 ```
 
 ### Prompt 15: Outcome Tracking
@@ -887,9 +1531,11 @@ Show me all changes and test results.
 
 ---
 
-## Day 5: Mobile & Polish (Feature 17 + Testing)
+## Day 5: Mobile & Ship (Features 20-22)
 
-### Prompt 17: Ensure Mobile-First Experience
+Day 5 focuses on mobile optimization, comprehensive testing, and shipping.
+
+### Prompt 19: Ensure Mobile-First Experience
 
 ```
 Audit and fix the mobile experience. 70% of target users are on phones.
@@ -900,7 +1546,8 @@ Comprehensive mobile audit:
    - Home/Landing
    - Dashboard
    - Create Rate Card flow
-   - DM Parser
+   - DM Parser + Gift Evaluator (NEW)
+   - Gift Tracker Dashboard (NEW)
    - Rate Card PDF preview
    - Settings/Profile
 
@@ -924,12 +1571,19 @@ Comprehensive mobile audit:
    - Easy share to other apps
    - Download works properly
 
-5. DM Parser mobile experience:
+5. DM Parser mobile experience (CRITICAL):
    - Easy paste from clipboard
    - Camera/photo library access for screenshots
    - Results fit on mobile screen
+   - Gift Evaluator flows smoothly from DM analysis
 
-6. Performance on mobile:
+6. Gift Tracker mobile experience:
+   - Card-based layout for gift deals
+   - Easy status updates (swipe actions?)
+   - Follow-up reminders work on mobile
+   - Conversion scripts easy to copy
+
+7. Performance on mobile:
    - Lazy load heavy components
    - Optimize images
    - Minimize JavaScript bundle
@@ -947,39 +1601,45 @@ Show me:
 3. Before/after screenshots of key screens
 ```
 
-### Prompt 18: Final Integration Testing
+### Prompt 20: Final Integration Testing
 
 ```
-Comprehensive end-to-end testing of all 17 features.
+Comprehensive end-to-end testing of all 19 features.
 
 Run through these complete user flows:
 
-FLOW 1: New Nano Creator
+FLOW 1: New Nano Creator - Basic Rate Card
 - Create profile: 8K followers, lifestyle niche, US-based
 - Calculate rate for Instagram Reel
-- Verify all pricing layers show correctly
-- Generate PDF and verify all sections
+- Verify all pricing layers show correctly (base, niche, regional, seasonal, etc.)
+- Generate PDF and verify all sections (pricing, negotiation tips, FTC, contracts)
 
-FLOW 2: Micro Creator with DM
+FLOW 2: Gift Offer → Evaluation → Tracking → Conversion
 - Profile: 45K followers, beauty niche, UK-based
 - Paste sample DM: "Hey! Love your content! We'd love to send you our new serum to try and feature. LMK if interested!"
-- Verify: Red flags detected (no payment), suggested response asks about budget
-- Track outcome: Rejected
+- Verify: compensationType = "gifted", isGiftOffer = true
+- Click "Evaluate This Gift" → fill in $150 product, 2 hours, established brand
+- Verify: Worth score, hybrid counter recommendation
+- Copy the counter response, click "Track This Brand"
+- Later: Add performance data (15K views, 800 likes)
+- Verify: "Ready to Convert" status
+- Get conversion script, mark as converted ($400)
+- Verify: Appears in conversion analytics
 
-FLOW 3: Mid-Tier Creator with Complex Deal
+FLOW 3: Mid-Tier Creator with Complex Paid Deal
 - Profile: 150K followers, finance niche, US-based
 - Hybrid deal: Base + 15% affiliate
 - 6-month retainer
 - Full exclusivity
 - Q4 campaign (seasonal)
 - Whitelisting for paid social
-- Verify: All premiums applied, PDF shows retainer breakdown
+- Verify: All premiums applied, PDF shows retainer breakdown, Deal Quality Score
 
 FLOW 4: UGC Creator
 - Profile: 5K followers (shouldn't matter)
 - UGC deal type
 - 3 videos
-- Verify: Follower count doesn't affect price
+- Verify: Follower count doesn't affect price, UGC-specific pricing applied
 
 FLOW 5: Ambassador Deal
 - Profile: 500K followers, tech niche
@@ -987,7 +1647,17 @@ FLOW 5: Ambassador Deal
 - Monthly: 4 posts, 8 stories, 2 videos
 - Category exclusivity
 - 2 event appearances
-- Verify: Total contract value, monthly breakdown, event fees
+- Verify: Total contract value, monthly breakdown, event fees, volume discount
+
+FLOW 6: Image DM Upload
+- Upload a screenshot of an Instagram DM (gift offer)
+- Verify: OCR extracts text, gift detection works, full analysis runs
+
+FLOW 7: Outcome Analytics
+- After completing flows 2-5, check Outcome Dashboard
+- Verify: Acceptance rates shown
+- Verify: Gift conversion rate calculated
+- Verify: "Creators like you" comparisons work
 
 Run these tests and fix any issues found.
 
@@ -999,16 +1669,18 @@ Then run:
 Show me results of all flows and test suite.
 ```
 
-### Prompt 19: Documentation & Cleanup
+### Prompt 21: Documentation & Cleanup
 
 ```
 Final cleanup and documentation before deployment.
 
 1. Update CLAUDE.md with new features:
-   - Document new pricing layers
-   - Document DM parser
-   - Document outcome tracking
-   - Update the 6-Layer model description (now more layers!)
+   - Document enhanced pricing engine (now 10+ factors)
+   - Document DM Parser + Gift Detection
+   - Document Gift Deal Manager system
+   - Document Outcome Tracking
+   - Update the original 6-Layer model description (now expanded)
+   - Add Gift-to-Paid Conversion workflow
 
 2. Clean up code:
    - Remove any console.logs
@@ -1017,12 +1689,20 @@ Final cleanup and documentation before deployment.
    - Ensure consistent code style
 
 3. Update types.ts:
-   - Ensure all new types are exported
+   - Ensure all new types are exported:
+     * DMAnalysis, GiftAnalysis
+     * GiftEvaluationInput, GiftEvaluation
+     * GiftDeal, GiftResponse
+     * Outcome (expanded)
    - Add JSDoc comments to complex types
    - Remove any deprecated types
 
 4. Create/update API documentation:
-   - Document all new API routes
+   - Document all new API routes:
+     * POST /api/parse-dm
+     * POST /api/evaluate-gift
+     * CRUD /api/gifts
+     * CRUD /api/outcomes
    - Include request/response examples
    - Note authentication requirements
 
@@ -1031,16 +1711,18 @@ Final cleanup and documentation before deployment.
    - API routes properly authenticated
    - Input validation on all endpoints
    - SQL injection protection (Prisma handles this)
+   - Image upload validation (size, type)
 
 6. Performance check:
-   - No N+1 queries
+   - No N+1 queries (especially in gift/outcome lists)
    - Proper error handling
    - Loading states on all async operations
+   - LLM calls have appropriate timeouts
 
 Show me the updated documentation and any issues found during cleanup.
 ```
 
-### Prompt 20: Deployment Preparation
+### Prompt 22: Deployment Preparation
 
 ```
 Prepare for deployment.
@@ -1049,30 +1731,44 @@ Prepare for deployment.
    - All required env vars documented
    - No hardcoded URLs
    - Proper error messages for missing config
+   - LLM API keys configured (Groq, etc.)
 
 2. Database:
    - Run: pnpm prisma generate
-   - Create migration for new Outcome model
-   - Test migration on fresh database
+   - Create migrations for new models:
+     * GiftDeal
+     * Outcome (expanded)
+   - Test migrations on fresh database
+   - Verify indexes for performance
 
 3. Build verification:
    - pnpm build completes successfully
    - No TypeScript errors
    - No lint errors
    - Bundle size reasonable
+   - All pages render correctly
 
 4. Create deployment checklist:
    - [ ] All tests passing
    - [ ] Build successful
-   - [ ] Migrations ready
+   - [ ] Migrations ready and tested
    - [ ] Environment variables set
-   - [ ] API keys valid
+   - [ ] LLM API keys valid and have quota
+   - [ ] Image upload storage configured
    - [ ] Error tracking configured
+   - [ ] Analytics configured
 
 5. Git cleanup:
    - Review all changes with git diff
    - Create meaningful commit messages for each feature
    - Ensure no sensitive data in commits
+   - Tag release version
+
+6. Post-deployment verification:
+   - Create test user
+   - Run through critical flows
+   - Verify LLM integration works in production
+   - Check error reporting
 
 Show me the deployment checklist and any remaining issues.
 ```
@@ -1096,10 +1792,14 @@ Show me the deployment checklist and any remaining issues.
 | 11 | Negotiation talking points | Prompt 11 | 3 |
 | 12 | FTC guidance | Prompt 12 | 3 |
 | 13 | Contract checklist | Prompt 13 | 3 |
-| 14 | DM text parser | Prompt 14 | 4 |
-| 15 | Outcome tracking | Prompt 15 | 4 |
-| 16 | DM image parser | Prompt 16 | 4 |
-| 17 | Mobile-first | Prompt 17 | 5 |
+| 14 | DM Parser (with gift detection) | Prompt 14 | 4 |
+| 15 | **Gift Evaluator & Responses** | Prompt 15 | 4 |
+| 16 | **Gift Relationship Tracker** | Prompt 16 | 4 |
+| 17 | Outcome tracking (expanded) | Prompt 17 | 4 |
+| 18 | DM image parser | Prompt 18 | 4 |
+| 19 | Mobile-first | Prompt 19 | 5 |
+
+**Bold** = New gift features
 
 ---
 
@@ -1117,6 +1817,8 @@ Show me the deployment checklist and any remaining issues.
 
 6. **Save your work** - Commit frequently with descriptive messages
 
+7. **Day 4 is the biggest day** - Consider splitting across two sessions if needed
+
 ---
 
 ## Expected Final State
@@ -1125,11 +1827,59 @@ After completing all prompts, RateCard.AI will have:
 
 - **Enhanced Pricing Engine**: 10+ pricing factors vs original 6
 - **New Deal Types**: UGC, Affiliate, Retainer, Ambassador
-- **DM Parser**: Text and image support
+- **DM Parser**: Text and image support with gift detection
+- **Gift Deal Manager**: Evaluate, respond, track, and convert gift offers
 - **Data Flywheel**: Outcome tracking building market intelligence
 - **Creator Protection**: FTC guidance, contract checklist
 - **Confidence Stack**: Negotiation support in every output
 - **Mobile-First**: Optimized for 70% of users
 - **All Tiers Supported**: Nano to Celebrity
+
+---
+
+## The Gift Deal Manager System
+
+The Gift Deal Manager is a new core pillar of RateCard.AI:
+
+```
+CREATOR RECEIVES DM
+        │
+        ▼
+   DM PARSER
+   (Detects gift offer)
+        │
+        ▼
+   GIFT EVALUATOR
+   "Is this worth my time?"
+        │
+   ┌────┴────┐
+   │         │
+   ▼         ▼
+ACCEPT    COUNTER
+   │         │
+   ▼         ▼
+GIFT TRACKER    RATE CARD
+(Track brand)   (If countered to paid)
+   │
+   ▼
+FOLLOW UP
+(After content performs)
+   │
+   ▼
+CONVERT TO PAID
+(Use conversion scripts)
+   │
+   ▼
+OUTCOME TRACKING
+(Build market data)
+```
+
+This addresses a critical gap: most nano/micro creators get stuck in the "gift trap" of creating content for free product without ever converting to paid partnerships. The Gift Deal Manager provides:
+
+1. **Evaluation** - "Is this gift worth my time?"
+2. **Response Templates** - "How do I reply professionally?"
+3. **Tracking** - "Which brands have I worked with?"
+4. **Conversion Scripts** - "How do I ask for paid next time?"
+5. **Analytics** - "What's my gift-to-paid conversion rate?"
 
 Good luck with the implementation!
