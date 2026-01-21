@@ -172,6 +172,17 @@ export type DealType = "sponsored" | "ugc";
 export type UGCFormat = "video" | "photo";
 
 /**
+ * Whitelisting type determines how the brand can use creator content in their own channels.
+ * This is separate from usage rights (duration + exclusivity) and represents additional value.
+ *
+ * - "none": No whitelisting, content stays on creator's channels only
+ * - "organic": Brand can repost content organically (no paid amplification)
+ * - "paid_social": Brand can run content as paid social ads
+ * - "full_media": Full media buy rights (TV, OOH, digital ads, all channels)
+ */
+export type WhitelistingType = "none" | "organic" | "paid_social" | "full_media";
+
+/**
  * Parsed and structured brand brief data.
  * Extracted from uploaded PDF/DOCX files or pasted text using LLM parsing.
  */
@@ -226,6 +237,11 @@ export interface ParsedBrief {
     exclusivity: ExclusivityLevel;
     /** Whether brand can use content in paid ads */
     paidAmplification: boolean;
+    /**
+     * Whitelisting type - how brand can use content in their own channels.
+     * Separate from usage rights duration/exclusivity. Defaults to "none".
+     */
+    whitelistingType?: WhitelistingType;
   };
   /** Timeline information */
   timeline: {

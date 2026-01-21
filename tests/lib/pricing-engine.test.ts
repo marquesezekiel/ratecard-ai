@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculateTier, calculatePrice, getNichePremium, calculateUGCPrice } from "@/lib/pricing-engine";
+import { calculateTier, calculatePrice, getNichePremium, calculateUGCPrice, getWhitelistingPremium } from "@/lib/pricing-engine";
 import type { CreatorProfile, ParsedBrief, FitScoreResult } from "@/lib/types";
 
 describe("pricing-engine", () => {
@@ -284,6 +284,57 @@ describe("pricing-engine", () => {
     });
   });
 
+  // ============================================================================
+  // getWhitelistingPremium Tests
+  // ============================================================================
+  describe("getWhitelistingPremium", () => {
+    describe("all whitelisting types return correct premiums", () => {
+      it("returns 0% (0.0) for none", () => {
+        expect(getWhitelistingPremium("none")).toBe(0);
+      });
+
+      it("returns +50% (0.5) for organic", () => {
+        expect(getWhitelistingPremium("organic")).toBe(0.5);
+      });
+
+      it("returns +100% (1.0) for paid_social", () => {
+        expect(getWhitelistingPremium("paid_social")).toBe(1.0);
+      });
+
+      it("returns +200% (2.0) for full_media", () => {
+        expect(getWhitelistingPremium("full_media")).toBe(2.0);
+      });
+    });
+
+    describe("default handling", () => {
+      it("returns 0% for undefined", () => {
+        expect(getWhitelistingPremium(undefined)).toBe(0);
+      });
+
+      it("returns 0% for empty string", () => {
+        expect(getWhitelistingPremium("")).toBe(0);
+      });
+
+      it("returns 0% for unknown type", () => {
+        expect(getWhitelistingPremium("unknown")).toBe(0);
+        expect(getWhitelistingPremium("random")).toBe(0);
+      });
+    });
+
+    describe("case handling", () => {
+      it("handles different cases", () => {
+        expect(getWhitelistingPremium("ORGANIC")).toBe(0.5);
+        expect(getWhitelistingPremium("Paid_Social")).toBe(1.0);
+        expect(getWhitelistingPremium("FULL_MEDIA")).toBe(2.0);
+      });
+
+      it("handles whitespace", () => {
+        expect(getWhitelistingPremium("  organic  ")).toBe(0.5);
+        expect(getWhitelistingPremium("  paid_social  ")).toBe(1.0);
+      });
+    });
+  });
+
   describe("calculatePrice", () => {
     // Helper function to create a mock profile with specific tier and niches
     function createMockProfile(
@@ -364,18 +415,19 @@ describe("pricing-engine", () => {
       insights: ["Good fit overall"],
     };
 
-    it("calculates price with all 7 layers (including niche premium)", () => {
+    it("calculates price with all 8 layers (including niche premium and whitelisting)", () => {
       const mockProfile = createMockProfile("micro", 25000);
       const result = calculatePrice(mockProfile, mockBrief, mockFitScore);
 
-      expect(result.layers).toHaveLength(7);
+      expect(result.layers).toHaveLength(8);
       expect(result.layers[0].name).toBe("Base Rate");
       expect(result.layers[1].name).toBe("Engagement Multiplier");
       expect(result.layers[2].name).toBe("Niche Premium");
       expect(result.layers[3].name).toBe("Format Premium");
       expect(result.layers[4].name).toBe("Fit Score");
       expect(result.layers[5].name).toBe("Usage Rights");
-      expect(result.layers[6].name).toBe("Complexity");
+      expect(result.layers[6].name).toBe("Whitelisting");
+      expect(result.layers[7].name).toBe("Complexity");
     });
 
     it("returns price per deliverable and total", () => {
@@ -489,6 +541,124 @@ describe("pricing-engine", () => {
         const ratio = financeResult.pricePerDeliverable / gamingResult.pricePerDeliverable;
         expect(ratio).toBeGreaterThan(1.9);
         expect(ratio).toBeLessThan(2.2);
+      });
+    });
+
+    // ==========================================================================
+    // Whitelisting Integration Tests
+    // ==========================================================================
+    describe("whitelisting integration", () => {
+      it("whitelisting layer shows correct multiplier for paid_social", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const briefWithWhitelisting: ParsedBrief = {
+          ...mockBrief,
+          usageRights: {
+            ...mockBrief.usageRights,
+            whitelistingType: "paid_social",
+          },
+        };
+
+        const result = calculatePrice(mockProfile, briefWithWhitelisting, mockFitScore);
+
+        const whitelistingLayer = result.layers.find(l => l.name === "Whitelisting");
+        expect(whitelistingLayer).toBeDefined();
+        expect(whitelistingLayer?.multiplier).toBe(2.0); // 1 + 100%
+      });
+
+      it("whitelisting increases price when applied", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const briefNoWhitelisting: ParsedBrief = {
+          ...mockBrief,
+          usageRights: {
+            ...mockBrief.usageRights,
+            whitelistingType: "none",
+          },
+        };
+        const briefWithWhitelisting: ParsedBrief = {
+          ...mockBrief,
+          usageRights: {
+            ...mockBrief.usageRights,
+            whitelistingType: "paid_social",
+          },
+        };
+
+        const noWhitelistingResult = calculatePrice(mockProfile, briefNoWhitelisting, mockFitScore);
+        const withWhitelistingResult = calculatePrice(mockProfile, briefWithWhitelisting, mockFitScore);
+
+        // paid_social adds +100%, so price should be significantly higher
+        expect(withWhitelistingResult.pricePerDeliverable).toBeGreaterThan(
+          noWhitelistingResult.pricePerDeliverable
+        );
+      });
+
+      it("whitelisting stacks with usage rights", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const briefWithBoth: ParsedBrief = {
+          ...mockBrief,
+          usageRights: {
+            durationDays: 90, // 3 months = +45%
+            exclusivity: "category", // +30%
+            paidAmplification: true,
+            whitelistingType: "full_media", // +200%
+          },
+        };
+
+        const result = calculatePrice(mockProfile, briefWithBoth, mockFitScore);
+
+        // Check both layers exist
+        const usageRightsLayer = result.layers.find(l => l.name === "Usage Rights");
+        const whitelistingLayer = result.layers.find(l => l.name === "Whitelisting");
+
+        expect(usageRightsLayer).toBeDefined();
+        expect(whitelistingLayer).toBeDefined();
+
+        // Usage rights: 0.45 (duration) + 0.30 (exclusivity) = 0.75 → multiplier 1.75
+        expect(usageRightsLayer?.multiplier).toBeCloseTo(1.75, 2);
+
+        // Whitelisting: +200% → multiplier 3.0
+        expect(whitelistingLayer?.multiplier).toBe(3.0);
+      });
+
+      it("defaults to no whitelisting (0%) when not specified", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        // mockBrief doesn't have whitelistingType set
+        const result = calculatePrice(mockProfile, mockBrief, mockFitScore);
+
+        const whitelistingLayer = result.layers.find(l => l.name === "Whitelisting");
+        expect(whitelistingLayer).toBeDefined();
+        expect(whitelistingLayer?.multiplier).toBe(1.0); // 1 + 0%
+      });
+
+      it("full_media whitelisting triples the portion affected", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const briefWithFullMedia: ParsedBrief = {
+          ...mockBrief,
+          usageRights: {
+            ...mockBrief.usageRights,
+            whitelistingType: "full_media",
+          },
+        };
+
+        const result = calculatePrice(mockProfile, briefWithFullMedia, mockFitScore);
+
+        const whitelistingLayer = result.layers.find(l => l.name === "Whitelisting");
+        expect(whitelistingLayer?.multiplier).toBe(3.0); // 1 + 200%
+      });
+
+      it("organic whitelisting adds 50% premium", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const briefWithOrganic: ParsedBrief = {
+          ...mockBrief,
+          usageRights: {
+            ...mockBrief.usageRights,
+            whitelistingType: "organic",
+          },
+        };
+
+        const result = calculatePrice(mockProfile, briefWithOrganic, mockFitScore);
+
+        const whitelistingLayer = result.layers.find(l => l.name === "Whitelisting");
+        expect(whitelistingLayer?.multiplier).toBe(1.5); // 1 + 50%
       });
     });
 
@@ -640,19 +810,7 @@ describe("pricing-engine", () => {
       };
     }
 
-    const mockFitScore: FitScoreResult = {
-      totalScore: 75,
-      fitLevel: "high",
-      priceAdjustment: 0.15,
-      breakdown: {
-        nicheMatch: { score: 80, weight: 0.3, insight: "Good niche match" },
-        demographicMatch: { score: 70, weight: 0.25, insight: "Good demo match" },
-        platformMatch: { score: 85, weight: 0.2, insight: "Strong platform" },
-        engagementQuality: { score: 75, weight: 0.15, insight: "Above average" },
-        contentCapability: { score: 60, weight: 0.1, insight: "Capable" },
-      },
-      insights: ["Good fit overall"],
-    };
+    // Note: UGC pricing doesn't use fit scores - audience size is irrelevant
 
     // ==========================================================================
     // UGC Base Rate Tests
@@ -762,19 +920,65 @@ describe("pricing-engine", () => {
     });
 
     // ==========================================================================
-    // UGC Has 3 Layers (not 7)
+    // UGC Has 4 Layers (Base, Usage Rights, Whitelisting, Complexity)
     // ==========================================================================
     describe("UGC layer structure", () => {
-      it("UGC pricing has exactly 3 layers", () => {
+      it("UGC pricing has exactly 4 layers", () => {
         const profile = createMockProfile("micro", 25000);
         const brief = createUGCBrief("video");
 
         const result = calculateUGCPrice(brief, profile);
 
-        expect(result.layers).toHaveLength(3);
+        expect(result.layers).toHaveLength(4);
         expect(result.layers[0].name).toBe("UGC Base Rate");
         expect(result.layers[1].name).toBe("Usage Rights");
-        expect(result.layers[2].name).toBe("Complexity");
+        expect(result.layers[2].name).toBe("Whitelisting");
+        expect(result.layers[3].name).toBe("Complexity");
+      });
+    });
+
+    // ==========================================================================
+    // UGC Whitelisting Tests
+    // ==========================================================================
+    describe("UGC whitelisting", () => {
+      it("applies whitelisting premium to UGC price", () => {
+        const profile = createMockProfile("micro", 25000);
+        const noWhitelistingBrief = createUGCBrief("video", 30, "none", 1);
+        const withWhitelistingBrief: ParsedBrief = {
+          ...createUGCBrief("video", 30, "none", 1),
+          usageRights: {
+            durationDays: 30,
+            exclusivity: "none",
+            paidAmplification: false,
+            whitelistingType: "paid_social",
+          },
+        };
+
+        const noWhitelistingResult = calculateUGCPrice(noWhitelistingBrief, profile);
+        const withWhitelistingResult = calculateUGCPrice(withWhitelistingBrief, profile);
+
+        expect(withWhitelistingResult.pricePerDeliverable).toBeGreaterThan(
+          noWhitelistingResult.pricePerDeliverable
+        );
+      });
+
+      it("UGC whitelisting shows correct multiplier", () => {
+        const profile = createMockProfile("micro", 25000);
+        const briefWithWhitelisting: ParsedBrief = {
+          ...createUGCBrief("video", 30, "none", 1),
+          usageRights: {
+            durationDays: 30,
+            exclusivity: "none",
+            paidAmplification: false,
+            whitelistingType: "full_media",
+          },
+        };
+
+        const result = calculateUGCPrice(briefWithWhitelisting, profile);
+
+        const whitelistingLayer = result.layers.find(l => l.name === "Whitelisting");
+        expect(whitelistingLayer).toBeDefined();
+        expect(whitelistingLayer?.multiplier).toBe(3.0); // 1 + 200%
       });
     });
 
@@ -862,8 +1066,8 @@ describe("pricing-engine", () => {
 
       const result = calculatePrice(profile, ugcBrief, mockFitScore);
 
-      // UGC has 3 layers, sponsored has 7
-      expect(result.layers).toHaveLength(3);
+      // UGC has 4 layers (Base, Usage Rights, Whitelisting, Complexity)
+      expect(result.layers).toHaveLength(4);
       expect(result.layers[0].name).toBe("UGC Base Rate");
     });
 
@@ -881,8 +1085,8 @@ describe("pricing-engine", () => {
 
       const result = calculatePrice(profile, sponsoredBrief, mockFitScore);
 
-      // Sponsored has 7 layers
-      expect(result.layers).toHaveLength(7);
+      // Sponsored has 8 layers (with Whitelisting)
+      expect(result.layers).toHaveLength(8);
       expect(result.layers[0].name).toBe("Base Rate");
     });
 
@@ -900,8 +1104,8 @@ describe("pricing-engine", () => {
 
       const result = calculatePrice(profile, defaultBrief, mockFitScore);
 
-      // Should default to sponsored (7 layers)
-      expect(result.layers).toHaveLength(7);
+      // Should default to sponsored (8 layers)
+      expect(result.layers).toHaveLength(8);
       expect(result.layers[0].name).toBe("Base Rate");
     });
 

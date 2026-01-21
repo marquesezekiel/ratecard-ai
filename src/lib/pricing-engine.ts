@@ -19,6 +19,7 @@ import type {
   PricingLayer,
   ExclusivityLevel,
   UGCFormat,
+  WhitelistingType,
 } from "./types";
 import { CURRENCIES } from "./types";
 
@@ -183,6 +184,31 @@ const EXCLUSIVITY_PREMIUMS: Record<ExclusivityLevel, number> = {
 };
 
 // =============================================================================
+// LAYER 5.5: WHITELISTING PREMIUM
+// =============================================================================
+
+/**
+ * Whitelisting premiums based on how brand can use creator content.
+ * This is separate from usage rights (duration + exclusivity) because
+ * whitelisting represents additional value when brands use creator content
+ * in their own channels/ads.
+ *
+ * - none: Content stays on creator's channels only (0%)
+ * - organic: Brand can repost organically (+50%)
+ * - paid_social: Brand can run as paid social ads (+100%)
+ * - full_media: Full media buy - TV, OOH, digital ads (+200%)
+ */
+const WHITELISTING_PREMIUMS: Record<WhitelistingType, number> = {
+  none: 0, // No whitelisting
+  organic: 0.5, // Brand reposts (+50%)
+  paid_social: 1.0, // Brand runs as paid ads (+100%)
+  full_media: 2.0, // Full media buy (+200%)
+};
+
+/** Default whitelisting type */
+const DEFAULT_WHITELISTING_TYPE: WhitelistingType = "none";
+
+// =============================================================================
 // LAYER 6: COMPLEXITY
 // =============================================================================
 
@@ -328,6 +354,34 @@ function getDurationPremium(durationDays: number): number {
 }
 
 /**
+ * Get whitelisting premium based on type.
+ * Returns the premium multiplier for how brand can use creator content
+ * in their own channels.
+ *
+ * @param type - The whitelisting type
+ * @returns Premium value (e.g., 0 for none, 0.5 for organic, 1.0 for paid_social, 2.0 for full_media)
+ */
+export function getWhitelistingPremium(type: string | undefined): number {
+  if (!type) return WHITELISTING_PREMIUMS[DEFAULT_WHITELISTING_TYPE];
+  const normalizedType = type.toLowerCase().trim() as WhitelistingType;
+  return WHITELISTING_PREMIUMS[normalizedType] ?? WHITELISTING_PREMIUMS[DEFAULT_WHITELISTING_TYPE];
+}
+
+/**
+ * Get display name for whitelisting type.
+ * Maps the whitelisting type to a human-readable description.
+ */
+function getWhitelistingDisplayName(type: WhitelistingType | undefined): string {
+  const displayNames: Record<WhitelistingType, string> = {
+    none: "No whitelisting",
+    organic: "Organic reposts only",
+    paid_social: "Paid social ads",
+    full_media: "Full media buy (TV, OOH, digital)",
+  };
+  return displayNames[type || DEFAULT_WHITELISTING_TYPE];
+}
+
+/**
  * Get complexity level for a content format.
  */
 function getComplexity(format: ContentFormat): ComplexityLevel {
@@ -426,6 +480,23 @@ export function calculateUGCPrice(
   currentPrice *= 1 + totalRightsPremium;
 
   // -------------------------------------------------------------------------
+  // Layer 2.5: Whitelisting Premium (UGC)
+  // -------------------------------------------------------------------------
+  const whitelistingType = brief.usageRights.whitelistingType || "none";
+  const whitelistingPremium = getWhitelistingPremium(whitelistingType);
+  const whitelistingDisplayName = getWhitelistingDisplayName(whitelistingType);
+
+  layers.push({
+    name: "Whitelisting",
+    description: whitelistingDisplayName,
+    baseValue: whitelistingType,
+    multiplier: 1 + whitelistingPremium,
+    adjustment: currentPrice * whitelistingPremium,
+  });
+
+  currentPrice *= 1 + whitelistingPremium;
+
+  // -------------------------------------------------------------------------
   // Layer 3: Complexity
   // -------------------------------------------------------------------------
   const complexityLevel = UGC_FORMAT_COMPLEXITY[ugcFormat];
@@ -450,7 +521,7 @@ export function calculateUGCPrice(
 
   // Build formula string (simpler for UGC)
   const formula =
-    `$${baseRate} × (1 ${formatPremium(totalRightsPremium)}) × (1 ${formatPremium(complexityPremium)})`;
+    `$${baseRate} × (1 ${formatPremium(totalRightsPremium)}) × (1 ${formatPremium(whitelistingPremium)}) × (1 ${formatPremium(complexityPremium)})`;
 
   // Get currency info from profile
   const currencyInfo = CURRENCIES.find(c => c.code === profile.currency) || CURRENCIES[0];
@@ -610,6 +681,23 @@ export function calculatePrice(
   currentPrice *= 1 + totalRightsPremium;
 
   // -------------------------------------------------------------------------
+  // Layer 5.5: Whitelisting Premium
+  // -------------------------------------------------------------------------
+  const whitelistingType = brief.usageRights.whitelistingType || "none";
+  const whitelistingPremium = getWhitelistingPremium(whitelistingType);
+  const whitelistingDisplayName = getWhitelistingDisplayName(whitelistingType);
+
+  layers.push({
+    name: "Whitelisting",
+    description: whitelistingDisplayName,
+    baseValue: whitelistingType,
+    multiplier: 1 + whitelistingPremium,
+    adjustment: currentPrice * whitelistingPremium,
+  });
+
+  currentPrice *= 1 + whitelistingPremium;
+
+  // -------------------------------------------------------------------------
   // Layer 6: Complexity
   // -------------------------------------------------------------------------
   const complexityLevel = getComplexity(format);
@@ -638,6 +726,7 @@ export function calculatePrice(
     `× (1 ${formatPremium(formatPremiumValue)}) ` +
     `× (1 ${formatPremium(fitAdjustment)}) ` +
     `× (1 ${formatPremium(totalRightsPremium)}) ` +
+    `× (1 ${formatPremium(whitelistingPremium)}) ` +
     `× (1 ${formatPremium(complexityPremium)})`;
 
   // Get currency info from profile
