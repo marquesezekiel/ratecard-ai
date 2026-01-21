@@ -28,12 +28,16 @@ import { CURRENCIES } from "./types";
 /**
  * Base rates in USD based on creator tier.
  * These represent the starting point for a single deliverable.
+ * Updated to 2025 industry standards.
  */
 const BASE_RATES: Record<CreatorTier, number> = {
-  nano: 100, // 1K-10K followers
-  micro: 250, // 10K-50K followers
-  mid: 750, // 50K-500K followers
-  macro: 2500, // 500K+ followers
+  nano: 150, // 1K-10K followers
+  micro: 400, // 10K-50K followers
+  mid: 800, // 50K-100K followers
+  rising: 1500, // 100K-250K followers
+  macro: 3000, // 250K-500K followers
+  mega: 6000, // 500K-1M followers
+  celebrity: 12000, // 1M+ followers
 };
 
 // =============================================================================
@@ -147,9 +151,21 @@ const FORMAT_COMPLEXITY: Record<ContentFormat, ComplexityLevel> = {
 
 /**
  * Calculate creator tier based on total follower count.
+ *
+ * Tier boundaries (2025 industry standards):
+ * - nano: 1K-10K followers
+ * - micro: 10K-50K followers
+ * - mid: 50K-100K followers
+ * - rising: 100K-250K followers
+ * - macro: 250K-500K followers
+ * - mega: 500K-1M followers
+ * - celebrity: 1M+ followers
  */
 export function calculateTier(followers: number): CreatorTier {
-  if (followers >= 500000) return "macro";
+  if (followers >= 1000000) return "celebrity";
+  if (followers >= 500000) return "mega";
+  if (followers >= 250000) return "macro";
+  if (followers >= 100000) return "rising";
   if (followers >= 50000) return "mid";
   if (followers >= 10000) return "micro";
   return "nano";

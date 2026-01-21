@@ -93,8 +93,17 @@ export interface AudienceDemographics {
 /**
  * Creator tier based on total follower count.
  * Determines the base rate in Layer 1 of the pricing engine.
+ *
+ * Tier boundaries (2025 industry standards):
+ * - nano: 1K-10K followers ($150)
+ * - micro: 10K-50K followers ($400)
+ * - mid: 50K-100K followers ($800)
+ * - rising: 100K-250K followers ($1,500)
+ * - macro: 250K-500K followers ($3,000)
+ * - mega: 500K-1M followers ($6,000)
+ * - celebrity: 1M+ followers ($12,000)
  */
-export type CreatorTier = "nano" | "micro" | "mid" | "macro";
+export type CreatorTier = "nano" | "micro" | "mid" | "rising" | "macro" | "mega" | "celebrity";
 
 /**
  * Complete creator profile with platform metrics and audience data.
