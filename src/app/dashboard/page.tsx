@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Zap, FileText, ArrowRight, Clock } from "lucide-react";
 
 interface RateCardHistoryItem {
-  brandName?: string;
+  name: string;
   platform: string;
   format: string;
-  totalPrice: number;
+  price: number;
   createdAt: string;
 }
 
@@ -21,7 +21,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     startTransition(() => {
-      const savedRates = localStorage.getItem("rateCardHistory");
+      const savedRates = localStorage.getItem("savedRates");
       if (savedRates) setRecentRates(JSON.parse(savedRates).slice(0, 5));
     });
   }, []);
@@ -100,13 +100,13 @@ export default function DashboardPage() {
               <Card key={i} className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">{rate.brandName || "Quick Quote"}</p>
+                    <p className="font-medium">{rate.name || "Quick Quote"}</p>
                     <p className="text-sm text-muted-foreground">
                       {rate.platform} · {rate.format}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold">${rate.totalPrice.toLocaleString()}</p>
+                    <p className="text-lg font-bold">${rate.price.toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground flex items-center justify-end gap-1">
                       <Clock className="h-3 w-3" />
                       {new Date(rate.createdAt).toLocaleDateString()}
