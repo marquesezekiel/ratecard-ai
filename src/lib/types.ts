@@ -51,8 +51,35 @@ export interface PlatformMetrics {
 
 /**
  * Supported social media platforms for rate card generation.
+ * Each platform has different base rate multipliers in the pricing engine.
+ *
+ * Platform multipliers (relative to Instagram baseline):
+ * - instagram: 1.0x (baseline)
+ * - tiktok: 0.9x
+ * - youtube: 1.4x (long-form premium)
+ * - youtube_shorts: 0.7x (short-form, separate from long-form)
+ * - twitter: 0.7x
+ * - threads: 0.6x (newer, less proven ROI)
+ * - pinterest: 0.8x (high purchase intent)
+ * - linkedin: 1.3x (B2B premium)
+ * - bluesky: 0.5x (emerging)
+ * - lemon8: 0.6x (emerging, shopping-focused)
+ * - snapchat: 0.75x
+ * - twitch: 1.1x (live streaming premium)
  */
-export type Platform = "instagram" | "tiktok" | "youtube" | "twitter";
+export type Platform =
+  | "instagram"
+  | "tiktok"
+  | "youtube"
+  | "youtube_shorts"
+  | "twitter"
+  | "threads"
+  | "pinterest"
+  | "linkedin"
+  | "bluesky"
+  | "lemon8"
+  | "snapchat"
+  | "twitch";
 
 /**
  * Content format types supported for deliverables.

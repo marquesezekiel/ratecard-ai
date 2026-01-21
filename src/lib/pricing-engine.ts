@@ -21,6 +21,7 @@ import type {
   UGCFormat,
   WhitelistingType,
   Region,
+  Platform,
 } from "./types";
 import { CURRENCIES } from "./types";
 
@@ -107,6 +108,53 @@ const REGION_DISPLAY_NAMES: Record<Region, string> = {
   eastern_europe: "Eastern Europe",
   africa: "Africa",
   other: "Other",
+};
+
+// =============================================================================
+// LAYER 1.25: PLATFORM MULTIPLIERS
+// =============================================================================
+
+/**
+ * Platform-specific base rate multipliers.
+ * Different platforms have different monetization potential and advertiser demand.
+ *
+ * Instagram is the baseline (1.0x). Other platforms are adjusted relative
+ * to Instagram's proven advertising ROI and creator monetization ecosystem.
+ */
+const PLATFORM_MULTIPLIERS: Record<Platform, number> = {
+  instagram: 1.0, // Baseline - most established creator economy
+  tiktok: 0.9, // High reach but lower conversion rates
+  youtube: 1.4, // Long-form premium, high watch time
+  youtube_shorts: 0.7, // Short-form, separate from long-form YouTube
+  twitter: 0.7, // Lower engagement, text-focused
+  threads: 0.6, // Newer platform, less proven ROI
+  pinterest: 0.8, // High purchase intent, visual discovery
+  linkedin: 1.3, // B2B premium, professional audience
+  bluesky: 0.5, // Emerging platform, small audience
+  lemon8: 0.6, // Emerging, shopping-focused
+  snapchat: 0.75, // Younger demo, disappearing content
+  twitch: 1.1, // Live streaming premium, high engagement
+};
+
+/** Default platform multiplier for unknown platforms */
+const DEFAULT_PLATFORM_MULTIPLIER = 1.0;
+
+/**
+ * Human-readable display names for platforms.
+ */
+const PLATFORM_DISPLAY_NAMES: Record<Platform, string> = {
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+  youtube_shorts: "YouTube Shorts",
+  twitter: "Twitter/X",
+  threads: "Threads",
+  pinterest: "Pinterest",
+  linkedin: "LinkedIn",
+  bluesky: "Bluesky",
+  lemon8: "Lemon8",
+  snapchat: "Snapchat",
+  twitch: "Twitch",
 };
 
 // =============================================================================
@@ -386,6 +434,28 @@ export function getRegionalMultiplier(region: string | undefined): number {
  */
 function getRegionDisplayName(region: Region | undefined): string {
   return REGION_DISPLAY_NAMES[region || DEFAULT_REGION];
+}
+
+/**
+ * Get platform-specific rate multiplier.
+ * Returns the multiplier for the specified platform, or default (1.0x) for unknown platforms.
+ *
+ * @param platform - The target platform identifier
+ * @returns Multiplier value (e.g., 1.0 for Instagram, 1.4 for YouTube, 0.5 for Bluesky)
+ */
+export function getPlatformMultiplier(platform: string | undefined): number {
+  if (!platform) return DEFAULT_PLATFORM_MULTIPLIER;
+  const normalizedPlatform = platform.toLowerCase().trim().replace(/\s+/g, "_") as Platform;
+  return PLATFORM_MULTIPLIERS[normalizedPlatform] ?? DEFAULT_PLATFORM_MULTIPLIER;
+}
+
+/**
+ * Get display name for a platform.
+ */
+function getPlatformDisplayName(platform: Platform | string | undefined): string {
+  if (!platform) return "Unknown Platform";
+  const normalizedPlatform = platform.toLowerCase().trim().replace(/\s+/g, "_") as Platform;
+  return PLATFORM_DISPLAY_NAMES[normalizedPlatform] || platform;
 }
 
 /**
@@ -803,6 +873,23 @@ export function calculatePrice(
   let currentPrice = baseRate;
 
   // -------------------------------------------------------------------------
+  // Layer 1.25: Platform Multiplier
+  // -------------------------------------------------------------------------
+  const platform = brief.content.platform;
+  const platformMultiplier = getPlatformMultiplier(platform);
+  const platformDisplayName = getPlatformDisplayName(platform);
+
+  layers.push({
+    name: "Platform",
+    description: `${platformDisplayName} content rate`,
+    baseValue: platform,
+    multiplier: platformMultiplier,
+    adjustment: currentPrice * platformMultiplier - currentPrice,
+  });
+
+  currentPrice *= platformMultiplier;
+
+  // -------------------------------------------------------------------------
   // Layer 1.5: Regional Multiplier
   // -------------------------------------------------------------------------
   const region = profile.region || DEFAULT_REGION;
@@ -981,7 +1068,7 @@ export function calculatePrice(
 
   // Build formula string
   const formula =
-    `($${baseRate} × ${regionalMultiplier.toFixed(2)} × ${engagementMultiplier.toFixed(1)} × ${nichePremiumMultiplier.toFixed(1)}) ` +
+    `($${baseRate} × ${platformMultiplier.toFixed(2)} × ${regionalMultiplier.toFixed(2)} × ${engagementMultiplier.toFixed(1)} × ${nichePremiumMultiplier.toFixed(1)}) ` +
     `× (1 ${formatPremium(formatPremiumValue)}) ` +
     `× (1 ${formatPremium(fitAdjustment)}) ` +
     `× (1 ${formatPremium(totalRightsPremium)}) ` +

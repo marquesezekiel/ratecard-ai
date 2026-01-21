@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { calculateTier, calculatePrice, getNichePremium, calculateUGCPrice, getWhitelistingPremium, getSeasonalPremium, getRegionalMultiplier } from "@/lib/pricing-engine";
-import type { CreatorProfile, ParsedBrief, FitScoreResult } from "@/lib/types";
+import { calculateTier, calculatePrice, getNichePremium, calculateUGCPrice, getWhitelistingPremium, getSeasonalPremium, getRegionalMultiplier, getPlatformMultiplier } from "@/lib/pricing-engine";
+import type { CreatorProfile, ParsedBrief, FitScoreResult, Platform } from "@/lib/types";
 
 describe("pricing-engine", () => {
   describe("calculateTier", () => {
@@ -602,6 +602,149 @@ describe("pricing-engine", () => {
     });
   });
 
+  // ============================================================================
+  // getPlatformMultiplier Tests
+  // ============================================================================
+  describe("getPlatformMultiplier", () => {
+    describe("all platforms return correct multipliers", () => {
+      it("returns 1.0x for Instagram (baseline)", () => {
+        expect(getPlatformMultiplier("instagram")).toBe(1.0);
+      });
+
+      it("returns 0.9x for TikTok", () => {
+        expect(getPlatformMultiplier("tiktok")).toBe(0.9);
+      });
+
+      it("returns 1.4x for YouTube (long-form premium)", () => {
+        expect(getPlatformMultiplier("youtube")).toBe(1.4);
+      });
+
+      it("returns 0.7x for YouTube Shorts", () => {
+        expect(getPlatformMultiplier("youtube_shorts")).toBe(0.7);
+      });
+
+      it("returns 0.7x for Twitter/X", () => {
+        expect(getPlatformMultiplier("twitter")).toBe(0.7);
+      });
+
+      it("returns 0.6x for Threads", () => {
+        expect(getPlatformMultiplier("threads")).toBe(0.6);
+      });
+
+      it("returns 0.8x for Pinterest", () => {
+        expect(getPlatformMultiplier("pinterest")).toBe(0.8);
+      });
+
+      it("returns 1.3x for LinkedIn (B2B premium)", () => {
+        expect(getPlatformMultiplier("linkedin")).toBe(1.3);
+      });
+
+      it("returns 0.5x for Bluesky (emerging)", () => {
+        expect(getPlatformMultiplier("bluesky")).toBe(0.5);
+      });
+
+      it("returns 0.6x for Lemon8", () => {
+        expect(getPlatformMultiplier("lemon8")).toBe(0.6);
+      });
+
+      it("returns 0.75x for Snapchat", () => {
+        expect(getPlatformMultiplier("snapchat")).toBe(0.75);
+      });
+
+      it("returns 1.1x for Twitch (live streaming premium)", () => {
+        expect(getPlatformMultiplier("twitch")).toBe(1.1);
+      });
+    });
+
+    describe("YouTube vs YouTube Shorts distinction", () => {
+      it("YouTube (1.4x) is double YouTube Shorts (0.7x)", () => {
+        const youtubeMultiplier = getPlatformMultiplier("youtube");
+        const shortsMultiplier = getPlatformMultiplier("youtube_shorts");
+
+        expect(youtubeMultiplier).toBe(1.4);
+        expect(shortsMultiplier).toBe(0.7);
+        expect(youtubeMultiplier).toBe(shortsMultiplier * 2);
+      });
+
+      it("correctly distinguishes between youtube and youtube_shorts", () => {
+        expect(getPlatformMultiplier("youtube")).not.toBe(getPlatformMultiplier("youtube_shorts"));
+      });
+    });
+
+    describe("unknown platform defaults to 1.0x", () => {
+      it("returns 1.0x for unknown platform string", () => {
+        expect(getPlatformMultiplier("unknown")).toBe(1.0);
+        expect(getPlatformMultiplier("random_platform")).toBe(1.0);
+        expect(getPlatformMultiplier("facebook")).toBe(1.0);
+        expect(getPlatformMultiplier("myspace")).toBe(1.0);
+      });
+
+      it("returns 1.0x for undefined", () => {
+        expect(getPlatformMultiplier(undefined)).toBe(1.0);
+      });
+
+      it("returns 1.0x for empty string", () => {
+        expect(getPlatformMultiplier("")).toBe(1.0);
+      });
+    });
+
+    describe("case and whitespace handling", () => {
+      it("handles different cases", () => {
+        expect(getPlatformMultiplier("INSTAGRAM")).toBe(1.0);
+        expect(getPlatformMultiplier("TikTok")).toBe(0.9);
+        expect(getPlatformMultiplier("YOUTUBE")).toBe(1.4);
+        expect(getPlatformMultiplier("LinkedIn")).toBe(1.3);
+      });
+
+      it("handles whitespace", () => {
+        expect(getPlatformMultiplier("  instagram  ")).toBe(1.0);
+        expect(getPlatformMultiplier("  tiktok  ")).toBe(0.9);
+      });
+
+      it("handles spaces instead of underscores", () => {
+        expect(getPlatformMultiplier("youtube shorts")).toBe(0.7);
+      });
+    });
+
+    describe("platform multiplier rankings", () => {
+      it("YouTube has highest multiplier", () => {
+        const platforms: Platform[] = [
+          "instagram", "tiktok", "youtube", "youtube_shorts",
+          "twitter", "threads", "pinterest", "linkedin",
+          "bluesky", "lemon8", "snapchat", "twitch"
+        ];
+        const multipliers = platforms.map(p => getPlatformMultiplier(p));
+        const maxMultiplier = Math.max(...multipliers);
+
+        expect(getPlatformMultiplier("youtube")).toBe(maxMultiplier);
+      });
+
+      it("Bluesky has lowest multiplier (emerging platform)", () => {
+        const platforms: Platform[] = [
+          "instagram", "tiktok", "youtube", "youtube_shorts",
+          "twitter", "threads", "pinterest", "linkedin",
+          "bluesky", "lemon8", "snapchat", "twitch"
+        ];
+        const multipliers = platforms.map(p => getPlatformMultiplier(p));
+        const minMultiplier = Math.min(...multipliers);
+
+        expect(getPlatformMultiplier("bluesky")).toBe(minMultiplier);
+      });
+
+      it("premium platforms (YouTube, LinkedIn, Twitch) are above baseline", () => {
+        expect(getPlatformMultiplier("youtube")).toBeGreaterThan(1.0);
+        expect(getPlatformMultiplier("linkedin")).toBeGreaterThan(1.0);
+        expect(getPlatformMultiplier("twitch")).toBeGreaterThan(1.0);
+      });
+
+      it("emerging platforms (Bluesky, Threads, Lemon8) are below baseline", () => {
+        expect(getPlatformMultiplier("bluesky")).toBeLessThan(1.0);
+        expect(getPlatformMultiplier("threads")).toBeLessThan(1.0);
+        expect(getPlatformMultiplier("lemon8")).toBeLessThan(1.0);
+      });
+    });
+  });
+
   describe("calculatePrice", () => {
     // Helper function to create a mock profile with specific tier and niches
     function createMockProfile(
@@ -682,21 +825,22 @@ describe("pricing-engine", () => {
       insights: ["Good fit overall"],
     };
 
-    it("calculates price with all 10 layers (including regional, niche premium, whitelisting, and seasonal)", () => {
+    it("calculates price with all 11 layers (including platform, regional, niche premium, whitelisting, and seasonal)", () => {
       const mockProfile = createMockProfile("micro", 25000);
       const result = calculatePrice(mockProfile, mockBrief, mockFitScore);
 
-      expect(result.layers).toHaveLength(10);
+      expect(result.layers).toHaveLength(11);
       expect(result.layers[0].name).toBe("Base Rate");
-      expect(result.layers[1].name).toBe("Regional");
-      expect(result.layers[2].name).toBe("Engagement Multiplier");
-      expect(result.layers[3].name).toBe("Niche Premium");
-      expect(result.layers[4].name).toBe("Format Premium");
-      expect(result.layers[5].name).toBe("Fit Score");
-      expect(result.layers[6].name).toBe("Usage Rights");
-      expect(result.layers[7].name).toBe("Whitelisting");
-      expect(result.layers[8].name).toBe("Complexity");
-      expect(result.layers[9].name).toBe("Seasonal");
+      expect(result.layers[1].name).toBe("Platform");
+      expect(result.layers[2].name).toBe("Regional");
+      expect(result.layers[3].name).toBe("Engagement Multiplier");
+      expect(result.layers[4].name).toBe("Niche Premium");
+      expect(result.layers[5].name).toBe("Format Premium");
+      expect(result.layers[6].name).toBe("Fit Score");
+      expect(result.layers[7].name).toBe("Usage Rights");
+      expect(result.layers[8].name).toBe("Whitelisting");
+      expect(result.layers[9].name).toBe("Complexity");
+      expect(result.layers[10].name).toBe("Seasonal");
     });
 
     it("returns price per deliverable and total", () => {
@@ -1101,6 +1245,157 @@ describe("pricing-engine", () => {
         // US: $150 × 1.0 = $150 base × regional
         // India: $150 × 0.4 = $60 base × regional
         expect(usResult.pricePerDeliverable).toBeGreaterThan(indiaResult.pricePerDeliverable);
+      });
+    });
+
+    // ==========================================================================
+    // Platform Pricing Integration Tests
+    // ==========================================================================
+    describe("platform pricing integration", () => {
+      it("platform layer shows correct multiplier for YouTube", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const youtubeBrief: ParsedBrief = {
+          ...mockBrief,
+          content: {
+            ...mockBrief.content,
+            platform: "youtube",
+          },
+        };
+
+        const result = calculatePrice(mockProfile, youtubeBrief, mockFitScore);
+
+        const platformLayer = result.layers.find(l => l.name === "Platform");
+        expect(platformLayer).toBeDefined();
+        expect(platformLayer?.multiplier).toBe(1.4);
+      });
+
+      it("platform layer shows correct multiplier for Bluesky", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const blueskyBrief: ParsedBrief = {
+          ...mockBrief,
+          content: {
+            ...mockBrief.content,
+            platform: "bluesky",
+          },
+        };
+
+        const result = calculatePrice(mockProfile, blueskyBrief, mockFitScore);
+
+        const platformLayer = result.layers.find(l => l.name === "Platform");
+        expect(platformLayer).toBeDefined();
+        expect(platformLayer?.multiplier).toBe(0.5);
+      });
+
+      it("platform pricing affects final price", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const youtubeBrief: ParsedBrief = {
+          ...mockBrief,
+          content: { ...mockBrief.content, platform: "youtube" },
+        };
+        const blueskyBrief: ParsedBrief = {
+          ...mockBrief,
+          content: { ...mockBrief.content, platform: "bluesky" },
+        };
+
+        const youtubeResult = calculatePrice(mockProfile, youtubeBrief, mockFitScore);
+        const blueskyResult = calculatePrice(mockProfile, blueskyBrief, mockFitScore);
+
+        // YouTube (1.4x) should be significantly higher than Bluesky (0.5x)
+        expect(youtubeResult.pricePerDeliverable).toBeGreaterThan(blueskyResult.pricePerDeliverable);
+        // Rough ratio check - YouTube should be about 2.8x Bluesky (1.4/0.5)
+        const ratio = youtubeResult.pricePerDeliverable / blueskyResult.pricePerDeliverable;
+        expect(ratio).toBeGreaterThan(2.5);
+        expect(ratio).toBeLessThan(3.1);
+      });
+
+      it("YouTube vs YouTube Shorts pricing difference", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const youtubeBrief: ParsedBrief = {
+          ...mockBrief,
+          content: { ...mockBrief.content, platform: "youtube" },
+        };
+        const shortsBrief: ParsedBrief = {
+          ...mockBrief,
+          content: { ...mockBrief.content, platform: "youtube_shorts" },
+        };
+
+        const youtubeResult = calculatePrice(mockProfile, youtubeBrief, mockFitScore);
+        const shortsResult = calculatePrice(mockProfile, shortsBrief, mockFitScore);
+
+        // YouTube (1.4x) should be exactly double YouTube Shorts (0.7x)
+        expect(youtubeResult.pricePerDeliverable).toBeGreaterThan(shortsResult.pricePerDeliverable);
+        // Ratio should be close to 2.0 (1.4/0.7)
+        const ratio = youtubeResult.pricePerDeliverable / shortsResult.pricePerDeliverable;
+        expect(ratio).toBeGreaterThan(1.9);
+        expect(ratio).toBeLessThan(2.1);
+      });
+
+      it("LinkedIn B2B premium increases price", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const instagramBrief: ParsedBrief = {
+          ...mockBrief,
+          content: { ...mockBrief.content, platform: "instagram" },
+        };
+        const linkedinBrief: ParsedBrief = {
+          ...mockBrief,
+          content: { ...mockBrief.content, platform: "linkedin" },
+        };
+
+        const instagramResult = calculatePrice(mockProfile, instagramBrief, mockFitScore);
+        const linkedinResult = calculatePrice(mockProfile, linkedinBrief, mockFitScore);
+
+        // LinkedIn (1.3x) should be higher than Instagram (1.0x)
+        expect(linkedinResult.pricePerDeliverable).toBeGreaterThan(instagramResult.pricePerDeliverable);
+      });
+
+      it("Twitch streaming premium increases price", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const twitchBrief: ParsedBrief = {
+          ...mockBrief,
+          content: { ...mockBrief.content, platform: "twitch" },
+        };
+
+        const result = calculatePrice(mockProfile, twitchBrief, mockFitScore);
+
+        const platformLayer = result.layers.find(l => l.name === "Platform");
+        expect(platformLayer?.multiplier).toBe(1.1);
+      });
+
+      it("emerging platforms reduce price appropriately", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const instagramBrief: ParsedBrief = {
+          ...mockBrief,
+          content: { ...mockBrief.content, platform: "instagram" },
+        };
+        const threadsBrief: ParsedBrief = {
+          ...mockBrief,
+          content: { ...mockBrief.content, platform: "threads" },
+        };
+        const lemon8Brief: ParsedBrief = {
+          ...mockBrief,
+          content: { ...mockBrief.content, platform: "lemon8" },
+        };
+
+        const instagramResult = calculatePrice(mockProfile, instagramBrief, mockFitScore);
+        const threadsResult = calculatePrice(mockProfile, threadsBrief, mockFitScore);
+        const lemon8Result = calculatePrice(mockProfile, lemon8Brief, mockFitScore);
+
+        // Instagram (1.0x) baseline
+        // Threads (0.6x) and Lemon8 (0.6x) should be lower
+        expect(threadsResult.pricePerDeliverable).toBeLessThan(instagramResult.pricePerDeliverable);
+        expect(lemon8Result.pricePerDeliverable).toBeLessThan(instagramResult.pricePerDeliverable);
+      });
+
+      it("platform multiplier included in formula representation", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const youtubeBrief: ParsedBrief = {
+          ...mockBrief,
+          content: { ...mockBrief.content, platform: "youtube" },
+        };
+
+        const result = calculatePrice(mockProfile, youtubeBrief, mockFitScore);
+
+        expect(result.formula).toContain("1.40"); // Platform multiplier for YouTube
       });
     });
 
@@ -1573,8 +1868,8 @@ describe("pricing-engine", () => {
 
       const result = calculatePrice(profile, sponsoredBrief, mockFitScore);
 
-      // Sponsored has 10 layers (with Regional, Whitelisting and Seasonal)
-      expect(result.layers).toHaveLength(10);
+      // Sponsored has 11 layers (with Platform, Regional, Whitelisting and Seasonal)
+      expect(result.layers).toHaveLength(11);
       expect(result.layers[0].name).toBe("Base Rate");
     });
 
@@ -1592,8 +1887,8 @@ describe("pricing-engine", () => {
 
       const result = calculatePrice(profile, defaultBrief, mockFitScore);
 
-      // Should default to sponsored (10 layers)
-      expect(result.layers).toHaveLength(10);
+      // Should default to sponsored (11 layers)
+      expect(result.layers).toHaveLength(11);
       expect(result.layers[0].name).toBe("Base Rate");
     });
 
