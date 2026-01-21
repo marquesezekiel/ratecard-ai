@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculateTier, calculatePrice, getNichePremium, calculateUGCPrice, getWhitelistingPremium } from "@/lib/pricing-engine";
+import { calculateTier, calculatePrice, getNichePremium, calculateUGCPrice, getWhitelistingPremium, getSeasonalPremium } from "@/lib/pricing-engine";
 import type { CreatorProfile, ParsedBrief, FitScoreResult } from "@/lib/types";
 
 describe("pricing-engine", () => {
@@ -335,6 +335,166 @@ describe("pricing-engine", () => {
     });
   });
 
+  // ============================================================================
+  // getSeasonalPremium Tests
+  // ============================================================================
+  describe("getSeasonalPremium", () => {
+    describe("each season returns correct premium", () => {
+      it("returns +25% for Q4 Holiday (Nov 1 - Dec 31)", () => {
+        // November dates
+        expect(getSeasonalPremium(new Date(2025, 10, 1)).premium).toBe(0.25); // Nov 1
+        expect(getSeasonalPremium(new Date(2025, 10, 15)).premium).toBe(0.25); // Nov 15
+        expect(getSeasonalPremium(new Date(2025, 10, 30)).premium).toBe(0.25); // Nov 30
+
+        // December dates
+        expect(getSeasonalPremium(new Date(2025, 11, 1)).premium).toBe(0.25); // Dec 1
+        expect(getSeasonalPremium(new Date(2025, 11, 25)).premium).toBe(0.25); // Dec 25
+        expect(getSeasonalPremium(new Date(2025, 11, 31)).premium).toBe(0.25); // Dec 31
+      });
+
+      it("returns +15% for Back to School (Aug 1 - Sep 15)", () => {
+        // August dates
+        expect(getSeasonalPremium(new Date(2025, 7, 1)).premium).toBe(0.15); // Aug 1
+        expect(getSeasonalPremium(new Date(2025, 7, 15)).premium).toBe(0.15); // Aug 15
+        expect(getSeasonalPremium(new Date(2025, 7, 31)).premium).toBe(0.15); // Aug 31
+
+        // September dates (up to 15th)
+        expect(getSeasonalPremium(new Date(2025, 8, 1)).premium).toBe(0.15); // Sep 1
+        expect(getSeasonalPremium(new Date(2025, 8, 15)).premium).toBe(0.15); // Sep 15
+      });
+
+      it("returns +10% for Valentine's (Feb 1-14)", () => {
+        expect(getSeasonalPremium(new Date(2025, 1, 1)).premium).toBe(0.10); // Feb 1
+        expect(getSeasonalPremium(new Date(2025, 1, 7)).premium).toBe(0.10); // Feb 7
+        expect(getSeasonalPremium(new Date(2025, 1, 14)).premium).toBe(0.10); // Feb 14
+      });
+
+      it("returns +5% for Summer (Jun 1 - Jul 31)", () => {
+        // June dates
+        expect(getSeasonalPremium(new Date(2025, 5, 1)).premium).toBe(0.05); // Jun 1
+        expect(getSeasonalPremium(new Date(2025, 5, 15)).premium).toBe(0.05); // Jun 15
+        expect(getSeasonalPremium(new Date(2025, 5, 30)).premium).toBe(0.05); // Jun 30
+
+        // July dates
+        expect(getSeasonalPremium(new Date(2025, 6, 1)).premium).toBe(0.05); // Jul 1
+        expect(getSeasonalPremium(new Date(2025, 6, 31)).premium).toBe(0.05); // Jul 31
+      });
+
+      it("returns 0% for default (rest of year)", () => {
+        expect(getSeasonalPremium(new Date(2025, 0, 15)).premium).toBe(0); // Jan 15
+        expect(getSeasonalPremium(new Date(2025, 2, 15)).premium).toBe(0); // Mar 15
+        expect(getSeasonalPremium(new Date(2025, 3, 15)).premium).toBe(0); // Apr 15
+        expect(getSeasonalPremium(new Date(2025, 4, 15)).premium).toBe(0); // May 15
+        expect(getSeasonalPremium(new Date(2025, 9, 15)).premium).toBe(0); // Oct 15
+      });
+    });
+
+    describe("date edge cases", () => {
+      it("Nov 1 = Q4 Holiday (+25%)", () => {
+        const result = getSeasonalPremium(new Date(2025, 10, 1));
+        expect(result.premium).toBe(0.25);
+        expect(result.period).toBe("q4_holiday");
+      });
+
+      it("Oct 31 = Default (0%)", () => {
+        const result = getSeasonalPremium(new Date(2025, 9, 31));
+        expect(result.premium).toBe(0);
+        expect(result.period).toBe("default");
+      });
+
+      it("Sep 15 = Back to School (+15%)", () => {
+        const result = getSeasonalPremium(new Date(2025, 8, 15));
+        expect(result.premium).toBe(0.15);
+        expect(result.period).toBe("back_to_school");
+      });
+
+      it("Sep 16 = Default (0%)", () => {
+        const result = getSeasonalPremium(new Date(2025, 8, 16));
+        expect(result.premium).toBe(0);
+        expect(result.period).toBe("default");
+      });
+
+      it("Feb 14 = Valentine's (+10%)", () => {
+        const result = getSeasonalPremium(new Date(2025, 1, 14));
+        expect(result.premium).toBe(0.10);
+        expect(result.period).toBe("valentines");
+      });
+
+      it("Feb 15 = Default (0%)", () => {
+        const result = getSeasonalPremium(new Date(2025, 1, 15));
+        expect(result.premium).toBe(0);
+        expect(result.period).toBe("default");
+      });
+
+      it("Aug 1 = Back to School (+15%), not Summer", () => {
+        // Back to School takes priority over Summer in August
+        const result = getSeasonalPremium(new Date(2025, 7, 1));
+        expect(result.premium).toBe(0.15);
+        expect(result.period).toBe("back_to_school");
+      });
+
+      it("Jul 31 = Summer (+5%)", () => {
+        const result = getSeasonalPremium(new Date(2025, 6, 31));
+        expect(result.premium).toBe(0.05);
+        expect(result.period).toBe("summer");
+      });
+    });
+
+    describe("manual date override", () => {
+      it("accepts Date object", () => {
+        const result = getSeasonalPremium(new Date(2025, 10, 15));
+        expect(result.premium).toBe(0.25);
+        expect(result.period).toBe("q4_holiday");
+      });
+
+      it("accepts date string", () => {
+        const result = getSeasonalPremium("2025-11-15");
+        expect(result.premium).toBe(0.25);
+        expect(result.period).toBe("q4_holiday");
+      });
+
+      it("accepts ISO date string", () => {
+        const result = getSeasonalPremium("2025-12-25T12:00:00Z");
+        expect(result.premium).toBe(0.25);
+        expect(result.period).toBe("q4_holiday");
+      });
+    });
+
+    describe("default to current date", () => {
+      it("uses current date when undefined", () => {
+        const result = getSeasonalPremium(undefined);
+        // Can't test exact value since it depends on current date,
+        // but should return a valid result
+        expect(result.premium).toBeGreaterThanOrEqual(0);
+        expect(result.premium).toBeLessThanOrEqual(0.25);
+        expect(result.period).toBeDefined();
+        expect(result.displayName).toBeDefined();
+      });
+
+      it("uses current date when no argument", () => {
+        const result = getSeasonalPremium();
+        expect(result.premium).toBeGreaterThanOrEqual(0);
+        expect(result.premium).toBeLessThanOrEqual(0.25);
+      });
+
+      it("uses current date for invalid date string", () => {
+        const result = getSeasonalPremium("not-a-date");
+        expect(result.premium).toBeGreaterThanOrEqual(0);
+        expect(result.premium).toBeLessThanOrEqual(0.25);
+      });
+    });
+
+    describe("display names", () => {
+      it("returns correct display names for each period", () => {
+        expect(getSeasonalPremium(new Date(2025, 10, 15)).displayName).toBe("Q4 Holiday Season (Nov-Dec)");
+        expect(getSeasonalPremium(new Date(2025, 7, 15)).displayName).toBe("Back to School (Aug-Sep)");
+        expect(getSeasonalPremium(new Date(2025, 1, 10)).displayName).toBe("Valentine's Day (Feb)");
+        expect(getSeasonalPremium(new Date(2025, 5, 15)).displayName).toBe("Summer Season (Jun-Aug)");
+        expect(getSeasonalPremium(new Date(2025, 3, 15)).displayName).toBe("Standard Period");
+      });
+    });
+  });
+
   describe("calculatePrice", () => {
     // Helper function to create a mock profile with specific tier and niches
     function createMockProfile(
@@ -415,11 +575,11 @@ describe("pricing-engine", () => {
       insights: ["Good fit overall"],
     };
 
-    it("calculates price with all 8 layers (including niche premium and whitelisting)", () => {
+    it("calculates price with all 9 layers (including niche premium, whitelisting, and seasonal)", () => {
       const mockProfile = createMockProfile("micro", 25000);
       const result = calculatePrice(mockProfile, mockBrief, mockFitScore);
 
-      expect(result.layers).toHaveLength(8);
+      expect(result.layers).toHaveLength(9);
       expect(result.layers[0].name).toBe("Base Rate");
       expect(result.layers[1].name).toBe("Engagement Multiplier");
       expect(result.layers[2].name).toBe("Niche Premium");
@@ -428,6 +588,7 @@ describe("pricing-engine", () => {
       expect(result.layers[5].name).toBe("Usage Rights");
       expect(result.layers[6].name).toBe("Whitelisting");
       expect(result.layers[7].name).toBe("Complexity");
+      expect(result.layers[8].name).toBe("Seasonal");
     });
 
     it("returns price per deliverable and total", () => {
@@ -659,6 +820,93 @@ describe("pricing-engine", () => {
 
         const whitelistingLayer = result.layers.find(l => l.name === "Whitelisting");
         expect(whitelistingLayer?.multiplier).toBe(1.5); // 1 + 50%
+      });
+    });
+
+    // ==========================================================================
+    // Seasonal Pricing Integration Tests
+    // ==========================================================================
+    describe("seasonal pricing integration", () => {
+      it("seasonal layer shows correct multiplier for Q4 Holiday", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const briefWithQ4Date: ParsedBrief = {
+          ...mockBrief,
+          campaignDate: new Date(2025, 10, 15), // Nov 15
+        };
+
+        const result = calculatePrice(mockProfile, briefWithQ4Date, mockFitScore);
+
+        const seasonalLayer = result.layers.find(l => l.name === "Seasonal");
+        expect(seasonalLayer).toBeDefined();
+        expect(seasonalLayer?.multiplier).toBe(1.25); // 1 + 25%
+      });
+
+      it("seasonal pricing increases price during Q4", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const briefQ4: ParsedBrief = {
+          ...mockBrief,
+          campaignDate: new Date(2025, 10, 15), // Nov 15 = Q4
+        };
+        const briefDefault: ParsedBrief = {
+          ...mockBrief,
+          campaignDate: new Date(2025, 3, 15), // Apr 15 = default
+        };
+
+        const resultQ4 = calculatePrice(mockProfile, briefQ4, mockFitScore);
+        const resultDefault = calculatePrice(mockProfile, briefDefault, mockFitScore);
+
+        // Q4 (+25%) should be higher than default (0%)
+        expect(resultQ4.pricePerDeliverable).toBeGreaterThan(resultDefault.pricePerDeliverable);
+      });
+
+      it("seasonal pricing can be disabled", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const briefWithQ4Enabled: ParsedBrief = {
+          ...mockBrief,
+          campaignDate: new Date(2025, 10, 15),
+          disableSeasonalPricing: false,
+        };
+        const briefWithQ4Disabled: ParsedBrief = {
+          ...mockBrief,
+          campaignDate: new Date(2025, 10, 15),
+          disableSeasonalPricing: true,
+        };
+
+        const resultEnabled = calculatePrice(mockProfile, briefWithQ4Enabled, mockFitScore);
+        const resultDisabled = calculatePrice(mockProfile, briefWithQ4Disabled, mockFitScore);
+
+        // Enabled should have seasonal premium
+        const enabledSeasonalLayer = resultEnabled.layers.find(l => l.name === "Seasonal");
+        expect(enabledSeasonalLayer?.multiplier).toBe(1.25);
+
+        // Disabled should have no seasonal premium
+        const disabledSeasonalLayer = resultDisabled.layers.find(l => l.name === "Seasonal");
+        expect(disabledSeasonalLayer?.multiplier).toBe(1.0);
+        expect(disabledSeasonalLayer?.baseValue).toBe("disabled");
+      });
+
+      it("accepts date string for campaignDate", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const briefWithDateString: ParsedBrief = {
+          ...mockBrief,
+          campaignDate: "2025-12-25", // Christmas = Q4
+        };
+
+        const result = calculatePrice(mockProfile, briefWithDateString, mockFitScore);
+
+        const seasonalLayer = result.layers.find(l => l.name === "Seasonal");
+        expect(seasonalLayer?.multiplier).toBe(1.25);
+      });
+
+      it("defaults to current date when campaignDate not specified", () => {
+        const mockProfile = createMockProfile("micro", 25000);
+        const result = calculatePrice(mockProfile, mockBrief, mockFitScore);
+
+        const seasonalLayer = result.layers.find(l => l.name === "Seasonal");
+        expect(seasonalLayer).toBeDefined();
+        // Premium depends on current date, but layer should exist
+        expect(seasonalLayer?.multiplier).toBeGreaterThanOrEqual(1.0);
+        expect(seasonalLayer?.multiplier).toBeLessThanOrEqual(1.25);
       });
     });
 
@@ -920,20 +1168,21 @@ describe("pricing-engine", () => {
     });
 
     // ==========================================================================
-    // UGC Has 4 Layers (Base, Usage Rights, Whitelisting, Complexity)
+    // UGC Has 5 Layers (Base, Usage Rights, Whitelisting, Complexity, Seasonal)
     // ==========================================================================
     describe("UGC layer structure", () => {
-      it("UGC pricing has exactly 4 layers", () => {
+      it("UGC pricing has exactly 5 layers", () => {
         const profile = createMockProfile("micro", 25000);
         const brief = createUGCBrief("video");
 
         const result = calculateUGCPrice(brief, profile);
 
-        expect(result.layers).toHaveLength(4);
+        expect(result.layers).toHaveLength(5);
         expect(result.layers[0].name).toBe("UGC Base Rate");
         expect(result.layers[1].name).toBe("Usage Rights");
         expect(result.layers[2].name).toBe("Whitelisting");
         expect(result.layers[3].name).toBe("Complexity");
+        expect(result.layers[4].name).toBe("Seasonal");
       });
     });
 
@@ -979,6 +1228,51 @@ describe("pricing-engine", () => {
         const whitelistingLayer = result.layers.find(l => l.name === "Whitelisting");
         expect(whitelistingLayer).toBeDefined();
         expect(whitelistingLayer?.multiplier).toBe(3.0); // 1 + 200%
+      });
+    });
+
+    // ==========================================================================
+    // UGC Seasonal Tests
+    // ==========================================================================
+    describe("UGC seasonal pricing", () => {
+      it("applies seasonal premium to UGC price", () => {
+        const profile = createMockProfile("micro", 25000);
+        const briefQ4: ParsedBrief = {
+          ...createUGCBrief("video", 30, "none", 1),
+          campaignDate: new Date(2025, 10, 15), // Nov = Q4
+        };
+        const briefDefault: ParsedBrief = {
+          ...createUGCBrief("video", 30, "none", 1),
+          campaignDate: new Date(2025, 3, 15), // Apr = default
+        };
+
+        const resultQ4 = calculateUGCPrice(briefQ4, profile);
+        const resultDefault = calculateUGCPrice(briefDefault, profile);
+
+        expect(resultQ4.pricePerDeliverable).toBeGreaterThan(resultDefault.pricePerDeliverable);
+      });
+
+      it("UGC seasonal can be disabled", () => {
+        const profile = createMockProfile("micro", 25000);
+        const briefEnabled: ParsedBrief = {
+          ...createUGCBrief("video", 30, "none", 1),
+          campaignDate: new Date(2025, 10, 15),
+          disableSeasonalPricing: false,
+        };
+        const briefDisabled: ParsedBrief = {
+          ...createUGCBrief("video", 30, "none", 1),
+          campaignDate: new Date(2025, 10, 15),
+          disableSeasonalPricing: true,
+        };
+
+        const resultEnabled = calculateUGCPrice(briefEnabled, profile);
+        const resultDisabled = calculateUGCPrice(briefDisabled, profile);
+
+        const enabledSeasonalLayer = resultEnabled.layers.find(l => l.name === "Seasonal");
+        const disabledSeasonalLayer = resultDisabled.layers.find(l => l.name === "Seasonal");
+
+        expect(enabledSeasonalLayer?.multiplier).toBe(1.25);
+        expect(disabledSeasonalLayer?.multiplier).toBe(1.0);
       });
     });
 
@@ -1066,8 +1360,8 @@ describe("pricing-engine", () => {
 
       const result = calculatePrice(profile, ugcBrief, mockFitScore);
 
-      // UGC has 4 layers (Base, Usage Rights, Whitelisting, Complexity)
-      expect(result.layers).toHaveLength(4);
+      // UGC has 5 layers (Base, Usage Rights, Whitelisting, Complexity, Seasonal)
+      expect(result.layers).toHaveLength(5);
       expect(result.layers[0].name).toBe("UGC Base Rate");
     });
 
@@ -1085,8 +1379,8 @@ describe("pricing-engine", () => {
 
       const result = calculatePrice(profile, sponsoredBrief, mockFitScore);
 
-      // Sponsored has 8 layers (with Whitelisting)
-      expect(result.layers).toHaveLength(8);
+      // Sponsored has 9 layers (with Whitelisting and Seasonal)
+      expect(result.layers).toHaveLength(9);
       expect(result.layers[0].name).toBe("Base Rate");
     });
 
@@ -1104,8 +1398,8 @@ describe("pricing-engine", () => {
 
       const result = calculatePrice(profile, defaultBrief, mockFitScore);
 
-      // Should default to sponsored (8 layers)
-      expect(result.layers).toHaveLength(8);
+      // Should default to sponsored (9 layers)
+      expect(result.layers).toHaveLength(9);
       expect(result.layers[0].name).toBe("Base Rate");
     });
 

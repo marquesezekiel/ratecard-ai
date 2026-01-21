@@ -247,6 +247,45 @@ const UGC_FORMAT_COMPLEXITY: Record<UGCFormat, ComplexityLevel> = {
 };
 
 // =============================================================================
+// LAYER 6.5: SEASONAL PRICING
+// =============================================================================
+
+/**
+ * Seasonal period type for pricing adjustments.
+ * Brands pay more during high-demand periods.
+ */
+type SeasonalPeriod = "q4_holiday" | "back_to_school" | "valentines" | "summer" | "default";
+
+/**
+ * Seasonal pricing premiums.
+ * These represent demand-based adjustments for peak advertising periods.
+ *
+ * - Q4 Holiday (Nov 1 - Dec 31): +25% (highest demand period)
+ * - Back to School (Aug 1 - Sep 15): +15% (major retail period)
+ * - Valentine's (Feb 1-14): +10% (romance/gifting period)
+ * - Summer (Jun 1 - Aug 31): +5% (moderate increase)
+ * - Default (rest of year): 0%
+ */
+const SEASONAL_PREMIUMS: Record<SeasonalPeriod, number> = {
+  q4_holiday: 0.25, // Nov 1 - Dec 31: +25%
+  back_to_school: 0.15, // Aug 1 - Sep 15: +15%
+  valentines: 0.10, // Feb 1-14: +10%
+  summer: 0.05, // Jun 1 - Aug 31: +5%
+  default: 0, // Rest of year: 0%
+};
+
+/**
+ * Human-readable display names for seasonal periods.
+ */
+const SEASONAL_DISPLAY_NAMES: Record<SeasonalPeriod, string> = {
+  q4_holiday: "Q4 Holiday Season (Nov-Dec)",
+  back_to_school: "Back to School (Aug-Sep)",
+  valentines: "Valentine's Day (Feb)",
+  summer: "Summer Season (Jun-Aug)",
+  default: "Standard Period",
+};
+
+// =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
 
@@ -382,6 +421,86 @@ function getWhitelistingDisplayName(type: WhitelistingType | undefined): string 
 }
 
 /**
+ * Determine the seasonal period for a given date.
+ * Returns the appropriate seasonal period based on date ranges.
+ *
+ * Priority order (for overlapping dates like Aug 1-31):
+ * 1. Back to School (Aug 1 - Sep 15) takes priority in Aug
+ * 2. Summer (Jun 1 - Aug 31) applies Jun 1 - Jul 31 only due to overlap
+ *
+ * @param date - The date to check (defaults to current date)
+ * @returns The seasonal period identifier
+ */
+function getSeasonalPeriod(date: Date): SeasonalPeriod {
+  const month = date.getMonth(); // 0-indexed (0 = Jan, 11 = Dec)
+  const day = date.getDate();
+
+  // Q4 Holiday: Nov 1 - Dec 31 (months 10-11)
+  if (month === 10 || month === 11) {
+    return "q4_holiday";
+  }
+
+  // Back to School: Aug 1 - Sep 15 (month 7 or month 8 day 1-15)
+  if (month === 7 || (month === 8 && day <= 15)) {
+    return "back_to_school";
+  }
+
+  // Valentine's: Feb 1-14 (month 1, days 1-14)
+  if (month === 1 && day <= 14) {
+    return "valentines";
+  }
+
+  // Summer: Jun 1 - Jul 31 (months 5-6, Aug is handled by back_to_school)
+  if (month === 5 || month === 6) {
+    return "summer";
+  }
+
+  // Default: Rest of year
+  return "default";
+}
+
+/**
+ * Get seasonal pricing premium based on campaign date.
+ * Auto-detects the current season and returns appropriate premium.
+ *
+ * Seasonal periods and premiums:
+ * - Q4 Holiday (Nov 1 - Dec 31): +25%
+ * - Back to School (Aug 1 - Sep 15): +15%
+ * - Valentine's (Feb 1-14): +10%
+ * - Summer (Jun 1 - Aug 31): +5% (Note: Aug overlaps with Back to School)
+ * - Default (rest of year): 0%
+ *
+ * @param date - Optional date for seasonal calculation (defaults to current date)
+ * @returns Object containing the premium value and period info
+ */
+export function getSeasonalPremium(date?: Date | string): {
+  premium: number;
+  period: SeasonalPeriod;
+  displayName: string;
+} {
+  // Parse date if string, default to current date if not provided
+  let targetDate: Date;
+  if (date instanceof Date) {
+    targetDate = date;
+  } else if (typeof date === "string") {
+    targetDate = new Date(date);
+    // If invalid date, default to now
+    if (isNaN(targetDate.getTime())) {
+      targetDate = new Date();
+    }
+  } else {
+    targetDate = new Date();
+  }
+
+  const period = getSeasonalPeriod(targetDate);
+  return {
+    premium: SEASONAL_PREMIUMS[period],
+    period,
+    displayName: SEASONAL_DISPLAY_NAMES[period],
+  };
+}
+
+/**
  * Get complexity level for a content format.
  */
 function getComplexity(format: ContentFormat): ComplexityLevel {
@@ -513,6 +632,29 @@ export function calculateUGCPrice(
   currentPrice *= 1 + complexityPremium;
 
   // -------------------------------------------------------------------------
+  // Layer 3.5: Seasonal Premium (UGC)
+  // -------------------------------------------------------------------------
+  let seasonalPremium = 0;
+  let seasonalDisplayName = "Standard Period";
+
+  // Only apply seasonal pricing if not disabled
+  if (!brief.disableSeasonalPricing) {
+    const seasonalInfo = getSeasonalPremium(brief.campaignDate);
+    seasonalPremium = seasonalInfo.premium;
+    seasonalDisplayName = seasonalInfo.displayName;
+  }
+
+  layers.push({
+    name: "Seasonal",
+    description: seasonalDisplayName,
+    baseValue: brief.disableSeasonalPricing ? "disabled" : "auto",
+    multiplier: 1 + seasonalPremium,
+    adjustment: currentPrice * seasonalPremium,
+  });
+
+  currentPrice *= 1 + seasonalPremium;
+
+  // -------------------------------------------------------------------------
   // Final Calculations
   // -------------------------------------------------------------------------
   const pricePerDeliverable = roundToNearestFive(currentPrice);
@@ -521,7 +663,7 @@ export function calculateUGCPrice(
 
   // Build formula string (simpler for UGC)
   const formula =
-    `$${baseRate} × (1 ${formatPremium(totalRightsPremium)}) × (1 ${formatPremium(whitelistingPremium)}) × (1 ${formatPremium(complexityPremium)})`;
+    `$${baseRate} × (1 ${formatPremium(totalRightsPremium)}) × (1 ${formatPremium(whitelistingPremium)}) × (1 ${formatPremium(complexityPremium)}) × (1 ${formatPremium(seasonalPremium)})`;
 
   // Get currency info from profile
   const currencyInfo = CURRENCIES.find(c => c.code === profile.currency) || CURRENCIES[0];
@@ -714,6 +856,29 @@ export function calculatePrice(
   currentPrice *= 1 + complexityPremium;
 
   // -------------------------------------------------------------------------
+  // Layer 6.5: Seasonal Premium
+  // -------------------------------------------------------------------------
+  let seasonalPremium = 0;
+  let seasonalDisplayName = "Standard Period";
+
+  // Only apply seasonal pricing if not disabled
+  if (!brief.disableSeasonalPricing) {
+    const seasonalInfo = getSeasonalPremium(brief.campaignDate);
+    seasonalPremium = seasonalInfo.premium;
+    seasonalDisplayName = seasonalInfo.displayName;
+  }
+
+  layers.push({
+    name: "Seasonal",
+    description: seasonalDisplayName,
+    baseValue: brief.disableSeasonalPricing ? "disabled" : "auto",
+    multiplier: 1 + seasonalPremium,
+    adjustment: currentPrice * seasonalPremium,
+  });
+
+  currentPrice *= 1 + seasonalPremium;
+
+  // -------------------------------------------------------------------------
   // Final Calculations
   // -------------------------------------------------------------------------
   const pricePerDeliverable = roundToNearestFive(currentPrice);
@@ -727,7 +892,8 @@ export function calculatePrice(
     `× (1 ${formatPremium(fitAdjustment)}) ` +
     `× (1 ${formatPremium(totalRightsPremium)}) ` +
     `× (1 ${formatPremium(whitelistingPremium)}) ` +
-    `× (1 ${formatPremium(complexityPremium)})`;
+    `× (1 ${formatPremium(complexityPremium)}) ` +
+    `× (1 ${formatPremium(seasonalPremium)})`;
 
   // Get currency info from profile
   const currencyInfo = CURRENCIES.find(c => c.code === profile.currency) || CURRENCIES[0];

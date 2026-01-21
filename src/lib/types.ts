@@ -248,6 +248,17 @@ export interface ParsedBrief {
     /** Content delivery deadline */
     deadline: string;
   };
+  /**
+   * Campaign date for seasonal pricing calculation.
+   * If not specified, defaults to current date.
+   * Used to determine if Q4 holiday, Back to School, etc. premiums apply.
+   */
+  campaignDate?: Date | string;
+  /**
+   * If true, disables automatic seasonal pricing adjustments.
+   * Useful when creator wants to offer consistent year-round rates.
+   */
+  disableSeasonalPricing?: boolean;
   /** Original unprocessed text from the brief */
   rawText: string;
 }
