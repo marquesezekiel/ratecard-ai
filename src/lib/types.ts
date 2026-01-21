@@ -1008,6 +1008,90 @@ export interface FTCGuidance {
 }
 
 // =============================================================================
+// CONTRACT CHECKLIST TYPES
+// =============================================================================
+
+/**
+ * Priority level for contract checklist items.
+ */
+export type ChecklistPriority = "critical" | "important" | "recommended";
+
+/**
+ * Category for organizing contract checklist items.
+ */
+export type ChecklistCategory = "payment" | "content_rights" | "exclusivity" | "legal";
+
+/**
+ * Single contract checklist item with explanation.
+ */
+export interface ContractChecklistItem {
+  /** Unique identifier */
+  id: string;
+  /** Category this item belongs to */
+  category: ChecklistCategory;
+  /** The term to look for */
+  term: string;
+  /** Why this matters */
+  explanation: string;
+  /** Recommended standard (e.g., "Net-30 or better") */
+  recommendation: string;
+  /** Priority level */
+  priority: ChecklistPriority;
+  /** Whether this item is applicable based on the deal */
+  applicable: boolean;
+  /** Whether this item is highlighted based on brief data */
+  highlighted: boolean;
+}
+
+/**
+ * Red flag warning for problematic contract terms.
+ */
+export interface ContractRedFlag {
+  /** Unique identifier */
+  id: string;
+  /** The problematic term */
+  flag: string;
+  /** Why this is a problem */
+  reason: string;
+  /** What to do about it */
+  action: string;
+  /** Severity: how bad is this? */
+  severity: "high" | "medium" | "low";
+  /** Whether this flag is detected based on brief data */
+  detected: boolean;
+}
+
+/**
+ * Complete contract checklist result.
+ */
+export interface ContractChecklist {
+  /** All checklist items organized by category */
+  items: ContractChecklistItem[];
+  /** Detected red flags */
+  redFlags: ContractRedFlag[];
+  /** Summary statistics */
+  summary: {
+    /** Total checklist items */
+    totalItems: number;
+    /** Critical items count */
+    criticalItems: number;
+    /** Highlighted items (applicable to this deal) */
+    highlightedItems: number;
+    /** Detected red flags count */
+    detectedRedFlags: number;
+  };
+  /** Category-specific item counts */
+  byCategory: {
+    payment: number;
+    content_rights: number;
+    exclusivity: number;
+    legal: number;
+  };
+  /** Deal-specific notes */
+  dealNotes: string[];
+}
+
+// =============================================================================
 // RATE CARD TYPES
 // =============================================================================
 

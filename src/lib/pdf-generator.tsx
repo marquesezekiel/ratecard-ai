@@ -17,6 +17,7 @@ import type {
 } from "./types";
 import { generateNegotiationTalkingPoints } from "./negotiation-talking-points";
 import { getFTCGuidance, getCompensationType } from "./ftc-guidance";
+import { getContractChecklist } from "./contract-checklist";
 
 // Color palette
 const colors = {
@@ -683,6 +684,150 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingLeft: 8,
   },
+  // Contract Checklist Page styles
+  contractPage: {
+    flexDirection: "column",
+    backgroundColor: colors.white,
+    padding: 40,
+    fontFamily: "Helvetica",
+  },
+  contractHeader: {
+    marginBottom: 20,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.warning,
+    paddingBottom: 15,
+  },
+  contractTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: colors.dark,
+    marginBottom: 4,
+  },
+  contractSubtitle: {
+    fontSize: 11,
+    color: colors.gray,
+  },
+  contractSection: {
+    marginBottom: 14,
+  },
+  contractSectionTitle: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: colors.warning,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  contractItem: {
+    flexDirection: "row",
+    marginBottom: 6,
+    paddingLeft: 4,
+  },
+  contractCheckbox: {
+    width: 12,
+    height: 12,
+    borderWidth: 1,
+    borderColor: colors.gray,
+    borderRadius: 2,
+    marginRight: 8,
+    marginTop: 1,
+  },
+  contractItemContent: {
+    flex: 1,
+  },
+  contractItemTerm: {
+    fontSize: 10,
+    color: colors.dark,
+    fontWeight: "bold",
+  },
+  contractItemRecommendation: {
+    fontSize: 8,
+    color: colors.gray,
+    marginTop: 2,
+  },
+  contractPriorityBadge: {
+    fontSize: 7,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 2,
+    marginLeft: 6,
+    textTransform: "uppercase",
+  },
+  contractPriorityCritical: {
+    backgroundColor: colors.danger,
+    color: colors.white,
+  },
+  contractPriorityImportant: {
+    backgroundColor: colors.warning,
+    color: colors.white,
+  },
+  contractPriorityRecommended: {
+    backgroundColor: colors.lightGray,
+    color: colors.gray,
+  },
+  redFlagSection: {
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  redFlagTitle: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: colors.danger,
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
+  redFlagItem: {
+    backgroundColor: "#FEF2F2",
+    padding: 8,
+    borderRadius: 4,
+    marginBottom: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.danger,
+  },
+  redFlagText: {
+    fontSize: 9,
+    color: colors.danger,
+    fontWeight: "bold",
+    marginBottom: 2,
+  },
+  redFlagAction: {
+    fontSize: 8,
+    color: colors.gray,
+  },
+  redFlagSeverity: {
+    fontSize: 7,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 2,
+    textTransform: "uppercase",
+    alignSelf: "flex-start",
+    marginTop: 4,
+  },
+  severityHigh: {
+    backgroundColor: colors.danger,
+    color: colors.white,
+  },
+  severityMedium: {
+    backgroundColor: colors.warning,
+    color: colors.white,
+  },
+  severityLow: {
+    backgroundColor: colors.lightGray,
+    color: colors.gray,
+  },
+  dealNotesBox: {
+    backgroundColor: "#FEF3C7",
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.warning,
+  },
+  dealNoteText: {
+    fontSize: 9,
+    color: colors.dark,
+    marginBottom: 4,
+  },
 });
 
 interface RateCardDocumentProps {
@@ -727,6 +872,11 @@ export function RateCardDocument({
       )
     : null;
 
+  // Generate contract checklist if in creator mode
+  const contractChecklist = exportMode === "creator"
+    ? getContractChecklist(brief)
+    : null;
+
   // Helper to get priority style for FTC checklist items
   const getPriorityStyle = (priority: "critical" | "important" | "recommended") => {
     switch (priority) {
@@ -736,6 +886,30 @@ export function RateCardDocument({
         return styles.ftcPriorityImportant;
       default:
         return styles.ftcPriorityRecommended;
+    }
+  };
+
+  // Helper to get priority style for contract checklist items
+  const getContractPriorityStyle = (priority: "critical" | "important" | "recommended") => {
+    switch (priority) {
+      case "critical":
+        return styles.contractPriorityCritical;
+      case "important":
+        return styles.contractPriorityImportant;
+      default:
+        return styles.contractPriorityRecommended;
+    }
+  };
+
+  // Helper to get severity style for red flags
+  const getSeverityStyle = (severity: "high" | "medium" | "low") => {
+    switch (severity) {
+      case "high":
+        return styles.severityHigh;
+      case "medium":
+        return styles.severityMedium;
+      default:
+        return styles.severityLow;
     }
   };
 
@@ -1552,6 +1726,204 @@ export function RateCardDocument({
             </View>
             <View>
               <Text style={styles.validity}>Not legal advice - consult an attorney for specific situations</Text>
+            </View>
+          </View>
+        </Page>
+      )}
+
+      {/* Contract Terms Checklist Page - Only in Creator Mode */}
+      {contractChecklist && (
+        <Page size="A4" style={styles.contractPage}>
+          {/* Header */}
+          <View style={styles.contractHeader}>
+            <Text style={styles.contractTitle}>Contract Terms Checklist</Text>
+            <Text style={styles.contractSubtitle}>
+              Essential terms to look for before signing any brand deal
+            </Text>
+          </View>
+
+          {/* Deal-Specific Notes */}
+          {contractChecklist.dealNotes.length > 0 && (
+            <View style={styles.dealNotesBox}>
+              {contractChecklist.dealNotes.map((note, index) => (
+                <Text key={index} style={styles.dealNoteText}>
+                  • {note}
+                </Text>
+              ))}
+            </View>
+          )}
+
+          {/* Payment Terms Section */}
+          <View style={styles.contractSection}>
+            <Text style={styles.contractSectionTitle}>💰 Payment Terms</Text>
+            {contractChecklist.items
+              .filter((item) => item.category === "payment")
+              .map((item, index) => (
+                <View key={index} style={styles.contractItem}>
+                  <View style={styles.contractCheckbox} />
+                  <View style={styles.contractItemContent}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <Text style={styles.contractItemTerm}>{item.term}</Text>
+                      <Text style={[styles.contractPriorityBadge, getContractPriorityStyle(item.priority)]}>
+                        {item.priority}
+                      </Text>
+                    </View>
+                    <Text style={styles.contractItemRecommendation}>
+                      Recommended: {item.recommendation}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+          </View>
+
+          {/* Content & Rights Section */}
+          <View style={styles.contractSection}>
+            <Text style={styles.contractSectionTitle}>📝 Content & Rights</Text>
+            {contractChecklist.items
+              .filter((item) => item.category === "content_rights")
+              .map((item, index) => (
+                <View key={index} style={styles.contractItem}>
+                  <View style={styles.contractCheckbox} />
+                  <View style={styles.contractItemContent}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <Text style={styles.contractItemTerm}>{item.term}</Text>
+                      <Text style={[styles.contractPriorityBadge, getContractPriorityStyle(item.priority)]}>
+                        {item.priority}
+                      </Text>
+                    </View>
+                    <Text style={styles.contractItemRecommendation}>
+                      Recommended: {item.recommendation}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+          </View>
+
+          {/* Exclusivity Section */}
+          <View style={styles.contractSection}>
+            <Text style={styles.contractSectionTitle}>🔒 Exclusivity</Text>
+            {contractChecklist.items
+              .filter((item) => item.category === "exclusivity")
+              .map((item, index) => (
+                <View key={index} style={styles.contractItem}>
+                  <View style={styles.contractCheckbox} />
+                  <View style={styles.contractItemContent}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <Text style={styles.contractItemTerm}>{item.term}</Text>
+                      <Text style={[styles.contractPriorityBadge, getContractPriorityStyle(item.priority)]}>
+                        {item.priority}
+                      </Text>
+                    </View>
+                    <Text style={styles.contractItemRecommendation}>
+                      Recommended: {item.recommendation}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+          </View>
+
+          {/* Legal Section */}
+          <View style={styles.contractSection}>
+            <Text style={styles.contractSectionTitle}>⚖️ Legal Protection</Text>
+            {contractChecklist.items
+              .filter((item) => item.category === "legal")
+              .map((item, index) => (
+                <View key={index} style={styles.contractItem}>
+                  <View style={styles.contractCheckbox} />
+                  <View style={styles.contractItemContent}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <Text style={styles.contractItemTerm}>{item.term}</Text>
+                      <Text style={[styles.contractPriorityBadge, getContractPriorityStyle(item.priority)]}>
+                        {item.priority}
+                      </Text>
+                    </View>
+                    <Text style={styles.contractItemRecommendation}>
+                      Recommended: {item.recommendation}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+          </View>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <View>
+              <Text style={styles.footerBrand}>RateCard.AI</Text>
+              <Text style={styles.footerText}>Contract Checklist - Page 1</Text>
+            </View>
+            <View>
+              <Text style={styles.validity}>Not legal advice - consult an attorney</Text>
+            </View>
+          </View>
+        </Page>
+      )}
+
+      {/* Contract Red Flags Page - Only in Creator Mode */}
+      {contractChecklist && contractChecklist.redFlags.length > 0 && (
+        <Page size="A4" style={styles.contractPage}>
+          {/* Header */}
+          <View style={[styles.contractHeader, { borderBottomColor: colors.danger }]}>
+            <Text style={[styles.contractTitle, { color: colors.danger }]}>🚩 Contract Red Flags</Text>
+            <Text style={styles.contractSubtitle}>
+              Warning signs to watch for - negotiate or walk away
+            </Text>
+          </View>
+
+          {/* High Severity Red Flags */}
+          <View style={styles.redFlagSection}>
+            <Text style={styles.redFlagTitle}>High Risk - Negotiate or Decline</Text>
+            {contractChecklist.redFlags
+              .filter((flag) => flag.severity === "high")
+              .map((flag, index) => (
+                <View key={index} style={styles.redFlagItem}>
+                  <Text style={styles.redFlagText}>🚩 {flag.flag}</Text>
+                  <Text style={styles.redFlagAction}>Action: {flag.action}</Text>
+                  <Text style={[styles.redFlagSeverity, getSeverityStyle(flag.severity)]}>
+                    {flag.severity} risk
+                  </Text>
+                </View>
+              ))}
+          </View>
+
+          {/* Medium Severity Red Flags */}
+          <View style={styles.redFlagSection}>
+            <Text style={[styles.redFlagTitle, { color: colors.warning }]}>Medium Risk - Negotiate</Text>
+            {contractChecklist.redFlags
+              .filter((flag) => flag.severity === "medium")
+              .map((flag, index) => (
+                <View key={index} style={[styles.redFlagItem, { borderLeftColor: colors.warning }]}>
+                  <Text style={[styles.redFlagText, { color: colors.warning }]}>⚠️ {flag.flag}</Text>
+                  <Text style={styles.redFlagAction}>Action: {flag.action}</Text>
+                  <Text style={[styles.redFlagSeverity, getSeverityStyle(flag.severity)]}>
+                    {flag.severity} risk
+                  </Text>
+                </View>
+              ))}
+          </View>
+
+          {/* Low Severity Red Flags */}
+          {contractChecklist.redFlags.filter((f) => f.severity === "low").length > 0 && (
+            <View style={styles.redFlagSection}>
+              <Text style={[styles.redFlagTitle, { color: colors.gray }]}>Low Risk - Be Aware</Text>
+              {contractChecklist.redFlags
+                .filter((flag) => flag.severity === "low")
+                .map((flag, index) => (
+                  <View key={index} style={[styles.redFlagItem, { borderLeftColor: colors.gray, backgroundColor: colors.lightGray }]}>
+                    <Text style={[styles.redFlagText, { color: colors.gray }]}>📌 {flag.flag}</Text>
+                    <Text style={styles.redFlagAction}>Action: {flag.action}</Text>
+                  </View>
+                ))}
+            </View>
+          )}
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <View>
+              <Text style={styles.footerBrand}>RateCard.AI</Text>
+              <Text style={styles.footerText}>Contract Red Flags - Page 2</Text>
+            </View>
+            <View>
+              <Text style={styles.validity}>Not legal advice - consult an attorney</Text>
             </View>
           </View>
         </Page>
