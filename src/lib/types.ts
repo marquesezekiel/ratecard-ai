@@ -1179,3 +1179,124 @@ export interface BriefParserInput {
   /** Original filename (for upload mode) */
   filename?: string;
 }
+
+// =============================================================================
+// DM PARSER TYPES
+// =============================================================================
+
+/**
+ * Compensation type detected in a DM.
+ */
+export type DMCompensationType = "paid" | "gifted" | "hybrid" | "unclear" | "none_mentioned";
+
+/**
+ * Tone detected in a DM.
+ */
+export type DMTone = "professional" | "casual" | "mass_outreach" | "scam_likely";
+
+/**
+ * Urgency level detected in a DM.
+ */
+export type DMUrgency = "high" | "medium" | "low";
+
+/**
+ * Content expectation for gift offers.
+ */
+export type GiftContentExpectation = "explicit" | "implied" | "none";
+
+/**
+ * Conversion potential for gift offers.
+ */
+export type GiftConversionPotential = "high" | "medium" | "low";
+
+/**
+ * Recommended approach for gift offers.
+ */
+export type GiftRecommendedApproach =
+  | "accept_and_convert"
+  | "counter_with_hybrid"
+  | "decline"
+  | "ask_budget";
+
+/**
+ * Gift-specific analysis extracted from a DM.
+ * Present when isGiftOffer is true.
+ */
+export interface GiftAnalysis {
+  /** Product mentioned in the gift offer */
+  productMentioned: string | null;
+  /** Whether content is explicitly expected, implied, or not mentioned */
+  contentExpectation: GiftContentExpectation;
+  /** Potential to convert this gift offer to paid partnership */
+  conversionPotential: GiftConversionPotential;
+  /** Recommended approach for responding to this gift offer */
+  recommendedApproach: GiftRecommendedApproach;
+}
+
+/**
+ * Complete analysis result from DM parsing.
+ * Contains brand identification, request analysis, tone/quality signals,
+ * flags, gift-specific analysis, and recommendations.
+ */
+export interface DMAnalysis {
+  // Brand identification
+  /** Detected brand name (null if not found) */
+  brandName: string | null;
+  /** Detected brand social handle (null if not found) */
+  brandHandle: string | null;
+
+  // Request analysis
+  /** What the brand is asking for */
+  deliverableRequest: string | null;
+  /** Type of compensation offered */
+  compensationType: DMCompensationType;
+  /** Offered payment amount (null if not specified or gift-only) */
+  offeredAmount: number | null;
+  /** Estimated product value for gift offers */
+  estimatedProductValue: number | null;
+
+  // Tone & quality signals
+  /** Detected tone of the message */
+  tone: DMTone;
+  /** Urgency level of the request */
+  urgency: DMUrgency;
+
+  // Flags
+  /** Red flags detected in the DM */
+  redFlags: string[];
+  /** Green flags detected in the DM */
+  greenFlags: string[];
+
+  // Gift-specific analysis
+  /** Whether this is a gift offer */
+  isGiftOffer: boolean;
+  /** Detailed gift analysis (present when isGiftOffer is true) */
+  giftAnalysis: GiftAnalysis | null;
+
+  // Extracted data for rate card generation
+  /** Partial brief data extracted from the DM */
+  extractedRequirements: Partial<ParsedBrief>;
+
+  // Recommendations
+  /** Recommended response message to send to the brand */
+  recommendedResponse: string;
+  /** Suggested rate based on analysis */
+  suggestedRate: number;
+  /** Estimated deal quality score (0-100) */
+  dealQualityEstimate: number;
+  /** Next steps for the creator */
+  nextSteps: string[];
+}
+
+/**
+ * Input for the DM parser API.
+ */
+export interface DMParserInput {
+  /** The DM text to parse */
+  dmText: string;
+}
+
+/**
+ * Response from the DM parser API.
+ */
+export type DMParserResponse = ApiResponse<DMAnalysis>;
