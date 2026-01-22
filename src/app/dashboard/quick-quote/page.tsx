@@ -73,7 +73,7 @@ export default function QuickQuotePage() {
       {/* Header - centered when showing form, left-aligned when showing results */}
       {!result ? (
         <div className="text-center">
-          <h1 className="text-2xl font-bold md:text-3xl">Quick Quote</h1>
+          <h1 className="text-2xl font-display font-bold md:text-3xl">Quick Quote</h1>
           <p className="text-muted-foreground mt-1">
             Get an instant rate without uploading a brief
           </p>
@@ -81,7 +81,7 @@ export default function QuickQuotePage() {
       ) : (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold md:text-3xl">Your Quote</h1>
+            <h1 className="text-2xl font-display font-bold md:text-3xl">Your Quote</h1>
             <p className="text-muted-foreground mt-1">
               {result.brief.content.quantity}x {result.brief.content.format} on {result.brief.content.platform}
             </p>

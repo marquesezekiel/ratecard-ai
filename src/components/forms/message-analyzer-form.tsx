@@ -137,7 +137,7 @@ export function MessageAnalyzerForm({
         if (analysis.detectedSource) {
           params.set("platform", analysis.detectedSource.replace("_dm", ""));
         }
-        router.push(`/tools/brand-vetter?${params.toString()}`);
+        router.push(`/dashboard/tools/brand-vetter?${params.toString()}`);
       }
     }
   };
@@ -331,7 +331,7 @@ Examples:
               {/* Deal Quality Score */}
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <span className="text-sm font-medium">Deal Quality Estimate</span>
-                <span className={`text-2xl font-bold ${getDealQualityColor(analysis.dealQualityEstimate)}`}>
+                <span className={`text-2xl font-bold font-money ${getDealQualityColor(analysis.dealQualityEstimate)}`}>
                   {analysis.dealQualityEstimate}/100
                 </span>
               </div>
@@ -349,14 +349,14 @@ Examples:
                 <span className="text-sm font-medium text-green-800">
                   {analysis.isGiftOffer ? "Suggested Hybrid Counter" : "Your Rate"}
                 </span>
-                <span className="text-xl font-bold text-green-700">${analysis.suggestedRate}</span>
+                <span className="text-xl font-bold font-money text-green-700">${analysis.suggestedRate}</span>
               </div>
 
               {/* Offered Amount (if paid) */}
               {analysis.offeredAmount && (
                 <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <span className="text-sm font-medium text-blue-800">Their Offered Amount</span>
-                  <span className="text-xl font-bold text-blue-700">${analysis.offeredAmount}</span>
+                  <span className="text-xl font-bold font-money text-blue-700">${analysis.offeredAmount}</span>
                 </div>
               )}
 
@@ -364,7 +364,7 @@ Examples:
               {analysis.estimatedProductValue && analysis.isGiftOffer && (
                 <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-lg">
                   <span className="text-sm font-medium text-purple-800">Estimated Product Value</span>
-                  <span className="text-xl font-bold text-purple-700">${analysis.estimatedProductValue}</span>
+                  <span className="text-xl font-bold font-money text-purple-700">${analysis.estimatedProductValue}</span>
                 </div>
               )}
 

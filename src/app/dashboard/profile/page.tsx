@@ -32,7 +32,7 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">Your Creator Profile</h1>
+        <h1 className="text-2xl font-display font-bold">Your Creator Profile</h1>
         <p className="text-muted-foreground mt-1">
           Your metrics power accurate rate calculations. The more complete, the better.
         </p>

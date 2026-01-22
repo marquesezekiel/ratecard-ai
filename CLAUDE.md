@@ -202,6 +202,38 @@ Tracks deal outcomes to build market intelligence.
 - Revenue tracking
 - "Creators like you" market benchmarks
 
+### Quick Calculator (`src/lib/quick-calculator.ts`)
+
+Public landing page tool for instant rate estimates without signup:
+- Uses simplified pricing engine with assumed 3% engagement
+- Returns min/max rate range (±20%)
+- Shows factors that could increase rate
+- Strong CTA to signup for full rate card
+
+### Contract Scanner (`src/lib/contract-scanner.ts`)
+
+Analyzes contracts for red flags and missing clauses:
+- LLM-powered analysis against 4 categories: payment, content rights, exclusivity, legal
+- Quotes specific contract language as evidence
+- Calculates health score (0-100)
+- Generates ready-to-send change request email
+
+### Brand Vetter (`src/lib/brand-vetter.ts`)
+
+Researches brand legitimacy before creators engage:
+- 4 scoring categories: Social Presence, Website, Creator Collabs, Scam Check
+- Trust levels: Verified (80+), Likely Legit (60-79), Caution (40-59), High Risk (<40)
+- Integrated with Message Analyzer via "Vet This Brand" button
+
+### Message Analyzer (`src/lib/message-analyzer.ts`)
+
+Unified DM + Email analyzer (refactored from dm-parser.ts):
+- Auto-detects message source (Instagram DM, TikTok DM, Email, etc.)
+- Extracts brand info, compensation type, tone
+- Gift offer detection with conversion potential scoring
+- Email metadata extraction (subject, sender, signature)
+- Backwards compatible: `dm-parser.ts` re-exports for existing code
+
 ### Supporting Features
 
 **FTC Guidance (`src/lib/ftc-guidance.ts`):**
@@ -243,10 +275,22 @@ All shared types in `src/lib/types.ts`. Key type categories:
 - `BriefData`, `ParsedBrief`, `PricingResult`, `RateCardData`
 - `DealQualityResult` (replaced FitScoreResult)
 
-**DM Analysis Types:**
-- `DMAnalysis`, `DMCompensationType`, `DMTone`, `DMUrgency`
+**Message Analysis Types (DM + Email):**
+- `MessageAnalysis`, `MessageSource`, `DMCompensationType`, `DMTone`, `DMUrgency`
 - `DMImageAnalysis`, `ImageTextExtraction`
 - `GiftAnalysis`, `GiftConversionPotential`
+- `DMAnalysis` (alias for backwards compatibility)
+
+**Contract Scanner Types:**
+- `ContractScanInput`, `ContractScanResult`, `CategoryAnalysis`
+- `FoundClause`, `MissingClause`, `ContractRedFlag`
+
+**Brand Vetter Types:**
+- `BrandVettingInput`, `BrandVettingResult`, `TrustLevel`
+- `CategoryScore`, `BrandFinding`, `BrandRedFlag`
+
+**Quick Calculator Types:**
+- `QuickCalculatorInput`, `QuickEstimateResult`, `RateInfluencer`
 
 **Gift System Types:**
 - `GiftEvaluationInput`, `GiftEvaluation`, `GiftRecommendation`
@@ -265,14 +309,24 @@ All routes use `ApiResponse<T>` format: `{ success: boolean, data?: T, error?: s
 |-------|--------|------|-------------|
 | `/api/parse-brief` | POST | Yes | Parse uploaded PDF/DOCX brief |
 | `/api/calculate` | POST | Yes | Calculate pricing for authenticated users |
-| `/api/public-calculate` | POST | No | Calculate pricing for anonymous users |
+| `/api/public-calculate` | POST | No | Calculate pricing for anonymous users (Quick Calculator) |
 | `/api/generate-pdf` | POST | Yes | Generate rate card PDF |
 
-**DM Analysis:**
+**Message Analysis (DM + Email):**
 | Route | Method | Auth | Description |
 |-------|--------|------|-------------|
-| `/api/parse-dm` | POST | Yes | Parse DM text/screenshot |
+| `/api/parse-dm` | POST | Yes | Parse DM or email text/screenshot (auto-detects source) |
 | `/api/evaluate-gift` | POST | Yes | Evaluate gift deal worth |
+
+**Contract Scanner:**
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/scan-contract` | POST | Yes | Analyze contract for red flags and missing clauses |
+
+**Brand Vetter:**
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/vet-brand` | POST | Yes | Research brand legitimacy and trust score |
 
 **Gift Tracking:**
 | Route | Method | Auth | Description |

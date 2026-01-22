@@ -46,7 +46,7 @@ export default function HomePage() {
               </div>
 
               {/* Main headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight leading-[1.1]">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-display font-bold tracking-tight leading-[1.1]">
                 stop guessing.
                 <br />
                 <span className="text-gradient">start charging.</span>
@@ -90,15 +90,15 @@ export default function HomePage() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center py-3 border-b border-border/50">
                       <span className="text-muted-foreground">Instagram Reel</span>
-                      <span className="font-bold text-lg">$425</span>
+                      <span className="font-bold text-lg font-money">$425</span>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-border/50">
                       <span className="text-muted-foreground">TikTok Video</span>
-                      <span className="font-bold text-lg">$380</span>
+                      <span className="font-bold text-lg font-money">$380</span>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-border/50">
                       <span className="text-muted-foreground">Story Bundle (3x)</span>
-                      <span className="font-bold text-lg">$275</span>
+                      <span className="font-bold text-lg font-money">$275</span>
                     </div>
                   </div>
 
@@ -129,7 +129,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl">
           {/* Section header - left aligned on desktop */}
           <div className="max-w-2xl mb-12 lg:mb-16">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold tracking-tight">
               Pricing that <span className="text-gradient">makes sense</span>
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
@@ -205,7 +205,7 @@ export default function HomePage() {
       <section className="py-16 lg:py-24 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="text-center mb-12 lg:mb-16">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold tracking-tight">
               Three steps to your rate card
             </h2>
           </div>
@@ -268,7 +268,7 @@ export default function HomePage() {
 
             <div className="relative px-8 py-16 lg:px-16 lg:py-20">
               <div className="max-w-2xl">
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-primary-foreground">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold tracking-tight text-primary-foreground">
                   ready to know your worth?
                 </h2>
                 <p className="mt-4 text-lg text-primary-foreground/80 max-w-xl">

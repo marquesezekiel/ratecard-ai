@@ -33,7 +33,7 @@ export default function DashboardPage() {
     <div className="space-y-10">
       {/* Welcome */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-display font-bold tracking-tight">
           Welcome back, {firstName}
         </h1>
         <p className="text-muted-foreground mt-1">
@@ -145,7 +145,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold">${rate.price.toLocaleString()}</p>
+                    <p className="text-lg font-bold font-money">${rate.price.toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground flex items-center justify-end gap-1">
                       <Clock className="h-3 w-3" />
                       {new Date(rate.createdAt).toLocaleDateString()}

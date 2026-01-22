@@ -29,7 +29,7 @@ function useLocalStorageProfile(): CreatorProfile | null | undefined {
 export default function AnalyzeDMPage() {
   const router = useRouter();
   const profile = useLocalStorageProfile();
-  const [_lastAnalysis, _setLastAnalysis] = useState<DMAnalysis | null>(null);
+  const [, setLastAnalysis] = useState<DMAnalysis | null>(null);
 
   // Loading state
   if (profile === undefined) {
@@ -72,7 +72,7 @@ export default function AnalyzeDMPage() {
       <div className="text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
           <MessageSquare className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold md:text-3xl">Analyze Brand DM</h1>
+          <h1 className="text-2xl font-display font-bold md:text-3xl">Analyze Brand DM</h1>
         </div>
         <p className="text-muted-foreground">
           Paste a brand message to get instant analysis, detect gift offers, and generate a professional response.
