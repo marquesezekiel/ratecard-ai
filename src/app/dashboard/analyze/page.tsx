@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DMParserForm } from "@/components/forms/dm-parser-form";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Loader2, MessageSquare } from "lucide-react";
@@ -28,8 +28,12 @@ function useLocalStorageProfile(): CreatorProfile | null | undefined {
 
 export default function AnalyzeDMPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const profile = useLocalStorageProfile();
   const [, setLastAnalysis] = useState<DMAnalysis | null>(null);
+
+  // Get pre-filled message from query params (from inline analyzer)
+  const initialMessage = searchParams.get("message") || "";
 
   // Loading state
   if (profile === undefined) {
@@ -82,6 +86,7 @@ export default function AnalyzeDMPage() {
       {/* DM Parser Form */}
       <DMParserForm
         profile={profile}
+        initialMessage={initialMessage}
         onAnalysisComplete={handleAnalysisComplete}
         onEvaluateGift={handleEvaluateGift}
       />

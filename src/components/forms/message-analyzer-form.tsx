@@ -31,6 +31,7 @@ import { toast } from "sonner";
 
 interface MessageAnalyzerFormProps {
   profile: CreatorProfile;
+  initialMessage?: string;
   onAnalysisComplete?: (analysis: MessageAnalysis) => void;
   onEvaluateGift?: (analysis: MessageAnalysis) => void;
   onVetBrand?: (brandName: string, brandHandle?: string | null, platform?: string) => void;
@@ -54,12 +55,13 @@ const SOURCE_OPTIONS: { value: MessageSource | "auto"; label: string }[] = [
  */
 export function MessageAnalyzerForm({
   profile,
+  initialMessage = "",
   onAnalysisComplete,
   onEvaluateGift,
   onVetBrand,
 }: MessageAnalyzerFormProps) {
   const router = useRouter();
-  const [messageText, setMessageText] = useState("");
+  const [messageText, setMessageText] = useState(initialMessage);
   const [sourceHint, setSourceHint] = useState<MessageSource | "auto">("auto");
   const [analysis, setAnalysis] = useState<MessageAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
