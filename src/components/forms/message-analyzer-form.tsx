@@ -259,7 +259,7 @@ export function MessageAnalyzerForm({
             Drop your message here
           </CardTitle>
           <CardDescription>
-            Paste a DM, email, or any brand outreach. We'll decode it for you.
+            Paste a DM, email, or any brand outreach. We&apos;ll decode it for you.
           </CardDescription>
         </CardHeader>
         <CardContent>

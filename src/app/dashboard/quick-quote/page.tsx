@@ -45,21 +45,26 @@ export default function QuickQuotePage() {
     pricing: PricingResult;
   } | null>(null);
   const [adjustedPricing, setAdjustedPricing] = useState<PricingResult | null>(null);
-  const [isFirstRateCard, setIsFirstRateCard] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   const { fireMultiple } = useConfetti();
 
-  // Fire confetti on first rate card generation
+  // Track whether we've already handled the first rate card celebration
+  const hasCheckedFirstRateCard = useRef(false);
+
+  // Fire confetti on first rate card generation - use a callback in setTimeout to satisfy lint
   useEffect(() => {
-    if (result) {
-      const hasGeneratedBefore = localStorage.getItem("hasGeneratedRateCard");
-      if (!hasGeneratedBefore) {
-        setIsFirstRateCard(true);
-        // Small delay to let the UI render first
-        setTimeout(() => {
-          fireMultiple();
-        }, 300);
-        localStorage.setItem("hasGeneratedRateCard", "true");
-      }
+    if (!result || hasCheckedFirstRateCard.current) return;
+
+    hasCheckedFirstRateCard.current = true;
+    const hasGeneratedBefore = localStorage.getItem("hasGeneratedRateCard");
+
+    if (!hasGeneratedBefore) {
+      localStorage.setItem("hasGeneratedRateCard", "true");
+      // Use setTimeout callback to trigger state update and confetti
+      setTimeout(() => {
+        setShowCelebration(true);
+        fireMultiple();
+      }, 300);
     }
   }, [result, fireMultiple]);
 
@@ -127,7 +132,7 @@ export default function QuickQuotePage() {
       ) : (
         <>
           {/* First rate card celebration */}
-          {isFirstRateCard && (
+          {showCelebration && (
             <div className="text-center py-4 animate-in fade-in slide-in-from-top-4 duration-500">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary">
                 <PartyPopper className="h-5 w-5" />

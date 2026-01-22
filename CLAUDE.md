@@ -361,6 +361,110 @@ All routes use `ApiResponse<T>` format: `{ success: boolean, data?: T, error?: s
 
 ---
 
+## Design System
+
+### Typography
+
+**Font Stack:**
+- **Satoshi** (`--font-sans`) - Primary font for body text and UI elements. Friendly, modern, highly readable.
+- **Clash Display** (`--font-display`) - Headlines and page titles. Bold, distinctive, contemporary.
+- **JetBrains Mono** (`--font-mono`) - Numbers, monetary values, code. Clean tabular alignment.
+
+**Font Usage:**
+```tsx
+// Headlines - use font-display
+<h1 className="font-display font-bold">Page Title</h1>
+
+// Body text - default font-sans
+<p className="text-muted-foreground">Description text</p>
+
+// Monetary values - use font-mono
+<span className="font-mono">${amount.toLocaleString()}</span>
+```
+
+**Font Sizes (Tailwind):**
+| Use Case | Desktop | Mobile |
+|----------|---------|--------|
+| Hero | `text-5xl md:text-7xl` | 48px / 72px |
+| Page Title | `text-2xl md:text-3xl` | 24px / 30px |
+| Section | `text-xl md:text-2xl` | 20px / 24px |
+| Body | `text-base` | 16px |
+| Small | `text-sm` | 14px |
+| Tiny | `text-xs` | 12px |
+
+### Spacing System (8px base)
+
+**Standard Spacing:**
+| Token | Size | Use Case |
+|-------|------|----------|
+| `space-1` | 4px | Icon gaps, tight padding |
+| `space-2` | 8px | Component internal spacing |
+| `space-3` | 12px | Small gaps |
+| `space-4` | 16px | Component gap, form fields |
+| `space-6` | 24px | Section gap, card padding |
+| `space-8` | 32px | Large section gap |
+| `space-12` | 48px | Page sections |
+
+**Layout Constants (`src/lib/layout.ts`):**
+```tsx
+container: { sm: "max-w-2xl", md: "max-w-4xl", lg: "max-w-6xl" }
+spacing: { page: "py-6", section: "space-y-6", card: "p-6" }
+pageHeader: "space-y-1 mb-6"
+```
+
+### Animation Patterns
+
+**Components in `src/components/ui/`:**
+
+| Component | Purpose | Usage |
+|-----------|---------|-------|
+| `AnimatedNumber` | Count-up animation for values | Rate reveals, stats |
+| `AnimatedGauge` | Circular progress with fill animation | Scores (0-100) |
+| `CopyButton` | Copy-to-clipboard with "Copied!" feedback | Response templates |
+| `useConfetti` | Celebration confetti burst | First rate card |
+
+**Standard Transitions:**
+```tsx
+// Button press feedback
+"active:scale-[0.98] transition-transform"
+
+// Card hover
+"hover:shadow-md hover:-translate-y-0.5 transition-all"
+
+// Fade in with slide
+"animate-in fade-in slide-in-from-bottom-4 duration-500"
+```
+
+### Component Patterns
+
+**Page Structure:**
+```tsx
+<PageContainer
+  title="Page Title"
+  description="Optional description"
+  maxWidth="md" // sm | md | lg
+>
+  {/* Content sections with space-y-6 */}
+</PageContainer>
+```
+
+**Collapsible Sections (`ProfileSection`):**
+- Used for progressive disclosure
+- Default open for required sections
+- Badge support for "Optional" / "Recommended"
+
+**Cards:**
+- Consistent padding: `p-6` (desktop), `p-4` (mobile compact)
+- Use `CardHeader`, `CardContent`, `CardFooter` from shadcn/ui
+- Border: `border-2` for emphasis, default for standard
+
+**Navigation:**
+- Mobile: 3 bottom nav items + Menu sheet + FAB
+- Desktop: Sidebar navigation
+- FAB: Primary action (New Rate Card), always visible
+
+---
+
 ## Design Principles
 
 ### 1. Simplicity Over Features
