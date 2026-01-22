@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, User, LogOut, Sparkles, Bookmark, MessageSquare, Gift, Wrench } from "lucide-react";
+import { Home, User, LogOut, Sparkles, Bookmark, MessageSquare, Gift, Shield, FileSearch } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -16,15 +16,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { FAB } from "@/components/ui/fab";
+import { MenuSheet } from "@/components/navigation/menu-sheet";
 
-// Core navigation - minimal, no redundancy
-const navItems = [
+// Mobile bottom nav - reduced to 3 core items
+const mobileNavItems = [
   { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/dashboard/analyze", label: "Analyze DM", icon: MessageSquare },
-  { href: "/dashboard/gifts", label: "Gifts", icon: Gift },
-  { href: "/dashboard/tools", label: "Tools", icon: Wrench },
+  { href: "/dashboard/analyze", label: "Analyze", icon: MessageSquare },
+  { href: "/dashboard/rates", label: "Rates", icon: Bookmark },
+];
+
+// Desktop nav - all items including quick access to tools
+const desktopNavItems = [
+  { href: "/dashboard", label: "Home", icon: Home },
+  { href: "/dashboard/analyze", label: "Analyze", icon: MessageSquare },
   { href: "/dashboard/rates", label: "My Rates", icon: Bookmark },
-  { href: "/dashboard/profile", label: "Profile", icon: User },
+  { href: "/dashboard/gifts", label: "Gifts", icon: Gift },
 ];
 
 function getInitials(name: string | undefined | null): string {
@@ -147,7 +154,7 @@ export default function DashboardLayout({
 
             {/* Navigation */}
             <nav className="flex items-center gap-1">
-              {navItems.map((item) => (
+              {desktopNavItems.map((item) => (
                 <TopNavLink
                   key={item.href}
                   {...item}
@@ -184,6 +191,18 @@ export default function DashboardLayout({
                     Profile
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild className="rounded-lg">
+                  <Link href="/dashboard/tools/brand-vetter">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Brand Vetter
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="rounded-lg">
+                  <Link href="/dashboard/tools/contract-scanner">
+                    <FileSearch className="mr-2 h-4 w-4" />
+                    Contract Scanner
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={handleSignOut}
@@ -207,9 +226,11 @@ export default function DashboardLayout({
           <span className="font-bold">RateCard.AI</span>
         </Link>
 
-        <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground">
-          <LogOut className="h-4 w-4" />
-        </Button>
+        <Avatar className="h-8 w-8 border-2 border-primary/20">
+          <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+            {getInitials(user?.name)}
+          </AvatarFallback>
+        </Avatar>
       </header>
 
       {/* Page Content */}
@@ -219,15 +240,26 @@ export default function DashboardLayout({
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation */}
+      {/* FAB - visible on mobile, positioned above nav */}
+      <div className="lg:hidden">
+        <FAB className="bottom-24" />
+      </div>
+
+      {/* Desktop FAB - bottom right */}
+      <div className="hidden lg:block">
+        <FAB />
+      </div>
+
+      {/* Mobile Bottom Navigation - 3 items + Menu */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex lg:hidden items-center justify-around bg-card border-t border-border/40 px-2 py-2 safe-area-bottom">
-        {navItems.map((item) => (
+        {mobileNavItems.map((item) => (
           <BottomNavLink
             key={item.href}
             {...item}
             isActive={isActive(item.href)}
           />
         ))}
+        <MenuSheet onSignOut={handleSignOut} />
       </nav>
     </div>
   );
