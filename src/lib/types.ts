@@ -2163,6 +2163,127 @@ export interface DMImageAnalysis extends DMAnalysis {
 export type DMParseResponse = ApiResponse<DMImageAnalysis>;
 
 // =============================================================================
+// CONTRACT SCANNER TYPES
+// =============================================================================
+
+/**
+ * Contract category for organizing analysis results.
+ */
+export type ContractScanCategory = "payment" | "contentRights" | "exclusivity" | "legal";
+
+/**
+ * Health level based on contract score.
+ */
+export type ContractHealthLevel = "excellent" | "good" | "fair" | "poor";
+
+/**
+ * Input for the contract scanner.
+ */
+export interface ContractScanInput {
+  /** The full contract text to analyze */
+  contractText: string;
+  /** Optional deal context for enhanced analysis */
+  dealContext?: {
+    platform?: Platform;
+    dealType?: DealType;
+    offeredRate?: number;
+  };
+}
+
+/**
+ * Analysis result for a single category.
+ */
+export interface ContractCategoryAnalysis {
+  /** Score for this category (0-25) */
+  score: number;
+  /** Status of coverage in this category */
+  status: "complete" | "partial" | "missing";
+  /** Key findings for this category */
+  findings: string[];
+}
+
+/**
+ * A clause found in the contract.
+ */
+export interface FoundClause {
+  /** Category this clause belongs to */
+  category: ContractScanCategory;
+  /** Name of the clause item */
+  item: string;
+  /** Direct quote from the contract */
+  quote: string;
+  /** Assessment of this clause */
+  assessment: "good" | "concerning" | "red_flag";
+  /** Optional note about this clause */
+  note?: string;
+}
+
+/**
+ * A clause that is missing from the contract.
+ */
+export interface MissingClause {
+  /** Category this clause belongs to */
+  category: ContractScanCategory;
+  /** Name of the missing item */
+  item: string;
+  /** How important this clause is */
+  importance: "critical" | "important" | "recommended";
+  /** Suggested language to add */
+  suggestion: string;
+}
+
+/**
+ * A red flag detected in the contract.
+ */
+export interface ContractScanRedFlag {
+  /** Severity of the red flag */
+  severity: "high" | "medium" | "low";
+  /** Name of the problematic clause */
+  clause: string;
+  /** Quote from the contract (if applicable) */
+  quote?: string;
+  /** Why this is a problem */
+  explanation: string;
+  /** What to do about it */
+  suggestion: string;
+}
+
+/**
+ * Complete result from scanning a contract.
+ */
+export interface ContractScanResult {
+  /** Overall health score (0-100) */
+  healthScore: number;
+  /** Health level category */
+  healthLevel: ContractHealthLevel;
+
+  /** Breakdown by category */
+  categories: {
+    payment: ContractCategoryAnalysis;
+    contentRights: ContractCategoryAnalysis;
+    exclusivity: ContractCategoryAnalysis;
+    legal: ContractCategoryAnalysis;
+  };
+
+  /** Clauses found in the contract */
+  foundClauses: FoundClause[];
+  /** Important clauses missing from the contract */
+  missingClauses: MissingClause[];
+  /** Red flags detected */
+  redFlags: ContractScanRedFlag[];
+
+  /** Recommendations for the creator */
+  recommendations: string[];
+  /** Pre-generated change request email template */
+  changeRequestTemplate: string;
+}
+
+/**
+ * Response from the contract scanner API.
+ */
+export type ContractScanResponse = ApiResponse<ContractScanResult>;
+
+// =============================================================================
 // QUICK CALCULATOR TYPES
 // =============================================================================
 
