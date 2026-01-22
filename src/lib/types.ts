@@ -1302,6 +1302,138 @@ export interface DMParserInput {
 export type DMParserResponse = ApiResponse<DMAnalysis>;
 
 // =============================================================================
+// MESSAGE ANALYZER TYPES (Unified DM + Email)
+// =============================================================================
+
+/**
+ * Message source type - identifies where the brand message originated.
+ * Used by the unified Message Analyzer to handle both DMs and emails.
+ */
+export type MessageSource =
+  | "instagram_dm"
+  | "tiktok_dm"
+  | "twitter_dm"
+  | "linkedin_dm"
+  | "email"
+  | "other";
+
+/**
+ * Input for the Message Analyzer.
+ * Supports text content with optional source hints and image data.
+ */
+export interface MessageAnalysisInput {
+  /** The message text content (pasted or extracted from image) */
+  content: string;
+  /** Optional hint about the message source (if user knows) */
+  sourceHint?: MessageSource;
+  /** Base64 image data if parsing from screenshot */
+  imageData?: string;
+}
+
+/**
+ * Email-specific metadata extracted from email messages.
+ * Only present when the message is detected as an email.
+ */
+export interface EmailMetadata {
+  /** Email subject line */
+  subject?: string;
+  /** Sender's name */
+  senderName?: string;
+  /** Sender's email address */
+  senderEmail?: string;
+  /** Company signature block */
+  companySignature?: string;
+  /** Whether attachments were mentioned */
+  hasAttachments?: boolean;
+}
+
+/**
+ * Complete analysis result from Message Analyzer.
+ * Extends DMAnalysis with email support and source detection.
+ *
+ * This unified type handles both DMs and emails, detecting the source
+ * automatically and extracting appropriate metadata.
+ */
+export interface MessageAnalysis {
+  // Source detection
+  /** Detected message source (DM platform or email) */
+  detectedSource: MessageSource;
+  /** Confidence level of source detection */
+  sourceConfidence: "high" | "medium" | "low";
+
+  // Brand identification (same as DMAnalysis)
+  /** Detected brand name (null if not found) */
+  brandName: string | null;
+  /** Detected brand social handle (null if not found) */
+  brandHandle: string | null;
+  /** Detected brand email (extracted from email messages) */
+  brandEmail?: string | null;
+  /** Detected brand website (extracted from signature) */
+  brandWebsite?: string | null;
+
+  // Request analysis (same as DMAnalysis)
+  /** What the brand is asking for */
+  deliverableRequest: string | null;
+  /** Type of compensation offered */
+  compensationType: DMCompensationType;
+  /** Offered payment amount (null if not specified or gift-only) */
+  offeredAmount: number | null;
+  /** Estimated product value for gift offers */
+  estimatedProductValue: number | null;
+
+  // Tone & quality signals (same as DMAnalysis)
+  /** Detected tone of the message */
+  tone: DMTone;
+  /** Urgency level of the request */
+  urgency: DMUrgency;
+
+  // Flags (same as DMAnalysis)
+  /** Red flags detected in the message */
+  redFlags: string[];
+  /** Green flags detected in the message */
+  greenFlags: string[];
+
+  // Gift-specific analysis (same as DMAnalysis)
+  /** Whether this is a gift offer */
+  isGiftOffer: boolean;
+  /** Detailed gift analysis (present when isGiftOffer is true) */
+  giftAnalysis: GiftAnalysis | null;
+
+  // Email-specific fields (NEW)
+  /** Email metadata (only present for email messages) */
+  emailMetadata?: EmailMetadata;
+
+  // Extracted data for rate card generation (same as DMAnalysis)
+  /** Partial brief data extracted from the message */
+  extractedRequirements: Partial<ParsedBrief>;
+
+  // Recommendations (same as DMAnalysis)
+  /** Recommended response message to send to the brand */
+  recommendedResponse: string;
+  /** Suggested rate based on analysis */
+  suggestedRate: number;
+  /** Estimated deal quality score (0-100) */
+  dealQualityEstimate: number;
+  /** Next steps for the creator */
+  nextSteps: string[];
+}
+
+/**
+ * Input for the Message Analyzer API.
+ */
+export interface MessageAnalyzerInput {
+  /** The message text to analyze */
+  content: string;
+  /** Optional source hint */
+  sourceHint?: MessageSource;
+}
+
+/**
+ * Response from the Message Analyzer API.
+ */
+export type MessageAnalyzerResponse = ApiResponse<MessageAnalysis>;
+
+// =============================================================================
 // GIFT EVALUATOR TYPES
 // =============================================================================
 
