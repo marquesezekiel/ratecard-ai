@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, User, LogOut, Sparkles, Bookmark, MessageSquare, Gift } from "lucide-react";
+import { Home, User, LogOut, Sparkles, Bookmark, MessageSquare, Gift, Wrench } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,7 @@ const navItems = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/dashboard/analyze", label: "Analyze DM", icon: MessageSquare },
   { href: "/dashboard/gifts", label: "Gifts", icon: Gift },
+  { href: "/dashboard/tools", label: "Tools", icon: Wrench },
   { href: "/dashboard/rates", label: "My Rates", icon: Bookmark },
   { href: "/dashboard/profile", label: "Profile", icon: User },
 ];

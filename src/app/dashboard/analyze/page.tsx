@@ -29,7 +29,7 @@ function useLocalStorageProfile(): CreatorProfile | null | undefined {
 export default function AnalyzeDMPage() {
   const router = useRouter();
   const profile = useLocalStorageProfile();
-  const [lastAnalysis, setLastAnalysis] = useState<DMAnalysis | null>(null);
+  const [_lastAnalysis, _setLastAnalysis] = useState<DMAnalysis | null>(null);
 
   // Loading state
   if (profile === undefined) {

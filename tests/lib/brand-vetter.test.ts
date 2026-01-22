@@ -6,10 +6,6 @@ import {
   isValidVettingInput,
   type BrandVettingInput,
   type BrandVettingResult,
-  type TrustLevel,
-  type CategoryScore,
-  type BrandFinding,
-  type BrandRedFlag,
 } from "@/lib/brand-vetter";
 
 describe("brand-vetter", () => {
