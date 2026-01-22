@@ -89,17 +89,17 @@ export default function GiftsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="text-center">
-        <div className="flex items-center justify-center gap-2 mb-2">
+      <header className="text-center space-y-2">
+        <div className="flex items-center justify-center gap-2">
           <Gift className="h-6 w-6 text-purple-600" />
-          <h1 className="text-2xl font-bold md:text-3xl">Gift Deals</h1>
+          <h1 className="text-2xl font-display font-bold md:text-3xl">Gift Deals</h1>
         </div>
         <p className="text-muted-foreground">
           Evaluate gift offers and decide if they&apos;re worth your time.
         </p>
-      </div>
+      </header>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

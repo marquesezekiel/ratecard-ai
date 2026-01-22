@@ -18,17 +18,17 @@ export default function ContractScannerPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="text-center">
-        <div className="flex items-center justify-center gap-2 mb-2">
+      <header className="text-center space-y-2">
+        <div className="flex items-center justify-center gap-2">
           <FileText className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold md:text-3xl">Contract Scanner</h1>
+          <h1 className="text-2xl font-display font-bold md:text-3xl">Contract Scanner</h1>
         </div>
         <p className="text-muted-foreground max-w-2xl mx-auto">
           Upload a contract or paste the text to analyze it for red flags, missing clauses, and areas to negotiate.
         </p>
-      </div>
+      </header>
 
       {/* Form or Result */}
       {!scanResult ? (

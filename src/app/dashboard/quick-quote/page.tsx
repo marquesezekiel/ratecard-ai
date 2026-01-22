@@ -88,15 +88,15 @@ export default function QuickQuotePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header - centered when showing form, left-aligned when showing results */}
       {!result ? (
-        <div className="text-center">
+        <header className="text-center space-y-1">
           <h1 className="text-2xl font-display font-bold md:text-3xl">Quick Quote</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground">
             Get an instant rate without uploading a brief
           </p>
-        </div>
+        </header>
       ) : (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>

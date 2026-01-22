@@ -161,15 +161,15 @@ export default function GeneratePage() {
     return (
       <div className="mx-auto max-w-2xl space-y-6">
         {/* Header */}
-        <div>
+        <header className="space-y-1">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-6 w-6 text-green-500" />
-            <h1 className="text-2xl font-bold">Your Rate Card is Ready</h1>
+            <h1 className="text-2xl font-display font-bold">Your Rate Card is Ready</h1>
           </div>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground">
             Here&apos;s your recommended rate for {brief.brand.name}
           </p>
-        </div>
+        </header>
 
         {/* Pricing Card */}
         <Card>

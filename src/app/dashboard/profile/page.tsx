@@ -81,7 +81,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container max-w-4xl py-6">
+    <div className="max-w-4xl mx-auto">
       {/* Page Header */}
       <div className="flex items-start justify-between mb-6">
         <div>

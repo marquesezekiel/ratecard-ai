@@ -25,17 +25,17 @@ const tools = [
 
 export default function ToolsPage() {
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="text-center">
-        <div className="flex items-center justify-center gap-2 mb-2">
+      <header className="text-center space-y-2">
+        <div className="flex items-center justify-center gap-2">
           <Wrench className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold md:text-3xl">Creator Tools</h1>
+          <h1 className="text-2xl font-display font-bold md:text-3xl">Creator Tools</h1>
         </div>
         <p className="text-muted-foreground max-w-2xl mx-auto">
           Helpful tools to protect yourself and make smarter decisions about brand partnerships.
         </p>
-      </div>
+      </header>
 
       {/* Tools Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

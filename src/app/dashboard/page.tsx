@@ -59,7 +59,7 @@ export default function DashboardPage() {
   }));
 
   return (
-    <div className="container max-w-4xl py-6 space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8">
       {/* Success-focused header */}
       <header className="space-y-1">
         <h1 className="text-2xl font-display font-bold">

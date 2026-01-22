@@ -71,15 +71,15 @@ export default function AnalyzeDMPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="space-y-2 mb-6">
+      <header className="space-y-1">
         <h1 className="text-2xl font-display font-bold">Brand Inbox</h1>
         <p className="text-muted-foreground">
           Paste any message from a brand — DMs, emails, even screenshots.
-          We'll tell you what it's worth and how to respond.
+          We&apos;ll tell you what it&apos;s worth and how to respond.
         </p>
-      </div>
+      </header>
 
       {/* DM Parser Form */}
       <DMParserForm
