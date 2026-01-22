@@ -22,14 +22,14 @@ import { MenuSheet } from "@/components/navigation/menu-sheet";
 // Mobile bottom nav - reduced to 3 core items
 const mobileNavItems = [
   { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/dashboard/analyze", label: "Analyze", icon: MessageSquare },
+  { href: "/dashboard/analyze", label: "Inbox", icon: MessageSquare },
   { href: "/dashboard/rates", label: "Rates", icon: Bookmark },
 ];
 
 // Desktop nav - all items including quick access to tools
 const desktopNavItems = [
   { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/dashboard/analyze", label: "Analyze", icon: MessageSquare },
+  { href: "/dashboard/analyze", label: "Inbox", icon: MessageSquare },
   { href: "/dashboard/rates", label: "My Rates", icon: Bookmark },
   { href: "/dashboard/gifts", label: "Gifts", icon: Gift },
 ];

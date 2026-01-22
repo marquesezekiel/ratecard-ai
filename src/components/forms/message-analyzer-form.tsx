@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,8 +24,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Copy,
-  ArrowRight,
   Shield,
+  FileText,
 } from "lucide-react";
 import type { CreatorProfile, MessageAnalysis, MessageSource } from "@/lib/types";
 import { toast } from "sonner";
@@ -209,18 +210,63 @@ export function MessageAnalyzerForm({
     return "text-red-600";
   };
 
+  // Get personalized headline based on analysis results
+  const getResultHeadline = (analysis: MessageAnalysis) => {
+    if (analysis.tone === "scam_likely") {
+      return {
+        emoji: "🚩",
+        headline: "This Looks Suspicious",
+        subline: "We detected some red flags you should know about",
+      };
+    }
+    if (analysis.compensationType === "gifted" || analysis.isGiftOffer) {
+      return {
+        emoji: "🎁",
+        headline: "Gift Offer Detected",
+        subline: "They want to send free product in exchange for content",
+      };
+    }
+    if (analysis.compensationType === "paid") {
+      return {
+        emoji: "💰",
+        headline: "Paid Opportunity!",
+        subline: analysis.offeredAmount
+          ? `They mentioned $${analysis.offeredAmount}`
+          : "They're offering payment for your work",
+      };
+    }
+    if (analysis.compensationType === "hybrid") {
+      return {
+        emoji: "💎",
+        headline: "Hybrid Deal",
+        subline: "Product + payment combo — could be a good deal",
+      };
+    }
+    if (analysis.tone === "mass_outreach") {
+      return {
+        emoji: "📋",
+        headline: "Mass Outreach Template",
+        subline: "This message was probably sent to many creators",
+      };
+    }
+    return {
+      emoji: "📬",
+      headline: "Message Analyzed",
+      subline: "Here's what we found",
+    };
+  };
+
   return (
     <div className="space-y-6">
       {/* Input Form */}
-      <Card>
+      <Card className="border-2 border-dashed border-primary/20 hover:border-primary/40 transition-colors">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Brand Message Analyzer
+            <Mail className="h-5 w-5 text-primary" />
+            Drop your message here
           </CardTitle>
           <CardDescription>
-            Paste a brand DM or email below to get instant analysis, detect gift offers, and generate a professional
-            response.
+            Paste a DM, email, or any brand outreach. We'll decode it for you.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -248,18 +294,28 @@ export function MessageAnalyzerForm({
               <Label htmlFor="message-text">Brand Message</Label>
               <Textarea
                 id="message-text"
-                placeholder={`Paste the brand DM or email here...
+                placeholder={`Paste a brand message here...
 
-Examples:
-- Instagram DM: "Hey! We love your content! We'd love to send you our new skincare line..."
-- Email: "Subject: Partnership Opportunity\n\nDear [Creator],\n\nI'm reaching out from..."
-`}
+Example DM:
+"Hey! We love your content and would love to send you some products to try!"
+
+Example Email:
+"Dear Creator, We're reaching out about a paid partnership opportunity..."`}
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
-                rows={8}
-                className="resize-none font-mono text-sm"
+                className="min-h-[200px] resize-none text-base leading-relaxed"
               />
-              <p className="text-sm text-muted-foreground">{messageText.length} characters</p>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div className="flex gap-3">
+                  <span className="flex items-center gap-1">
+                    <MessageSquare className="h-3 w-3" /> DMs
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Mail className="h-3 w-3" /> Emails
+                  </span>
+                </div>
+                <span>{messageText.length} characters</span>
+              </div>
             </div>
 
             {error && (
@@ -286,6 +342,44 @@ Examples:
       {/* Analysis Results */}
       {analysis && (
         <div className="space-y-4">
+          {/* Personality Header */}
+          {(() => {
+            const { emoji, headline, subline } = getResultHeadline(analysis);
+            return (
+              <div className="text-center py-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-5xl mb-3">{emoji}</div>
+                <h2 className="text-2xl font-display font-bold">{headline}</h2>
+                <p className="text-muted-foreground mt-1">{subline}</p>
+              </div>
+            );
+          })()}
+
+          {/* Quick Actions */}
+          <div className="flex flex-wrap gap-2 justify-center">
+            {analysis.isGiftOffer && onEvaluateGift && (
+              <Button variant="outline" size="sm" onClick={handleEvaluateGift}>
+                <Gift className="h-4 w-4 mr-2" />
+                Evaluate This Gift
+              </Button>
+            )}
+
+            {analysis.brandName && (
+              <Button variant="outline" size="sm" onClick={handleVetBrand}>
+                <Shield className="h-4 w-4 mr-2" />
+                Vet This Brand
+              </Button>
+            )}
+
+            {analysis.compensationType === "paid" && (
+              <Button size="sm" asChild>
+                <Link href="/dashboard/quick-quote">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Generate Rate Card
+                </Link>
+              </Button>
+            )}
+          </div>
+
           {/* Overview Card */}
           <Card>
             <CardHeader>
@@ -370,14 +464,6 @@ Examples:
                 </div>
               )}
 
-              {/* Vet Brand Button */}
-              {analysis.brandName && (
-                <Button onClick={handleVetBrand} variant="outline" className="w-full">
-                  <Shield className="h-4 w-4 mr-2" />
-                  Vet This Brand
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              )}
             </CardContent>
           </Card>
 
@@ -419,17 +505,6 @@ Examples:
                   </p>
                 </div>
 
-                {onEvaluateGift && (
-                  <Button
-                    onClick={handleEvaluateGift}
-                    variant="outline"
-                    className="w-full border-purple-300 text-purple-700 hover:bg-purple-100"
-                  >
-                    <Gift className="h-4 w-4 mr-2" />
-                    Evaluate This Gift
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                )}
               </CardContent>
             </Card>
           )}
