@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, useRef, useCallback } from "react";
+import { useState, useSyncExternalStore, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { QuickQuoteForm } from "@/components/forms/quick-quote-form";
 import { FitScoreDisplay } from "@/components/rate-card/fit-score-display";
@@ -10,7 +10,8 @@ import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-
 import { ShareActions } from "@/components/rate-card/share-actions";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { useConfetti } from "@/components/ui/confetti";
+import { AlertCircle, Loader2, RefreshCw, PartyPopper } from "lucide-react";
 import type { CreatorProfile, ParsedBrief, FitScoreResult, PricingResult } from "@/lib/types";
 
 const emptySubscribe = () => () => {};
@@ -44,6 +45,23 @@ export default function QuickQuotePage() {
     pricing: PricingResult;
   } | null>(null);
   const [adjustedPricing, setAdjustedPricing] = useState<PricingResult | null>(null);
+  const [isFirstRateCard, setIsFirstRateCard] = useState(false);
+  const { fireMultiple } = useConfetti();
+
+  // Fire confetti on first rate card generation
+  useEffect(() => {
+    if (result) {
+      const hasGeneratedBefore = localStorage.getItem("hasGeneratedRateCard");
+      if (!hasGeneratedBefore) {
+        setIsFirstRateCard(true);
+        // Small delay to let the UI render first
+        setTimeout(() => {
+          fireMultiple();
+        }, 300);
+        localStorage.setItem("hasGeneratedRateCard", "true");
+      }
+    }
+  }, [result, fireMultiple]);
 
   // undefined means still loading (server render), null means no profile
   if (profile === undefined) {
@@ -107,7 +125,18 @@ export default function QuickQuotePage() {
           <QuickQuoteForm profile={profile} onQuoteGenerated={setResult} />
         </div>
       ) : (
-        <Tabs defaultValue="pricing" className="w-full">
+        <>
+          {/* First rate card celebration */}
+          {isFirstRateCard && (
+            <div className="text-center py-4 animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary">
+                <PartyPopper className="h-5 w-5" />
+                <span className="font-medium">Your first rate card! You&apos;re on your way to getting paid what you&apos;re worth.</span>
+              </div>
+            </div>
+          )}
+
+          <Tabs defaultValue="pricing" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="pricing">Your Rate</TabsTrigger>
             <TabsTrigger value="tips">Negotiation Tips</TabsTrigger>
@@ -128,6 +157,7 @@ export default function QuickQuotePage() {
             <NegotiationCheatSheet pricing={adjustedPricing || result.pricing} />
           </TabsContent>
         </Tabs>
+        </>
       )}
 
       {!result && (

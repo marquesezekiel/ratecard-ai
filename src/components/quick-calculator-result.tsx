@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { ArrowRight, TrendingUp, Sparkles, RefreshCw } from "lucide-react";
 import type { QuickEstimateResult } from "@/lib/types";
 
@@ -16,15 +17,6 @@ export function QuickCalculatorResult({
   result,
   onReset,
 }: QuickCalculatorResultProps) {
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
   const platformDisplayNames: Record<string, string> = {
     instagram: "Instagram",
     tiktok: "TikTok",
@@ -58,7 +50,7 @@ export function QuickCalculatorResult({
           <div className="text-center">
             <p className="text-sm opacity-90 mb-2">Your Estimated Rate</p>
             <div className="text-4xl sm:text-5xl font-bold mb-2">
-              {formatCurrency(result.minRate)} – {formatCurrency(result.maxRate)}
+              <AnimatedNumber value={result.minRate} prefix="$" duration={1000} /> – <AnimatedNumber value={result.maxRate} prefix="$" duration={1200} />
             </div>
             <p className="text-sm opacity-80">
               per {formatDisplayNames[result.contentFormat] || result.contentFormat} on{" "}

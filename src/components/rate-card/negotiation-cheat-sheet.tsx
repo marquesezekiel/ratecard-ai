@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { MessageSquare, Copy, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { CopyIconButton } from "@/components/ui/copy-button";
+import { MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
 import type { PricingResult } from "@/lib/types";
 
 interface NegotiationCheatSheetProps {
@@ -52,15 +52,8 @@ function generateScripts(pricing: PricingResult): Script[] {
 
 export function NegotiationCheatSheet({ pricing }: NegotiationCheatSheetProps) {
   const [expanded, setExpanded] = useState(true);
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const scripts = generateScripts(pricing);
-
-  const copyToClipboard = async (text: string, index: number) => {
-    await navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
 
   return (
     <Card>
@@ -112,18 +105,7 @@ export function NegotiationCheatSheet({ pricing }: NegotiationCheatSheetProps) {
                     </p>
                     <p className="text-sm leading-relaxed">{script.response}</p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="flex-shrink-0"
-                    onClick={() => copyToClipboard(script.response, index)}
-                  >
-                    {copiedIndex === index ? (
-                      <Check className="h-4 w-4 text-emerald-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
+                  <CopyIconButton text={script.response} className="flex-shrink-0" />
                 </div>
               </div>
             </div>

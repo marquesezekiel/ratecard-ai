@@ -23,10 +23,10 @@ import {
   DollarSign,
   AlertTriangle,
   CheckCircle,
-  Copy,
   Shield,
   FileText,
 } from "lucide-react";
+import { CopyButton } from "@/components/ui/copy-button";
 import type { CreatorProfile, MessageAnalysis, MessageSource } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -106,13 +106,6 @@ export function MessageAnalyzerForm({
       toast.error(errorMessage);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCopyResponse = () => {
-    if (analysis?.recommendedResponse) {
-      navigator.clipboard.writeText(analysis.recommendedResponse);
-      toast.success("Response copied to clipboard");
     }
   };
 
@@ -564,10 +557,11 @@ Example Email:
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 bg-muted rounded-lg whitespace-pre-wrap text-sm">{analysis.recommendedResponse}</div>
-              <Button onClick={handleCopyResponse} variant="outline" className="w-full">
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Response
-              </Button>
+              <CopyButton
+                text={analysis.recommendedResponse}
+                label="Copy Response"
+                className="w-full"
+              />
             </CardContent>
           </Card>
 
