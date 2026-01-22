@@ -2161,3 +2161,60 @@ export interface DMImageAnalysis extends DMAnalysis {
  * Response from the DM parsing API that supports both text and image.
  */
 export type DMParseResponse = ApiResponse<DMImageAnalysis>;
+
+// =============================================================================
+// QUICK CALCULATOR TYPES
+// =============================================================================
+
+/**
+ * Input for the Quick Calculator - minimal info needed for a rate estimate.
+ * Used on landing page without requiring authentication.
+ */
+export interface QuickCalculatorInput {
+  /** Total follower count */
+  followerCount: number;
+  /** Target platform for content */
+  platform: Platform;
+  /** Content format type */
+  contentFormat: ContentFormat;
+  /** Creator's primary niche (optional, defaults to "lifestyle") */
+  niche?: string;
+}
+
+/**
+ * A factor that could influence the final rate.
+ * Shown to users to encourage signup for full rate card.
+ */
+export interface RateInfluencer {
+  /** Factor name (e.g., "High Engagement") */
+  name: string;
+  /** Description of why this matters */
+  description: string;
+  /** Potential increase (e.g., "+20%") */
+  potentialIncrease: string;
+}
+
+/**
+ * Result from the Quick Calculator.
+ * Provides a rate range estimate without full profile data.
+ */
+export interface QuickEstimateResult {
+  /** Minimum estimated rate (baseRate - 20%) */
+  minRate: number;
+  /** Maximum estimated rate (baseRate + 20%) */
+  maxRate: number;
+  /** Base calculated rate (before range adjustment) */
+  baseRate: number;
+  /** Creator tier name (e.g., "Micro", "Mid-tier") */
+  tierName: string;
+  /** Creator tier value */
+  tier: CreatorTier;
+  /** Factors that could increase the rate */
+  factors: RateInfluencer[];
+  /** Platform used in calculation */
+  platform: Platform;
+  /** Format used in calculation */
+  contentFormat: ContentFormat;
+  /** Niche used in calculation */
+  niche: string;
+}
