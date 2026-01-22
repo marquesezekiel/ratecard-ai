@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
-  const sessionToken = request.cookies.get("better-auth.session_token")?.value;
+  // Check both cookie names: __Secure- prefix is added in production (HTTPS)
+  const sessionToken = request.cookies.get("__Secure-better-auth.session_token")?.value
+    || request.cookies.get("better-auth.session_token")?.value;
 
   const isAuthPage = request.nextUrl.pathname.startsWith("/sign-in") ||
                      request.nextUrl.pathname.startsWith("/sign-up");
