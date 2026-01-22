@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Zap, FileText, ArrowRight, Clock } from "lucide-react";
+import { Zap, FileText, ArrowRight, Clock, MessageSquare, Gift } from "lucide-react";
 
 interface RateCardHistoryItem {
   name: string;
@@ -41,7 +41,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Two Options */}
+      {/* Main Actions */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5">
           <CardContent className="p-6">
@@ -61,6 +61,27 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-500/5 via-blue-500/10 to-blue-500/5">
+          <CardContent className="p-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 mb-4">
+              <MessageSquare className="h-6 w-6 text-blue-600" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">Analyze Brand DM</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              Paste a brand message to get instant analysis and response.
+            </p>
+            <Link href="/dashboard/analyze">
+              <Button variant="outline" className="w-full sm:w-auto border-blue-200 text-blue-700 hover:bg-blue-50">
+                Analyze DM
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Secondary Actions */}
+      <div className="grid gap-4 sm:grid-cols-2">
         <Card className="relative overflow-hidden">
           <CardContent className="p-6">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-secondary mb-4">
@@ -73,6 +94,24 @@ export default function DashboardPage() {
             <Link href="/dashboard/upload">
               <Button variant="outline" className="w-full sm:w-auto">
                 Upload Brief
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-purple-500/5 via-purple-500/10 to-purple-500/5">
+          <CardContent className="p-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10 mb-4">
+              <Gift className="h-6 w-6 text-purple-600" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">Evaluate Gift Offer</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              Decide if a gift deal is worth your time and what to ask for.
+            </p>
+            <Link href="/dashboard/gifts">
+              <Button variant="outline" className="w-full sm:w-auto border-purple-200 text-purple-700 hover:bg-purple-50">
+                Evaluate Gift
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
