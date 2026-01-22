@@ -9,6 +9,7 @@ import { PriceAdjuster } from "@/components/rate-card/price-adjuster";
 import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-sheet";
 import { ShareActions } from "@/components/rate-card/share-actions";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import type { CreatorProfile, ParsedBrief, FitScoreResult, PricingResult } from "@/lib/types";
 
@@ -106,17 +107,27 @@ export default function QuickQuotePage() {
           <QuickQuoteForm profile={profile} onQuoteGenerated={setResult} />
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <FitScoreDisplay fitScore={result.fitScore} />
-            <PricingBreakdown pricing={result.pricing} />
-          </div>
-          <PriceAdjuster
-            calculatedPricing={result.pricing}
-            onPriceChange={setAdjustedPricing}
-          />
-          <NegotiationCheatSheet pricing={adjustedPricing || result.pricing} />
-        </div>
+        <Tabs defaultValue="pricing" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="pricing">Your Rate</TabsTrigger>
+            <TabsTrigger value="tips">Negotiation Tips</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pricing" className="space-y-6 mt-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <FitScoreDisplay fitScore={result.fitScore} />
+              <PricingBreakdown pricing={result.pricing} />
+            </div>
+            <PriceAdjuster
+              calculatedPricing={result.pricing}
+              onPriceChange={setAdjustedPricing}
+            />
+          </TabsContent>
+
+          <TabsContent value="tips" className="mt-6">
+            <NegotiationCheatSheet pricing={adjustedPricing || result.pricing} />
+          </TabsContent>
+        </Tabs>
       )}
 
       {!result && (
