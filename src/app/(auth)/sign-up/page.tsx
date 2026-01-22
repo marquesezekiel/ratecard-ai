@@ -47,7 +47,8 @@ export default function SignUpPage() {
         return;
       }
 
-      router.push("/dashboard/profile");
+      // Use full page navigation to ensure cookies are properly attached
+      window.location.href = "/dashboard/profile";
     } catch {
       setError("An unexpected error occurred");
       setIsLoading(false);

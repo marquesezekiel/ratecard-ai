@@ -33,7 +33,8 @@ export default function SignInPage() {
         return;
       }
 
-      router.push("/dashboard");
+      // Use full page navigation to ensure cookies are properly attached
+      window.location.href = "/dashboard";
     } catch {
       setError("An unexpected error occurred");
       setIsLoading(false);
