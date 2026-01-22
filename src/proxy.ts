@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const sessionToken = request.cookies.get("better-auth.session_token")?.value;
 
   const isAuthPage = request.nextUrl.pathname.startsWith("/sign-in") ||
