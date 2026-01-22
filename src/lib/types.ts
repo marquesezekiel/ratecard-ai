@@ -2471,3 +2471,110 @@ export interface QuickEstimateResult {
   /** Niche used in calculation */
   niche: string;
 }
+
+// =============================================================================
+// BRAND VETTER TYPES
+// =============================================================================
+
+/**
+ * Input for vetting a brand's legitimacy.
+ */
+export interface BrandVettingInput {
+  /** Brand/company name (required) */
+  brandName: string;
+  /** Brand's social handle e.g., @glowskinco (optional) */
+  brandHandle?: string;
+  /** Brand's website URL e.g., https://glowskin.co (optional) */
+  brandWebsite?: string;
+  /** Brand's email address (optional) */
+  brandEmail?: string;
+  /** Platform where brand reached out */
+  platform: Platform;
+}
+
+/**
+ * Result from vetting a brand's legitimacy.
+ */
+export interface BrandVettingResult {
+  /** Overall trust score (0-100) */
+  trustScore: number;
+  /** Trust level category */
+  trustLevel: TrustLevel;
+
+  /** Breakdown by category (each 0-25 points) */
+  breakdown: {
+    socialPresence: BrandCategoryScore;
+    websiteVerification: BrandCategoryScore;
+    collaborationHistory: BrandCategoryScore;
+    scamIndicators: BrandCategoryScore;
+  };
+
+  /** Positive and neutral findings */
+  findings: BrandFinding[];
+  /** Red flags detected */
+  redFlags: BrandRedFlag[];
+  /** Actionable recommendations */
+  recommendations: string[];
+
+  /** When this vetting was performed */
+  checkedAt: Date;
+  /** Sources used for research */
+  dataSources: string[];
+  /** Whether result was from cache */
+  cached: boolean;
+}
+
+/**
+ * Trust level based on brand vetting score.
+ *
+ * - verified: 80-100 - Safe to proceed
+ * - likely_legit: 60-79 - Probably fine, do basic due diligence
+ * - caution: 40-59 - Proceed carefully, ask questions
+ * - high_risk: 0-39 - Likely scam, consider avoiding
+ */
+export type TrustLevel = "verified" | "likely_legit" | "caution" | "high_risk";
+
+/**
+ * Score breakdown for a brand vetting category.
+ */
+export interface BrandCategoryScore {
+  /** Score for this category (0-25) */
+  score: number;
+  /** Confidence in the assessment */
+  confidence: "high" | "medium" | "low";
+  /** Key details for this category */
+  details: string[];
+}
+
+/**
+ * A finding about a brand during vetting.
+ */
+export interface BrandFinding {
+  /** Category this finding relates to */
+  category: "social" | "website" | "collabs" | "scam_check";
+  /** The finding description */
+  finding: string;
+  /** Supporting evidence or data */
+  evidence?: string;
+  /** Whether this is positive, neutral, or negative */
+  sentiment: "positive" | "neutral" | "negative";
+}
+
+/**
+ * A red flag detected during brand vetting.
+ */
+export interface BrandRedFlag {
+  /** Severity of the red flag */
+  severity: "high" | "medium" | "low";
+  /** What the red flag is */
+  flag: string;
+  /** Why this is concerning */
+  explanation: string;
+  /** Where this was detected */
+  source?: string;
+}
+
+/**
+ * Response from the Brand Vetter API.
+ */
+export type BrandVettingResponse = ApiResponse<BrandVettingResult>;
