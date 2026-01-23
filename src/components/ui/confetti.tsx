@@ -16,7 +16,8 @@ export function useConfetti() {
       particleCount: 100,
       spread: 70,
       origin: { y: 0.6 },
-      colors: ['#8B5CF6', '#A78BFA', '#C4B5FD', '#22C55E', '#FCD34D']
+      // Teal, Mint, Coral, Sky, Amber
+      colors: ['#36a9b1', '#4ADE80', '#FF7B54', '#38bdf8', '#fcd34d']
     }
 
     confetti({
@@ -31,7 +32,8 @@ export function useConfetti() {
     const count = 200
     const defaults = {
       origin: { y: 0.7 },
-      colors: ['#8B5CF6', '#A78BFA', '#C4B5FD', '#22C55E', '#FCD34D']
+      // Teal, Mint, Coral, Sky, Amber
+      colors: ['#36a9b1', '#4ADE80', '#FF7B54', '#38bdf8', '#fcd34d']
     }
 
     function fire(particleRatio: number, opts: confetti.Options) {
