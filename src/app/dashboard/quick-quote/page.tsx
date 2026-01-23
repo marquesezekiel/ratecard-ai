@@ -10,8 +10,10 @@ import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-
 import { ShareActions } from "@/components/rate-card/share-actions";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useConfetti } from "@/components/ui/confetti";
-import { AlertCircle, Loader2, RefreshCw, PartyPopper } from "lucide-react";
+import { CelebrationToast } from "@/components/ui/celebration-toast";
+import { useCelebration } from "@/hooks/use-celebration";
+import { getRateCardCount } from "@/lib/celebrations";
+import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import type { CreatorProfile, ParsedBrief, FitScoreResult, PricingResult } from "@/lib/types";
 
 const emptySubscribe = () => () => {};
@@ -45,28 +47,31 @@ export default function QuickQuotePage() {
     pricing: PricingResult;
   } | null>(null);
   const [adjustedPricing, setAdjustedPricing] = useState<PricingResult | null>(null);
-  const [showCelebration, setShowCelebration] = useState(false);
-  const { fireMultiple } = useConfetti();
+  const { celebration, celebrate, dismissCelebration } = useCelebration();
 
-  // Track whether we've already handled the first rate card celebration
-  const hasCheckedFirstRateCard = useRef(false);
+  // Track whether we've already handled celebrations for this result
+  const hasCheckedCelebrations = useRef(false);
 
-  // Fire confetti on first rate card generation - use a callback in setTimeout to satisfy lint
+  // Check for milestone celebrations when result is generated
   useEffect(() => {
-    if (!result || hasCheckedFirstRateCard.current) return;
+    if (!result || hasCheckedCelebrations.current) return;
 
-    hasCheckedFirstRateCard.current = true;
-    const hasGeneratedBefore = localStorage.getItem("hasGeneratedRateCard");
+    hasCheckedCelebrations.current = true;
 
-    if (!hasGeneratedBefore) {
-      localStorage.setItem("hasGeneratedRateCard", "true");
-      // Use setTimeout callback to trigger state update and confetti
-      setTimeout(() => {
-        setShowCelebration(true);
-        fireMultiple();
-      }, 300);
-    }
-  }, [result, fireMultiple]);
+    // Small delay for better UX
+    setTimeout(() => {
+      const count = getRateCardCount();
+      if (count === 0) {
+        celebrate("first_rate_card");
+      } else if (count === 4) {
+        // Will become 5 after save
+        celebrate("fifth_rate_card");
+      }
+      if (result.pricing.totalPrice >= 1000) {
+        celebrate("high_rate_reached");
+      }
+    }, 300);
+  }, [result, celebrate]);
 
   // undefined means still loading (server render), null means no profile
   if (profile === undefined) {
@@ -131,14 +136,14 @@ export default function QuickQuotePage() {
         </div>
       ) : (
         <>
-          {/* First rate card celebration */}
-          {showCelebration && (
-            <div className="text-center py-4 animate-in fade-in slide-in-from-top-4 duration-500">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary">
-                <PartyPopper className="h-5 w-5" />
-                <span className="font-medium">Your first rate card! You&apos;re on your way to getting paid what you&apos;re worth.</span>
-              </div>
-            </div>
+          {/* Celebration toast */}
+          {celebration.isShowing && celebration.milestone && (
+            <CelebrationToast
+              title={celebration.milestone.title}
+              subtitle={celebration.milestone.subtitle}
+              emoji={celebration.milestone.emoji}
+              onClose={dismissCelebration}
+            />
           )}
 
           <Tabs defaultValue="pricing" className="w-full">
