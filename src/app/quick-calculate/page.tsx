@@ -50,11 +50,14 @@ export default function QuickCalculatePage() {
             {/* Left: Value Proposition */}
             <div className="space-y-6 lg:sticky lg:top-8">
               <div>
-                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-                  Know Your Worth in{" "}
-                  <span className="text-primary">Seconds</span>
+                <h1 className="text-3xl sm:text-4xl font-display font-bold tracking-tight">
+                  Rate Reality Check
                 </h1>
-                <p className="text-muted-foreground mt-3 text-lg">
+                <p className="text-xl text-muted-foreground mt-2">
+                  See where you stand among{" "}
+                  <span className="text-primary font-semibold">10,000+ creators</span>
+                </p>
+                <p className="text-muted-foreground mt-3">
                   Get an instant rate estimate based on your follower count,
                   platform, and niche. No signup required.
                 </p>

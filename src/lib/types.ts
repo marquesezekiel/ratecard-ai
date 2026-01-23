@@ -2448,6 +2448,21 @@ export interface RateInfluencer {
 }
 
 /**
+ * A factor NOT included in the quick estimate.
+ * Creates "the gap" that encourages signup.
+ */
+export interface MissingFactor {
+  /** Factor name */
+  name: string;
+  /** Impact on rate (e.g., "±30%") */
+  impact: string;
+  /** Description of why this matters */
+  description: string;
+  /** Lucide icon name */
+  icon: string;
+}
+
+/**
  * Result from the Quick Calculator.
  * Provides a rate range estimate without full profile data.
  */
@@ -2470,6 +2485,16 @@ export interface QuickEstimateResult {
   contentFormat: ContentFormat;
   /** Niche used in calculation */
   niche: string;
+
+  // NEW: Percentile & comparison data
+  /** Percentile rank among creators in this tier (0-100) */
+  percentile: number;
+  /** Rate range for top 25% performers in this tier */
+  topPerformerRange: { min: number; max: number };
+  /** Potential rate with full profile (engagement + rights + exclusivity) */
+  potentialWithFullProfile: number;
+  /** Factors NOT included in this estimate (creates the gap) */
+  missingFactors: MissingFactor[];
 }
 
 // =============================================================================

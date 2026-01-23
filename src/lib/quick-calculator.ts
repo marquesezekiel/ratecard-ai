@@ -20,13 +20,14 @@ import type {
   QuickCalculatorInput,
   QuickEstimateResult,
   RateInfluencer,
+  MissingFactor,
   CreatorTier,
   Platform,
   ContentFormat,
 } from "./types";
 
 // Re-export types for convenience
-export type { QuickCalculatorInput, QuickEstimateResult, RateInfluencer };
+export type { QuickCalculatorInput, QuickEstimateResult, RateInfluencer, MissingFactor };
 
 // =============================================================================
 // CONSTANTS
@@ -84,6 +85,51 @@ const TIER_DISPLAY_NAMES: Record<CreatorTier, string> = {
   mega: "Mega",
   celebrity: "Celebrity",
 };
+
+/**
+ * Percentile data by tier (based on aggregated creator data).
+ * Shows where a creator's rate falls within their peer group.
+ */
+const TIER_PERCENTILE_RANGES: Record<CreatorTier, { p25: number; p50: number; p75: number; p90: number }> = {
+  nano: { p25: 100, p50: 150, p75: 225, p90: 350 },
+  micro: { p25: 275, p50: 400, p75: 550, p90: 750 },
+  mid: { p25: 550, p50: 800, p75: 1100, p90: 1500 },
+  rising: { p25: 1000, p50: 1500, p75: 2100, p90: 3000 },
+  macro: { p25: 2000, p50: 3000, p75: 4500, p90: 6500 },
+  mega: { p25: 4000, p50: 6000, p75: 9000, p90: 14000 },
+  celebrity: { p25: 8000, p50: 12000, p75: 20000, p90: 35000 },
+};
+
+/**
+ * Factors NOT included in the quick estimate.
+ * Creates "the gap" that encourages signup.
+ */
+const MISSING_FACTORS: MissingFactor[] = [
+  {
+    name: "Your Actual Engagement",
+    impact: "±30%",
+    description: "High engagement = higher rates. We assumed 3% average.",
+    icon: "TrendingUp",
+  },
+  {
+    name: "Audience Location",
+    impact: "+40%",
+    description: "US/UK audiences pay significantly more than global average.",
+    icon: "Globe",
+  },
+  {
+    name: "Past Brand Work",
+    impact: "+15-25%",
+    description: "Portfolio with recognizable brands justifies premium rates.",
+    icon: "Briefcase",
+  },
+  {
+    name: "Content Quality",
+    impact: "+20-50%",
+    description: "Professional production value commands higher rates.",
+    icon: "Camera",
+  },
+];
 
 // =============================================================================
 // RATE INFLUENCER DEFINITIONS
@@ -154,6 +200,37 @@ function getEngagementMultiplier(engagementRate: number): number {
  */
 function roundToNearestFive(price: number): number {
   return Math.round(price / 5) * 5;
+}
+
+/**
+ * Calculate percentile rank for a given rate within a tier.
+ */
+export function calculatePercentile(rate: number, tier: CreatorTier): number {
+  const ranges = TIER_PERCENTILE_RANGES[tier];
+
+  if (rate <= ranges.p25) return Math.round((rate / ranges.p25) * 25);
+  if (rate <= ranges.p50) return 25 + Math.round(((rate - ranges.p25) / (ranges.p50 - ranges.p25)) * 25);
+  if (rate <= ranges.p75) return 50 + Math.round(((rate - ranges.p50) / (ranges.p75 - ranges.p50)) * 25);
+  if (rate <= ranges.p90) return 75 + Math.round(((rate - ranges.p75) / (ranges.p90 - ranges.p75)) * 15);
+  return Math.min(99, 90 + Math.round(((rate - ranges.p90) / ranges.p90) * 9));
+}
+
+/**
+ * Get the range for top performers in this tier.
+ */
+export function getTopPerformerRange(tier: CreatorTier): { min: number; max: number } {
+  const ranges = TIER_PERCENTILE_RANGES[tier];
+  return { min: ranges.p75, max: ranges.p90 };
+}
+
+/**
+ * Calculate the potential rate if engagement was high (6%+).
+ * Includes engagement boost, usage rights, and exclusivity premiums.
+ */
+export function calculatePotentialRate(baseRate: number): number {
+  // High engagement (6%+) = 1.6x multiplier
+  // Plus usage rights (+50%) and exclusivity (+30%)
+  return Math.round(baseRate * 1.6 * 1.5 * 1.3);
 }
 
 /**
@@ -260,6 +337,11 @@ export function calculateQuickEstimate(
     platform,
     contentFormat,
     niche,
+    // NEW: Percentile & comparison data
+    percentile: calculatePercentile(baseRate, tier),
+    topPerformerRange: getTopPerformerRange(tier),
+    potentialWithFullProfile: calculatePotentialRate(baseRate),
+    missingFactors: MISSING_FACTORS,
   };
 }
 
