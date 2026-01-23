@@ -5,6 +5,7 @@ export type MilestoneType =
   | "first_brand_vetted"
   | "profile_complete"
   | "high_rate_reached"
+  | "profile_level_up"
 
 interface Milestone {
   type: MilestoneType
@@ -49,6 +50,12 @@ export const MILESTONES: Record<MilestoneType, Milestone> = {
     title: "You quoted $1,000+!",
     emoji: "🚀",
     subtitle: "Big creator energy.",
+  },
+  profile_level_up: {
+    type: "profile_level_up",
+    title: "Level up!",
+    emoji: "⬆️",
+    subtitle: "Your profile just got stronger.",
   },
 }
 

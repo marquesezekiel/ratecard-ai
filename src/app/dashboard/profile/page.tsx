@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, startTransition, useCallback } from "react";
+import { useState, useEffect, startTransition, useCallback, useRef } from "react";
 import { ProfileForm } from "@/components/forms/profile-form";
 import {
   ProfileCompleteness,
@@ -8,6 +8,9 @@ import {
 } from "@/components/profile/profile-completeness";
 import { RatePreviewCard } from "@/components/profile/rate-preview-card";
 import { MobileRateSheet } from "@/components/profile/mobile-rate-sheet";
+import { useCelebration } from "@/hooks/use-celebration";
+import { CelebrationToast } from "@/components/ui/celebration-toast";
+import { getCreatorLevel, type CreatorLevel } from "@/lib/gamification";
 
 interface ProfileFormValues {
   displayName?: string;
@@ -30,6 +33,9 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [formValues, setFormValues] = useState<ProfileFormValues>({});
   const [completeness, setCompleteness] = useState(0);
+  const prevLevelRef = useRef<CreatorLevel | null>(null);
+
+  const { celebration, celebrate, dismissCelebration } = useCelebration();
 
   useEffect(() => {
     const stored = localStorage.getItem("creatorProfile");
@@ -39,7 +45,10 @@ export default function ProfilePage() {
           const data = JSON.parse(stored);
           setInitialData(data);
           setFormValues(data);
-          setCompleteness(calculateProfileCompleteness(data));
+          const initialCompleteness = calculateProfileCompleteness(data);
+          setCompleteness(initialCompleteness);
+          // Set initial level without triggering celebration
+          prevLevelRef.current = getCreatorLevel(initialCompleteness);
         } catch {
           // Invalid JSON, start fresh
         }
@@ -47,6 +56,24 @@ export default function ProfilePage() {
       setIsLoading(false);
     });
   }, []);
+
+  // Check for level-up when completeness changes
+  const currentLevel = getCreatorLevel(completeness);
+
+  useEffect(() => {
+    if (prevLevelRef.current && prevLevelRef.current !== currentLevel) {
+      // Level changed - check if it's an upgrade
+      const levels: CreatorLevel[] = ["beginner", "rising", "pro", "expert"];
+      const prevIndex = levels.indexOf(prevLevelRef.current);
+      const currentIndex = levels.indexOf(currentLevel);
+
+      if (currentIndex > prevIndex) {
+        // Level up! Celebrate
+        celebrate("profile_level_up");
+      }
+    }
+    prevLevelRef.current = currentLevel;
+  }, [currentLevel, celebrate]);
 
   const handleValuesChange = useCallback((values: ProfileFormValues) => {
     setFormValues(values);
@@ -83,6 +110,16 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Celebration Toast */}
+      {celebration.isShowing && celebration.milestone && (
+        <CelebrationToast
+          title={celebration.milestone.title}
+          subtitle={celebration.milestone.subtitle}
+          emoji={celebration.milestone.emoji}
+          onClose={dismissCelebration}
+        />
+      )}
+
       {/* Page Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
@@ -91,7 +128,7 @@ export default function ProfilePage() {
             The more you share, the more accurate your rates
           </p>
         </div>
-        <ProfileCompleteness percentage={completeness} />
+        <ProfileCompleteness percentage={completeness} showDetails />
       </div>
 
       {/* Two-column layout on desktop */}
