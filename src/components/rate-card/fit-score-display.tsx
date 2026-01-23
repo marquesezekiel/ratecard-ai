@@ -103,7 +103,7 @@ export function FitScoreDisplay({ fitScore }: FitScoreDisplayProps) {
             </svg>
             {/* Score number in center */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-4xl font-bold tracking-tight">{fitScore.totalScore}</span>
+              <span className="text-4xl font-bold font-money tracking-tight">{fitScore.totalScore}</span>
               <span className="text-xs text-muted-foreground">out of 100</span>
             </div>
           </div>

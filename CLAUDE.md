@@ -202,6 +202,38 @@ Tracks deal outcomes to build market intelligence.
 - Revenue tracking
 - "Creators like you" market benchmarks
 
+### Quick Calculator (`src/lib/quick-calculator.ts`)
+
+Public landing page tool for instant rate estimates without signup:
+- Uses simplified pricing engine with assumed 3% engagement
+- Returns min/max rate range (±20%)
+- Shows factors that could increase rate
+- Strong CTA to signup for full rate card
+
+### Contract Scanner (`src/lib/contract-scanner.ts`)
+
+Analyzes contracts for red flags and missing clauses:
+- LLM-powered analysis against 4 categories: payment, content rights, exclusivity, legal
+- Quotes specific contract language as evidence
+- Calculates health score (0-100)
+- Generates ready-to-send change request email
+
+### Brand Vetter (`src/lib/brand-vetter.ts`)
+
+Researches brand legitimacy before creators engage:
+- 4 scoring categories: Social Presence, Website, Creator Collabs, Scam Check
+- Trust levels: Verified (80+), Likely Legit (60-79), Caution (40-59), High Risk (<40)
+- Integrated with Message Analyzer via "Vet This Brand" button
+
+### Message Analyzer (`src/lib/message-analyzer.ts`)
+
+Unified DM + Email analyzer (refactored from dm-parser.ts):
+- Auto-detects message source (Instagram DM, TikTok DM, Email, etc.)
+- Extracts brand info, compensation type, tone
+- Gift offer detection with conversion potential scoring
+- Email metadata extraction (subject, sender, signature)
+- Backwards compatible: `dm-parser.ts` re-exports for existing code
+
 ### Supporting Features
 
 **FTC Guidance (`src/lib/ftc-guidance.ts`):**
@@ -243,10 +275,22 @@ All shared types in `src/lib/types.ts`. Key type categories:
 - `BriefData`, `ParsedBrief`, `PricingResult`, `RateCardData`
 - `DealQualityResult` (replaced FitScoreResult)
 
-**DM Analysis Types:**
-- `DMAnalysis`, `DMCompensationType`, `DMTone`, `DMUrgency`
+**Message Analysis Types (DM + Email):**
+- `MessageAnalysis`, `MessageSource`, `DMCompensationType`, `DMTone`, `DMUrgency`
 - `DMImageAnalysis`, `ImageTextExtraction`
 - `GiftAnalysis`, `GiftConversionPotential`
+- `DMAnalysis` (alias for backwards compatibility)
+
+**Contract Scanner Types:**
+- `ContractScanInput`, `ContractScanResult`, `CategoryAnalysis`
+- `FoundClause`, `MissingClause`, `ContractRedFlag`
+
+**Brand Vetter Types:**
+- `BrandVettingInput`, `BrandVettingResult`, `TrustLevel`
+- `CategoryScore`, `BrandFinding`, `BrandRedFlag`
+
+**Quick Calculator Types:**
+- `QuickCalculatorInput`, `QuickEstimateResult`, `RateInfluencer`
 
 **Gift System Types:**
 - `GiftEvaluationInput`, `GiftEvaluation`, `GiftRecommendation`
@@ -265,14 +309,24 @@ All routes use `ApiResponse<T>` format: `{ success: boolean, data?: T, error?: s
 |-------|--------|------|-------------|
 | `/api/parse-brief` | POST | Yes | Parse uploaded PDF/DOCX brief |
 | `/api/calculate` | POST | Yes | Calculate pricing for authenticated users |
-| `/api/public-calculate` | POST | No | Calculate pricing for anonymous users |
+| `/api/public-calculate` | POST | No | Calculate pricing for anonymous users (Quick Calculator) |
 | `/api/generate-pdf` | POST | Yes | Generate rate card PDF |
 
-**DM Analysis:**
+**Message Analysis (DM + Email):**
 | Route | Method | Auth | Description |
 |-------|--------|------|-------------|
-| `/api/parse-dm` | POST | Yes | Parse DM text/screenshot |
+| `/api/parse-dm` | POST | Yes | Parse DM or email text/screenshot (auto-detects source) |
 | `/api/evaluate-gift` | POST | Yes | Evaluate gift deal worth |
+
+**Contract Scanner:**
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/scan-contract` | POST | Yes | Analyze contract for red flags and missing clauses |
+
+**Brand Vetter:**
+| Route | Method | Auth | Description |
+|-------|--------|------|-------------|
+| `/api/vet-brand` | POST | Yes | Research brand legitimacy and trust score |
 
 **Gift Tracking:**
 | Route | Method | Auth | Description |
@@ -304,6 +358,110 @@ All routes use `ApiResponse<T>` format: `{ success: boolean, data?: T, error?: s
 - Pricing adjustments use `type: "add" | "multiply"` for transparent breakdowns
 - All authenticated routes verify session via `auth.api.getSession()`
 - LLM calls use Groq primary with Gemini fallback, exponential backoff retry
+
+---
+
+## Design System
+
+### Typography
+
+**Font Stack:**
+- **Satoshi** (`--font-sans`) - Primary font for body text and UI elements. Friendly, modern, highly readable.
+- **Clash Display** (`--font-display`) - Headlines and page titles. Bold, distinctive, contemporary.
+- **JetBrains Mono** (`--font-mono`) - Numbers, monetary values, code. Clean tabular alignment.
+
+**Font Usage:**
+```tsx
+// Headlines - use font-display
+<h1 className="font-display font-bold">Page Title</h1>
+
+// Body text - default font-sans
+<p className="text-muted-foreground">Description text</p>
+
+// Monetary values - use font-mono
+<span className="font-mono">${amount.toLocaleString()}</span>
+```
+
+**Font Sizes (Tailwind):**
+| Use Case | Desktop | Mobile |
+|----------|---------|--------|
+| Hero | `text-5xl md:text-7xl` | 48px / 72px |
+| Page Title | `text-2xl md:text-3xl` | 24px / 30px |
+| Section | `text-xl md:text-2xl` | 20px / 24px |
+| Body | `text-base` | 16px |
+| Small | `text-sm` | 14px |
+| Tiny | `text-xs` | 12px |
+
+### Spacing System (8px base)
+
+**Standard Spacing:**
+| Token | Size | Use Case |
+|-------|------|----------|
+| `space-1` | 4px | Icon gaps, tight padding |
+| `space-2` | 8px | Component internal spacing |
+| `space-3` | 12px | Small gaps |
+| `space-4` | 16px | Component gap, form fields |
+| `space-6` | 24px | Section gap, card padding |
+| `space-8` | 32px | Large section gap |
+| `space-12` | 48px | Page sections |
+
+**Layout Constants (`src/lib/layout.ts`):**
+```tsx
+container: { sm: "max-w-2xl", md: "max-w-4xl", lg: "max-w-6xl" }
+spacing: { page: "py-6", section: "space-y-6", card: "p-6" }
+pageHeader: "space-y-1 mb-6"
+```
+
+### Animation Patterns
+
+**Components in `src/components/ui/`:**
+
+| Component | Purpose | Usage |
+|-----------|---------|-------|
+| `AnimatedNumber` | Count-up animation for values | Rate reveals, stats |
+| `AnimatedGauge` | Circular progress with fill animation | Scores (0-100) |
+| `CopyButton` | Copy-to-clipboard with "Copied!" feedback | Response templates |
+| `useConfetti` | Celebration confetti burst | First rate card |
+
+**Standard Transitions:**
+```tsx
+// Button press feedback
+"active:scale-[0.98] transition-transform"
+
+// Card hover
+"hover:shadow-md hover:-translate-y-0.5 transition-all"
+
+// Fade in with slide
+"animate-in fade-in slide-in-from-bottom-4 duration-500"
+```
+
+### Component Patterns
+
+**Page Structure:**
+```tsx
+<PageContainer
+  title="Page Title"
+  description="Optional description"
+  maxWidth="md" // sm | md | lg
+>
+  {/* Content sections with space-y-6 */}
+</PageContainer>
+```
+
+**Collapsible Sections (`ProfileSection`):**
+- Used for progressive disclosure
+- Default open for required sections
+- Badge support for "Optional" / "Recommended"
+
+**Cards:**
+- Consistent padding: `p-6` (desktop), `p-4` (mobile compact)
+- Use `CardHeader`, `CardContent`, `CardFooter` from shadcn/ui
+- Border: `border-2` for emphasis, default for standard
+
+**Navigation:**
+- Mobile: 3 bottom nav items + Menu sheet + FAB
+- Desktop: Sidebar navigation
+- FAB: Primary action (New Rate Card), always visible
 
 ---
 

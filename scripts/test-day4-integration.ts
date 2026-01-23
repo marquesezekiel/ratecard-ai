@@ -12,7 +12,7 @@
  */
 
 import { parseDMText, isLikelyGiftOffer, isLikelyMassOutreach } from "../src/lib/dm-parser";
-import { evaluateGiftDeal, calculateTimeValue, calculateAudienceValue, getHourlyRate } from "../src/lib/gift-evaluator";
+import { evaluateGiftDeal, calculateTimeValue } from "../src/lib/gift-evaluator";
 import { generateGiftResponse, getConversionPlaybookScript } from "../src/lib/gift-responses";
 import {
   calculateAcceptanceRate,
@@ -29,7 +29,6 @@ import {
 import type {
   CreatorProfile,
   GiftEvaluationInput,
-  GiftEvaluation,
   Outcome,
   DMAnalysis,
 } from "../src/lib/types";
@@ -119,7 +118,7 @@ const microCreatorProfile: CreatorProfile = {
   updatedAt: new Date(),
 };
 
-const nanoCreatorProfile: CreatorProfile = {
+const _nanoCreatorProfile: CreatorProfile = {
   ...microCreatorProfile,
   id: "test-creator-2",
   tier: "nano",
@@ -132,11 +131,11 @@ const PAID_DM = `Hi! We love your content. We have a $500 budget for an Instagra
 
 const GIFT_DM = `Hey! We'd love to send you our new skincare line to try and share with your followers!`;
 
-const HYBRID_DM = `Hello! We'd like to offer you a collaboration - $300 plus our full product collection worth $200. We're looking for 2 Instagram posts and 3 stories.`;
+const _HYBRID_DM = `Hello! We'd like to offer you a collaboration - $300 plus our full product collection worth $200. We're looking for 2 Instagram posts and 3 stories.`;
 
 const MASS_OUTREACH_DM = `Hey babe! 💕💕 We LOVE your feed and think you'd be PERFECT for our brand! DM us for a collab! 🌟✨`;
 
-const UNCLEAR_DM = `Hi there, we're interested in working with you. Can we discuss a potential partnership?`;
+const _UNCLEAR_DM = `Hi there, we're interested in working with you. Can we discuss a potential partnership?`;
 
 // =============================================================================
 // FLOW 1: PAID DM PARSING

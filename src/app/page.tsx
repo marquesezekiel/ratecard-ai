@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Zap, ArrowRight, DollarSign, Clock, FileText, TrendingUp, Shield, Star } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Sparkles, Zap, ArrowRight, FileText, TrendingUp, Star, MessageSquare, Check, User, Download } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -29,10 +30,16 @@ export default function HomePage() {
 
       {/* Hero Section - Asymmetric on Desktop */}
       <section className="pt-24 lg:pt-32 pb-16 lg:pb-24 px-4 sm:px-6 lg:px-8 relative">
-        {/* Background decoration - visible on desktop */}
-        <div className="hidden lg:block absolute top-20 right-0 w-1/2 h-full">
-          <div className="absolute top-1/4 right-12 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 right-32 w-64 h-64 bg-primary/10 rounded-full blur-2xl" />
+        {/* Background decoration */}
+        <div className="absolute inset-0 -z-10">
+          {/* Mobile: Simple gradient */}
+          <div className="lg:hidden absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10" />
+
+          {/* Desktop: Animated blobs */}
+          <div className="hidden lg:block absolute top-20 right-0 w-1/2 h-full">
+            <div className="absolute top-1/4 right-12 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
+            <div className="absolute top-1/2 right-32 w-64 h-64 bg-primary/10 rounded-full blur-2xl" />
+          </div>
         </div>
 
         <div className="mx-auto max-w-7xl">
@@ -46,7 +53,7 @@ export default function HomePage() {
               </div>
 
               {/* Main headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight leading-[1.1]">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-display font-bold tracking-tight leading-[1.1]">
                 stop guessing.
                 <br />
                 <span className="text-gradient">start charging.</span>
@@ -90,15 +97,15 @@ export default function HomePage() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center py-3 border-b border-border/50">
                       <span className="text-muted-foreground">Instagram Reel</span>
-                      <span className="font-bold text-lg">$425</span>
+                      <span className="font-bold text-lg font-money">$425</span>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-border/50">
                       <span className="text-muted-foreground">TikTok Video</span>
-                      <span className="font-bold text-lg">$380</span>
+                      <span className="font-bold text-lg font-money">$380</span>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-border/50">
                       <span className="text-muted-foreground">Story Bundle (3x)</span>
-                      <span className="font-bold text-lg">$275</span>
+                      <span className="font-bold text-lg font-money">$275</span>
                     </div>
                   </div>
 
@@ -124,137 +131,121 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features - Bento Grid on Desktop */}
-      <section className="py-16 lg:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="mx-auto max-w-7xl">
-          {/* Section header - left aligned on desktop */}
-          <div className="max-w-2xl mb-12 lg:mb-16">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
-              Pricing that <span className="text-gradient">makes sense</span>
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              We built the algorithm you wish you had when that first brand slid into your DMs.
-            </p>
+      {/* Features - 2 Hero Features */}
+      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="text-3xl md:text-4xl font-display font-bold text-center mb-12">
+            Everything you need to get paid fairly
+          </h2>
+
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8">
+            {/* Feature 1: Message Analyzer (Killer Feature) */}
+            <Card className="p-6 md:p-8 border-2 hover:shadow-lg transition-shadow">
+              <div className="space-y-4">
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <MessageSquare className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-display font-semibold">
+                  Analyze Any Brand Message
+                </h3>
+                <p className="text-muted-foreground">
+                  Paste a DM or email. We&apos;ll tell you if it&apos;s legit, what to charge,
+                  and give you a response to copy-paste.
+                </p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    Detects gift offers vs paid opportunities
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    Spots scams and red flags
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    Generates ready-to-send responses
+                  </li>
+                </ul>
+              </div>
+            </Card>
+
+            {/* Feature 2: Rate Cards */}
+            <Card className="p-6 md:p-8 border-2 hover:shadow-lg transition-shadow">
+              <div className="space-y-4">
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-display font-semibold">
+                  Professional Rate Cards
+                </h3>
+                <p className="text-muted-foreground">
+                  Generate a PDF rate card you can send to any brand. Backed by real
+                  market data so you never undercharge.
+                </p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    10+ pricing factors calculated
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    Negotiation talking points included
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    Looks like it came from an agency
+                  </li>
+                </ul>
+              </div>
+            </Card>
           </div>
 
-          {/* Bento grid */}
-          <div className="grid gap-4 lg:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {/* Big feature - spans 2 cols on desktop */}
-            <div className="md:col-span-2 lg:col-span-2 rounded-3xl bg-primary p-8 lg:p-10 text-primary-foreground hover-scale">
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-                <div className="flex-1">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 mb-6">
-                    <DollarSign className="h-7 w-7" />
-                  </div>
-                  <h3 className="text-2xl lg:text-3xl font-bold mb-3">6-Layer Pricing Engine</h3>
-                  <p className="text-lg opacity-90 max-w-md">
-                    Not just followers × some number. We factor in engagement, niche, content format, usage rights, and more.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2 lg:max-w-xs">
-                  {["Base Rate", "Engagement", "Format", "Fit Score", "Usage Rights", "Complexity"].map((layer) => (
-                    <span key={layer} className="px-3 py-1.5 rounded-full bg-white/10 text-sm font-medium">
-                      {layer}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Quick quotes */}
-            <div className="rounded-3xl border border-border/50 bg-card p-8 hover-scale">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-energy/10 mb-5">
-                <Clock className="h-6 w-6 text-energy" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">30-Second Quotes</h3>
-              <p className="text-muted-foreground">
-                Brand just DM&apos;d you? Get a rate before they move on.
-              </p>
-            </div>
-
-            {/* PDFs */}
-            <div className="rounded-3xl border border-border/50 bg-card p-8 hover-scale">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-money/10 mb-5">
-                <FileText className="h-6 w-6 text-money" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">PDFs That Close</h3>
-              <p className="text-muted-foreground">
-                Professional rate cards that look like they came from a talent agency.
-              </p>
-            </div>
-
-            {/* Trust */}
-            <div className="md:col-span-2 lg:col-span-2 rounded-3xl border border-border/50 bg-card p-8 hover-scale">
-              <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 shrink-0">
-                  <Shield className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold mb-2">Justify Every Dollar</h3>
-                  <p className="text-muted-foreground">
-                    Your rate card shows exactly how the price was calculated. No more awkward negotiations—the data speaks for itself.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Link to see all features */}
+          <p className="text-center mt-8 text-muted-foreground">
+            Plus gift deal tracking, contract scanning, brand vetting, and more.
+          </p>
         </div>
       </section>
 
-      {/* How It Works - Horizontal on Desktop */}
-      <section className="py-16 lg:py-24 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="text-center mb-12 lg:mb-16">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">
-              Three steps to your rate card
-            </h2>
-          </div>
+      {/* How It Works - Visual Steps */}
+      <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-4xl">
+          <h2 className="text-3xl md:text-4xl font-display font-bold text-center mb-12">
+            Get your rate in 60 seconds
+          </h2>
 
-          {/* Steps - connected on desktop */}
-          <div className="relative">
-            {/* Connection line - desktop only */}
-            <div className="hidden lg:block absolute top-16 left-[16.67%] right-[16.67%] h-0.5 bg-gradient-to-r from-primary/20 via-primary to-primary/20" />
-
-            <div className="grid gap-8 lg:gap-4 md:grid-cols-3">
-              {/* Step 1 */}
-              <div className="relative group">
-                <div className="lg:text-center">
-                  <div className="inline-flex lg:mx-auto h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground text-xl font-bold mb-6 relative z-10">
-                    1
-                  </div>
-                  <h3 className="text-lg font-bold mb-2">Drop your stats</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Followers, engagement rate, your niche. Two minutes, tops.
-                  </p>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                step: "01",
+                title: "Tell us about you",
+                description: "Platform, followers, engagement rate",
+                icon: User,
+              },
+              {
+                step: "02",
+                title: "Describe the deal",
+                description: "Content type, usage rights, timeline",
+                icon: FileText,
+              },
+              {
+                step: "03",
+                title: "Get your rate card",
+                description: "Download a PDF ready to send",
+                icon: Download,
+              },
+            ].map((item) => (
+              <div key={item.step} className="text-center space-y-4">
+                <div className="mx-auto h-16 w-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
+                  <item.icon className="h-8 w-8" />
                 </div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="relative group">
-                <div className="lg:text-center">
-                  <div className="inline-flex lg:mx-auto h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground text-xl font-bold mb-6 relative z-10">
-                    2
-                  </div>
-                  <h3 className="text-lg font-bold mb-2">Describe the deal</h3>
-                  <p className="text-muted-foreground text-sm">
-                    What platform? What format? How long can they use it?
-                  </p>
+                <div className="text-4xl font-display font-bold text-primary/20">
+                  {item.step}
                 </div>
+                <h3 className="font-semibold">{item.title}</h3>
+                <p className="text-sm text-muted-foreground">{item.description}</p>
               </div>
-
-              {/* Step 3 */}
-              <div className="relative group">
-                <div className="lg:text-center">
-                  <div className="inline-flex lg:mx-auto h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground text-xl font-bold mb-6 relative z-10">
-                    3
-                  </div>
-                  <h3 className="text-lg font-bold mb-2">Send your rate</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Download a PDF that shows exactly why you&apos;re worth it.
-                  </p>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -268,7 +259,7 @@ export default function HomePage() {
 
             <div className="relative px-8 py-16 lg:px-16 lg:py-20">
               <div className="max-w-2xl">
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-primary-foreground">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold tracking-tight text-primary-foreground">
                   ready to know your worth?
                 </h2>
                 <p className="mt-4 text-lg text-primary-foreground/80 max-w-xl">
@@ -288,18 +279,39 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer - Minimal */}
-      <footer className="border-t border-border/40 py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
+      {/* Footer with Social Proof */}
+      <footer className="py-12 border-t border-border/40 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-4xl">
+          {/* Social proof stats */}
+          <div className="grid grid-cols-3 gap-4 mb-8 text-center">
+            <div>
+              <div className="text-2xl font-display font-bold">10K+</div>
+              <div className="text-sm text-muted-foreground">Rate cards generated</div>
             </div>
-            <span className="font-semibold">RateCard.AI</span>
+            <div>
+              <div className="text-2xl font-display font-bold font-money">$2.4M</div>
+              <div className="text-sm text-muted-foreground">In rates calculated</div>
+            </div>
+            <div>
+              <div className="text-2xl font-display font-bold">4.9/5</div>
+              <div className="text-sm text-muted-foreground">Creator rating</div>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Built for creators with 1K-100K followers
-          </p>
+
+          {/* Footer links */}
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                <Sparkles className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <span className="font-semibold text-foreground">RateCard.AI</span>
+            </div>
+            <div className="flex gap-4">
+              <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+              <Link href="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+              <a href="mailto:hello@ratecard.ai" className="hover:text-foreground transition-colors">Contact</a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
