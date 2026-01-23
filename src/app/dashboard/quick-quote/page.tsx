@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, useRef, useCallback } from "react";
+import { useState, useSyncExternalStore, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { QuickQuoteForm } from "@/components/forms/quick-quote-form";
 import { FitScoreDisplay } from "@/components/rate-card/fit-score-display";
@@ -9,7 +9,9 @@ import { PriceAdjuster } from "@/components/rate-card/price-adjuster";
 import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-sheet";
 import { ShareActions } from "@/components/rate-card/share-actions";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useConfetti } from "@/components/ui/confetti";
+import { AlertCircle, Loader2, RefreshCw, PartyPopper } from "lucide-react";
 import type { CreatorProfile, ParsedBrief, FitScoreResult, PricingResult } from "@/lib/types";
 
 const emptySubscribe = () => () => {};
@@ -43,6 +45,28 @@ export default function QuickQuotePage() {
     pricing: PricingResult;
   } | null>(null);
   const [adjustedPricing, setAdjustedPricing] = useState<PricingResult | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const { fireMultiple } = useConfetti();
+
+  // Track whether we've already handled the first rate card celebration
+  const hasCheckedFirstRateCard = useRef(false);
+
+  // Fire confetti on first rate card generation - use a callback in setTimeout to satisfy lint
+  useEffect(() => {
+    if (!result || hasCheckedFirstRateCard.current) return;
+
+    hasCheckedFirstRateCard.current = true;
+    const hasGeneratedBefore = localStorage.getItem("hasGeneratedRateCard");
+
+    if (!hasGeneratedBefore) {
+      localStorage.setItem("hasGeneratedRateCard", "true");
+      // Use setTimeout callback to trigger state update and confetti
+      setTimeout(() => {
+        setShowCelebration(true);
+        fireMultiple();
+      }, 300);
+    }
+  }, [result, fireMultiple]);
 
   // undefined means still loading (server render), null means no profile
   if (profile === undefined) {
@@ -69,19 +93,19 @@ export default function QuickQuotePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header - centered when showing form, left-aligned when showing results */}
       {!result ? (
-        <div className="text-center">
-          <h1 className="text-2xl font-bold md:text-3xl">Quick Quote</h1>
-          <p className="text-muted-foreground mt-1">
+        <header className="text-center space-y-1">
+          <h1 className="text-2xl font-display font-bold md:text-3xl">Quick Quote</h1>
+          <p className="text-muted-foreground">
             Get an instant rate without uploading a brief
           </p>
-        </div>
+        </header>
       ) : (
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold md:text-3xl">Your Quote</h1>
+            <h1 className="text-2xl font-display font-bold md:text-3xl">Your Quote</h1>
             <p className="text-muted-foreground mt-1">
               {result.brief.content.quantity}x {result.brief.content.format} on {result.brief.content.platform}
             </p>
@@ -106,17 +130,39 @@ export default function QuickQuotePage() {
           <QuickQuoteForm profile={profile} onQuoteGenerated={setResult} />
         </div>
       ) : (
-        <div className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <FitScoreDisplay fitScore={result.fitScore} />
-            <PricingBreakdown pricing={result.pricing} />
-          </div>
-          <PriceAdjuster
-            calculatedPricing={result.pricing}
-            onPriceChange={setAdjustedPricing}
-          />
-          <NegotiationCheatSheet pricing={adjustedPricing || result.pricing} />
-        </div>
+        <>
+          {/* First rate card celebration */}
+          {showCelebration && (
+            <div className="text-center py-4 animate-in fade-in slide-in-from-top-4 duration-500">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary">
+                <PartyPopper className="h-5 w-5" />
+                <span className="font-medium">Your first rate card! You&apos;re on your way to getting paid what you&apos;re worth.</span>
+              </div>
+            </div>
+          )}
+
+          <Tabs defaultValue="pricing" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="pricing">Your Rate</TabsTrigger>
+            <TabsTrigger value="tips">Negotiation Tips</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pricing" className="space-y-6 mt-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <FitScoreDisplay fitScore={result.fitScore} />
+              <PricingBreakdown pricing={result.pricing} />
+            </div>
+            <PriceAdjuster
+              calculatedPricing={result.pricing}
+              onPriceChange={setAdjustedPricing}
+            />
+          </TabsContent>
+
+          <TabsContent value="tips" className="mt-6">
+            <NegotiationCheatSheet pricing={adjustedPricing || result.pricing} />
+          </TabsContent>
+        </Tabs>
+        </>
       )}
 
       {!result && (

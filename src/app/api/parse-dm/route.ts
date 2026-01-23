@@ -1,25 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { analyzeMessage } from "@/lib/message-analyzer";
 import {
-  parseDMText,
   parseDMImage,
   isValidMimeType,
   getMaxFileSizeMB,
   SUPPORTED_MIME_TYPE_LIST,
 } from "@/lib/dm-parser";
-import type { ApiResponse, DMImageAnalysis, CreatorProfile, DMAnalysis } from "@/lib/types";
+import type {
+  ApiResponse,
+  DMImageAnalysis,
+  CreatorProfile,
+  MessageAnalysis,
+  MessageSource,
+} from "@/lib/types";
 import { headers } from "next/headers";
 
 /**
  * POST /api/parse-dm
  *
- * Parse a brand DM to extract opportunity details, detect gift offers,
- * and generate recommended responses.
+ * Unified Brand Message Analyzer - parses DMs and emails to extract
+ * opportunity details, detect gift offers, and generate recommended responses.
  *
- * Supports two input modes:
+ * Supports three input modes:
  *
  * 1. Text input (application/json):
- *    { dmText: string, profile: CreatorProfile }
+ *    { dmText: string, profile: CreatorProfile, sourceHint?: MessageSource }
  *
  * 2. Image input (multipart/form-data):
  *    - image: File (PNG, JPG, WEBP, or HEIC)
@@ -28,11 +34,11 @@ import { headers } from "next/headers";
  * 3. Base64 image input (application/json):
  *    { imageData: string, mimeType: string, profile: CreatorProfile }
  *
- * Returns: ApiResponse<DMImageAnalysis>
+ * Returns: ApiResponse<MessageAnalysis | DMImageAnalysis>
  */
 export async function POST(
   request: NextRequest
-): Promise<NextResponse<ApiResponse<DMImageAnalysis | DMAnalysis>>> {
+): Promise<NextResponse<ApiResponse<MessageAnalysis | DMImageAnalysis>>> {
   try {
     // Check authentication
     const session = await auth.api.getSession({
@@ -57,10 +63,10 @@ export async function POST(
     // Handle application/json (text or base64 image)
     return await handleJsonInput(request);
   } catch (error) {
-    console.error("DM parsing error:", error);
+    console.error("Message parsing error:", error);
 
     const errorMessage =
-      error instanceof Error ? error.message : "An unexpected error occurred while analyzing the DM.";
+      error instanceof Error ? error.message : "An unexpected error occurred while analyzing the message.";
 
     // Return 400 for known validation errors
     if (
@@ -76,7 +82,7 @@ export async function POST(
 
     // Return 500 for unexpected errors
     return NextResponse.json(
-      { success: false, error: "Failed to analyze DM. Please try again or contact support." },
+      { success: false, error: "Failed to analyze message. Please try again or contact support." },
       { status: 500 }
     );
   }
@@ -87,7 +93,7 @@ export async function POST(
  */
 async function handleJsonInput(
   request: NextRequest
-): Promise<NextResponse<ApiResponse<DMImageAnalysis | DMAnalysis>>> {
+): Promise<NextResponse<ApiResponse<MessageAnalysis | DMImageAnalysis>>> {
   const body = await request.json();
 
   // Check if this is a base64 image input
@@ -104,16 +110,17 @@ async function handleJsonInput(
  */
 async function handleTextInput(
   body: Record<string, unknown>
-): Promise<NextResponse<ApiResponse<DMAnalysis>>> {
-  const { dmText, profile } = body as {
+): Promise<NextResponse<ApiResponse<MessageAnalysis>>> {
+  const { dmText, profile, sourceHint } = body as {
     dmText: string | undefined;
     profile: CreatorProfile | undefined;
+    sourceHint?: MessageSource;
   };
 
   // Validate required inputs
   if (!dmText || typeof dmText !== "string") {
     return NextResponse.json(
-      { success: false, error: "Missing DM text. Please provide the DM content to analyze." },
+      { success: false, error: "Missing message text. Please provide the message content to analyze." },
       { status: 400 }
     );
   }
@@ -125,18 +132,18 @@ async function handleTextInput(
     );
   }
 
-  // Parse the DM text
-  const analysis = await parseDMText(dmText, profile);
-
-  // Add source field for consistency
-  const result: DMImageAnalysis = {
-    ...analysis,
-    source: "text",
-  };
+  // Analyze the message using unified analyzer
+  const analysis = await analyzeMessage(
+    {
+      content: dmText,
+      sourceHint: sourceHint,
+    },
+    profile
+  );
 
   return NextResponse.json({
     success: true,
-    data: result,
+    data: analysis,
   });
 }
 
@@ -286,12 +293,20 @@ export async function GET(): Promise<NextResponse> {
     data: {
       supportedFormats: SUPPORTED_MIME_TYPE_LIST,
       maxFileSizeMB: getMaxFileSizeMB(),
+      supportedSources: [
+        "instagram_dm",
+        "tiktok_dm",
+        "twitter_dm",
+        "linkedin_dm",
+        "email",
+        "other",
+      ],
       inputModes: [
         {
           mode: "text",
           contentType: "application/json",
-          description: "Paste DM text directly",
-          body: { dmText: "string", profile: "CreatorProfile" },
+          description: "Paste DM or email text directly",
+          body: { dmText: "string", profile: "CreatorProfile", sourceHint: "MessageSource (optional)" },
         },
         {
           mode: "image",

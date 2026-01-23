@@ -14,7 +14,7 @@ export default function HistoryPage() {
             <Clock className="h-8 w-8 text-muted-foreground" />
           </div>
 
-          <h1 className="mt-6 text-2xl font-bold">Coming Soon</h1>
+          <h1 className="mt-6 text-2xl font-display font-bold">Coming Soon</h1>
           <p className="mt-2 text-muted-foreground max-w-sm">
             Your rate card history will appear here once this feature launches.
           </p>

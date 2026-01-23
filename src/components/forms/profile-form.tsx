@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProfileSection } from "@/components/profile/profile-section";
 
 import { calculateTier } from "@/lib/pricing-engine";
 import type { CreatorProfile, PlatformMetrics, CurrencyCode } from "@/lib/types";
@@ -98,6 +99,9 @@ const platformMetricsSchema = z.object({
 
 const currencyOptions = ["USD", "GBP", "EUR", "CAD", "AUD", "BRL", "INR", "MXN"] as const;
 
+const PLATFORM_OPTIONS = ["instagram", "tiktok", "youtube", "twitter"] as const;
+type PlatformOption = (typeof PLATFORM_OPTIONS)[number];
+
 const profileFormSchema = z.object({
   // Section 1: Basic Info
   displayName: z.string().min(2, "Display name must be at least 2 characters"),
@@ -106,6 +110,7 @@ const profileFormSchema = z.object({
   location: z.string().min(1, "Please select your location"),
   currency: z.enum(currencyOptions),
   niches: z.array(z.string()).min(1, "Select at least one niche").max(5, "Maximum 5 niches allowed"),
+  activePlatforms: z.array(z.enum(PLATFORM_OPTIONS)).min(1, "Select at least one platform"),
 
   // Section 2: Platform Metrics
   instagram: platformMetricsSchema.optional(),
@@ -189,6 +194,7 @@ type EstimatedFieldsState = Record<PlatformName, Set<EstimatedFieldName>>;
 
 interface ProfileFormProps {
   initialData?: Partial<ProfileFormValues>;
+  onValuesChange?: (values: ProfileFormValues) => void;
 }
 
 // Helper to create initial estimated fields state
@@ -202,9 +208,12 @@ function createInitialEstimatedFieldsState(): EstimatedFieldsState {
   };
 }
 
-export function ProfileForm({ initialData }: ProfileFormProps) {
+export function ProfileForm({ initialData, onValuesChange }: ProfileFormProps) {
   const router = useRouter();
   const [selectedNiches, setSelectedNiches] = useState<string[]>(initialData?.niches ?? []);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformOption[]>(
+    (initialData?.activePlatforms as PlatformOption[]) ?? ["instagram"]
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Track which fields are estimated (auto-calculated) vs manually entered
@@ -235,6 +244,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       location: initialData?.location ?? "",
       currency: (initialData as ProfileFormValues | undefined)?.currency ?? "USD",
       niches: initialData?.niches ?? [],
+      activePlatforms: (initialData?.activePlatforms as PlatformOption[]) ?? ["instagram"],
       instagram: initialData?.instagram ?? { followers: 0, engagementRate: 0, avgLikes: 0, avgComments: 0, avgViews: 0 },
       tiktok: initialData?.tiktok ?? { followers: 0, engagementRate: 0, avgLikes: 0, avgComments: 0, avgViews: 0 },
       youtube: initialData?.youtube ?? { followers: 0, engagementRate: 0, avgLikes: 0, avgComments: 0, avgViews: 0 },
@@ -328,6 +338,32 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
     setSelectedNiches(updated);
     form.setValue("niches", updated, { shouldValidate: true });
   };
+
+  const togglePlatform = (platform: PlatformOption) => {
+    const current = form.getValues("activePlatforms") || [];
+    let updated: PlatformOption[];
+
+    if (current.includes(platform)) {
+      // Don't allow removing the last platform
+      if (current.length <= 1) return;
+      updated = current.filter((p) => p !== platform);
+    } else {
+      updated = [...current, platform];
+    }
+
+    setSelectedPlatforms(updated);
+    form.setValue("activePlatforms", updated, { shouldValidate: true });
+  };
+
+  // Watch all form values for live preview
+  const watchedValues = useWatch({ control: form.control });
+
+  // Notify parent of value changes for live preview
+  useEffect(() => {
+    if (onValuesChange && watchedValues) {
+      onValuesChange(watchedValues as ProfileFormValues);
+    }
+  }, [watchedValues, onValuesChange]);
 
   const onSubmit = async (values: ProfileFormValues) => {
     setIsSubmitting(true);
@@ -522,28 +558,76 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="activePlatforms"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Your Platforms</FormLabel>
+                  <FormDescription>
+                    Which platforms do you create content for?
+                  </FormDescription>
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {PLATFORM_OPTIONS.map((platform) => {
+                      const isSelected = selectedPlatforms.includes(platform);
+                      const platformLabels: Record<PlatformOption, string> = {
+                        instagram: "Instagram",
+                        tiktok: "TikTok",
+                        youtube: "YouTube",
+                        twitter: "Twitter/X",
+                      };
+                      return (
+                        <Badge
+                          key={platform}
+                          variant={isSelected ? "default" : "outline"}
+                          className="cursor-pointer"
+                          onClick={() => togglePlatform(platform)}
+                        >
+                          {platformLabels[platform]}
+                          {isSelected && <X className="ml-1 h-3 w-3" />}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
         </Card>
 
         {/* Section 2: Platform Metrics */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Platform Metrics</CardTitle>
-            <CardDescription>
-              Just enter your followers and engagement rate—we&apos;ll estimate the rest.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="instagram" className="w-full">
-              {/* Mobile: horizontally scrollable tabs; Desktop: grid */}
-              <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-4 gap-1 p-1">
-                <TabsTrigger value="instagram" className="flex-shrink-0 min-w-[80px] sm:min-w-0">Instagram</TabsTrigger>
-                <TabsTrigger value="tiktok" className="flex-shrink-0 min-w-[70px] sm:min-w-0">TikTok</TabsTrigger>
-                <TabsTrigger value="youtube" className="flex-shrink-0 min-w-[75px] sm:min-w-0">YouTube</TabsTrigger>
-                <TabsTrigger value="twitter" className="flex-shrink-0 min-w-[65px] sm:min-w-0">Twitter</TabsTrigger>
+        <ProfileSection
+          title="Platform Metrics"
+          description="Just enter your followers and engagement rate—we'll estimate the rest."
+          badge="Recommended"
+          defaultOpen={true}
+        >
+            <Tabs defaultValue={selectedPlatforms[0] || "instagram"} className="w-full">
+              {/* Mobile: horizontally scrollable tabs; Desktop: grid based on selected count */}
+              <TabsList
+                className="flex w-full overflow-x-auto gap-1 p-1"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${selectedPlatforms.length}, 1fr)`
+                }}
+              >
+                {selectedPlatforms.includes("instagram") && (
+                  <TabsTrigger value="instagram" className="flex-shrink-0">Instagram</TabsTrigger>
+                )}
+                {selectedPlatforms.includes("tiktok") && (
+                  <TabsTrigger value="tiktok" className="flex-shrink-0">TikTok</TabsTrigger>
+                )}
+                {selectedPlatforms.includes("youtube") && (
+                  <TabsTrigger value="youtube" className="flex-shrink-0">YouTube</TabsTrigger>
+                )}
+                {selectedPlatforms.includes("twitter") && (
+                  <TabsTrigger value="twitter" className="flex-shrink-0">Twitter</TabsTrigger>
+                )}
               </TabsList>
 
-              {(["instagram", "tiktok", "youtube", "twitter"] as const).map((platform) => (
+              {selectedPlatforms.map((platform) => (
                 <TabsContent key={platform} value={platform} className="space-y-6 pt-4">
                   {/* Required fields */}
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -712,18 +796,16 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 </TabsContent>
               ))}
             </Tabs>
-          </CardContent>
-        </Card>
+        </ProfileSection>
 
         {/* Section 3: Audience Demographics */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Audience Demographics</CardTitle>
-            <CardDescription>
-              Help brands understand who follows you. Check your platform analytics for this info.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <ProfileSection
+          title="Audience Demographics"
+          description="Help brands understand who follows you. Check your platform analytics for this info."
+          badge="Optional"
+          defaultOpen={false}
+        >
+          <div className="space-y-4">
             <FormField
               control={form.control}
               name="audience.ageRange"
@@ -825,8 +907,8 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </ProfileSection>
 
         {/* Submit Button */}
         <div className="flex justify-end">

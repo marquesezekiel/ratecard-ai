@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AnimatedNumber } from "@/components/ui/animated-number";
 import { ChevronDown, ChevronUp, Info, TrendingUp, TrendingDown, Minus, DollarSign } from "lucide-react";
 import type { PricingResult } from "@/lib/types";
 
@@ -137,7 +138,7 @@ export function PricingBreakdown({ pricing, showDetailedExplanation = true }: Pr
         <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Price per deliverable</span>
-            <span className="font-semibold">
+            <span className="font-semibold font-money">
               {formatCurrency(pricing.pricePerDeliverable, pricing.currencySymbol)}
             </span>
           </div>
@@ -160,7 +161,12 @@ export function PricingBreakdown({ pricing, showDetailedExplanation = true }: Pr
             <div>
               <p className="text-sm font-medium opacity-90">Your Rate</p>
               <p className="text-4xl font-bold tracking-tight mt-1">
-                {formatCurrency(pricing.totalPrice, pricing.currencySymbol)}
+                <AnimatedNumber
+                  value={pricing.totalPrice}
+                  prefix={pricing.currencySymbol}
+                  duration={1200}
+                  className="font-money"
+                />
               </p>
             </div>
             <div className="text-right text-sm opacity-80">

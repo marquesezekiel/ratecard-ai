@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Sparkles, Zap, ArrowRight, Loader2, Lock } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sparkles, Zap, ArrowRight, ArrowLeft, Loader2, Lock } from "lucide-react";
+import { StepProgress } from "@/components/ui/step-progress";
 import { FitScoreDisplay } from "@/components/rate-card/fit-score-display";
 import { PricingBreakdown } from "@/components/rate-card/pricing-breakdown";
 import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-sheet";
@@ -37,10 +39,10 @@ const USAGE_OPTIONS = [
   { value: "perpetual", label: "Perpetual rights", days: -1, exclusivity: "none" as const },
 ];
 
-type Step = "profile" | "content" | "result";
+const STEP_LABELS = ["About You", "The Deal", "Your Rate"];
 
 export default function PublicQuotePage() {
-  const [step, setStep] = useState<Step>("profile");
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,7 +74,7 @@ export default function PublicQuotePage() {
       return;
     }
     setError(null);
-    setStep("content");
+    setStep(2);
   };
 
   const handleContentSubmit = async (e: React.FormEvent) => {
@@ -153,7 +155,7 @@ export default function PublicQuotePage() {
         fitScore: data.data.fitScore,
         pricing: data.data.pricing,
       });
-      setStep("result");
+      setStep(3);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -180,23 +182,23 @@ export default function PublicQuotePage() {
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-8 md:py-12">
-        {step === "profile" && (
-          <div className="max-w-md mx-auto">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold tracking-tight">Know your worth</h1>
-              <p className="text-muted-foreground mt-2">
-                Get a data-backed rate in 60 seconds. No signup required.
-              </p>
-            </div>
+        {/* Progress indicator */}
+        <StepProgress
+          currentStep={step}
+          totalSteps={3}
+          labels={STEP_LABELS}
+        />
 
+        {step === 1 && (
+          <div className="max-w-md mx-auto">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="font-display flex items-center gap-2">
                   <Zap className="h-5 w-5 text-primary" />
-                  Your Stats
+                  About You
                 </CardTitle>
                 <CardDescription>
-                  We need a few numbers to calculate your rate.
+                  Tell us about your platform and audience
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -253,17 +255,16 @@ export default function PublicQuotePage() {
           </div>
         )}
 
-        {step === "content" && (
+        {step === 2 && (
           <div className="max-w-md mx-auto">
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold tracking-tight">What are you creating?</h1>
-              <p className="text-muted-foreground mt-2">
-                Tell us about the deliverable.
-              </p>
-            </div>
-
             <Card>
-              <CardContent className="pt-6">
+              <CardHeader>
+                <CardTitle className="font-display">The Deal</CardTitle>
+                <CardDescription>
+                  Describe what the brand is asking for
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <form onSubmit={handleContentSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label>Content Type</Label>
@@ -315,7 +316,8 @@ export default function PublicQuotePage() {
                   )}
 
                   <div className="flex gap-3">
-                    <Button type="button" variant="outline" onClick={() => setStep("profile")}>
+                    <Button type="button" variant="outline" onClick={() => setStep(1)}>
+                      <ArrowLeft className="mr-2 h-4 w-4" />
                       Back
                     </Button>
                     <Button type="submit" className="flex-1" disabled={loading}>
@@ -338,22 +340,34 @@ export default function PublicQuotePage() {
           </div>
         )}
 
-        {step === "result" && result && (
-          <div className="space-y-8">
+        {step === 3 && result && (
+          <div className="space-y-6">
             <div className="text-center">
-              <h1 className="text-3xl font-bold tracking-tight">Your Rate</h1>
+              <h1 className="text-3xl font-display font-bold tracking-tight">Your Rate</h1>
               <p className="text-muted-foreground mt-2">
                 {result.brief.content.quantity}x {result.brief.content.format} on {result.brief.content.platform}
               </p>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-              <FitScoreDisplay fitScore={result.fitScore} />
-              <PricingBreakdown pricing={result.pricing} />
-            </div>
+            {/* Tabbed Results */}
+            <Tabs defaultValue="pricing" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="pricing">Your Rate</TabsTrigger>
+                <TabsTrigger value="tips">Negotiation Tips</TabsTrigger>
+              </TabsList>
 
-            {/* Negotiation Cheat Sheet */}
-            <NegotiationCheatSheet pricing={result.pricing} />
+              <TabsContent value="pricing" className="space-y-6 mt-6">
+                {/* Fit Score Display */}
+                <FitScoreDisplay fitScore={result.fitScore} />
+
+                {/* Pricing Breakdown */}
+                <PricingBreakdown pricing={result.pricing} />
+              </TabsContent>
+
+              <TabsContent value="tips" className="mt-6">
+                <NegotiationCheatSheet pricing={result.pricing} />
+              </TabsContent>
+            </Tabs>
 
             {/* Gated Actions */}
             <Card className="border-primary/20 bg-primary/5">
@@ -367,14 +381,14 @@ export default function PublicQuotePage() {
                     <p className="text-sm text-muted-foreground mt-1">
                       Create a free account to download the PDF, save to history, and access your rates anytime.
                     </p>
-                    <div className="flex gap-3 mt-4">
+                    <div className="flex flex-col sm:flex-row gap-3 mt-4">
                       <Link href="/sign-up">
-                        <Button>
+                        <Button className="w-full sm:w-auto">
                           Create Free Account
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Button>
                       </Link>
-                      <Button variant="outline" onClick={() => setStep("profile")}>
+                      <Button variant="outline" onClick={() => setStep(1)} className="w-full sm:w-auto">
                         Start Over
                       </Button>
                     </div>

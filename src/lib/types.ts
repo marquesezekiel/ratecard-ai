@@ -1302,6 +1302,138 @@ export interface DMParserInput {
 export type DMParserResponse = ApiResponse<DMAnalysis>;
 
 // =============================================================================
+// MESSAGE ANALYZER TYPES (Unified DM + Email)
+// =============================================================================
+
+/**
+ * Message source type - identifies where the brand message originated.
+ * Used by the unified Message Analyzer to handle both DMs and emails.
+ */
+export type MessageSource =
+  | "instagram_dm"
+  | "tiktok_dm"
+  | "twitter_dm"
+  | "linkedin_dm"
+  | "email"
+  | "other";
+
+/**
+ * Input for the Message Analyzer.
+ * Supports text content with optional source hints and image data.
+ */
+export interface MessageAnalysisInput {
+  /** The message text content (pasted or extracted from image) */
+  content: string;
+  /** Optional hint about the message source (if user knows) */
+  sourceHint?: MessageSource;
+  /** Base64 image data if parsing from screenshot */
+  imageData?: string;
+}
+
+/**
+ * Email-specific metadata extracted from email messages.
+ * Only present when the message is detected as an email.
+ */
+export interface EmailMetadata {
+  /** Email subject line */
+  subject?: string;
+  /** Sender's name */
+  senderName?: string;
+  /** Sender's email address */
+  senderEmail?: string;
+  /** Company signature block */
+  companySignature?: string;
+  /** Whether attachments were mentioned */
+  hasAttachments?: boolean;
+}
+
+/**
+ * Complete analysis result from Message Analyzer.
+ * Extends DMAnalysis with email support and source detection.
+ *
+ * This unified type handles both DMs and emails, detecting the source
+ * automatically and extracting appropriate metadata.
+ */
+export interface MessageAnalysis {
+  // Source detection
+  /** Detected message source (DM platform or email) */
+  detectedSource: MessageSource;
+  /** Confidence level of source detection */
+  sourceConfidence: "high" | "medium" | "low";
+
+  // Brand identification (same as DMAnalysis)
+  /** Detected brand name (null if not found) */
+  brandName: string | null;
+  /** Detected brand social handle (null if not found) */
+  brandHandle: string | null;
+  /** Detected brand email (extracted from email messages) */
+  brandEmail?: string | null;
+  /** Detected brand website (extracted from signature) */
+  brandWebsite?: string | null;
+
+  // Request analysis (same as DMAnalysis)
+  /** What the brand is asking for */
+  deliverableRequest: string | null;
+  /** Type of compensation offered */
+  compensationType: DMCompensationType;
+  /** Offered payment amount (null if not specified or gift-only) */
+  offeredAmount: number | null;
+  /** Estimated product value for gift offers */
+  estimatedProductValue: number | null;
+
+  // Tone & quality signals (same as DMAnalysis)
+  /** Detected tone of the message */
+  tone: DMTone;
+  /** Urgency level of the request */
+  urgency: DMUrgency;
+
+  // Flags (same as DMAnalysis)
+  /** Red flags detected in the message */
+  redFlags: string[];
+  /** Green flags detected in the message */
+  greenFlags: string[];
+
+  // Gift-specific analysis (same as DMAnalysis)
+  /** Whether this is a gift offer */
+  isGiftOffer: boolean;
+  /** Detailed gift analysis (present when isGiftOffer is true) */
+  giftAnalysis: GiftAnalysis | null;
+
+  // Email-specific fields (NEW)
+  /** Email metadata (only present for email messages) */
+  emailMetadata?: EmailMetadata;
+
+  // Extracted data for rate card generation (same as DMAnalysis)
+  /** Partial brief data extracted from the message */
+  extractedRequirements: Partial<ParsedBrief>;
+
+  // Recommendations (same as DMAnalysis)
+  /** Recommended response message to send to the brand */
+  recommendedResponse: string;
+  /** Suggested rate based on analysis */
+  suggestedRate: number;
+  /** Estimated deal quality score (0-100) */
+  dealQualityEstimate: number;
+  /** Next steps for the creator */
+  nextSteps: string[];
+}
+
+/**
+ * Input for the Message Analyzer API.
+ */
+export interface MessageAnalyzerInput {
+  /** The message text to analyze */
+  content: string;
+  /** Optional source hint */
+  sourceHint?: MessageSource;
+}
+
+/**
+ * Response from the Message Analyzer API.
+ */
+export type MessageAnalyzerResponse = ApiResponse<MessageAnalysis>;
+
+// =============================================================================
 // GIFT EVALUATOR TYPES
 // =============================================================================
 
@@ -2161,3 +2293,288 @@ export interface DMImageAnalysis extends DMAnalysis {
  * Response from the DM parsing API that supports both text and image.
  */
 export type DMParseResponse = ApiResponse<DMImageAnalysis>;
+
+// =============================================================================
+// CONTRACT SCANNER TYPES
+// =============================================================================
+
+/**
+ * Contract category for organizing analysis results.
+ */
+export type ContractScanCategory = "payment" | "contentRights" | "exclusivity" | "legal";
+
+/**
+ * Health level based on contract score.
+ */
+export type ContractHealthLevel = "excellent" | "good" | "fair" | "poor";
+
+/**
+ * Input for the contract scanner.
+ */
+export interface ContractScanInput {
+  /** The full contract text to analyze */
+  contractText: string;
+  /** Optional deal context for enhanced analysis */
+  dealContext?: {
+    platform?: Platform;
+    dealType?: DealType;
+    offeredRate?: number;
+  };
+}
+
+/**
+ * Analysis result for a single category.
+ */
+export interface ContractCategoryAnalysis {
+  /** Score for this category (0-25) */
+  score: number;
+  /** Status of coverage in this category */
+  status: "complete" | "partial" | "missing";
+  /** Key findings for this category */
+  findings: string[];
+}
+
+/**
+ * A clause found in the contract.
+ */
+export interface FoundClause {
+  /** Category this clause belongs to */
+  category: ContractScanCategory;
+  /** Name of the clause item */
+  item: string;
+  /** Direct quote from the contract */
+  quote: string;
+  /** Assessment of this clause */
+  assessment: "good" | "concerning" | "red_flag";
+  /** Optional note about this clause */
+  note?: string;
+}
+
+/**
+ * A clause that is missing from the contract.
+ */
+export interface MissingClause {
+  /** Category this clause belongs to */
+  category: ContractScanCategory;
+  /** Name of the missing item */
+  item: string;
+  /** How important this clause is */
+  importance: "critical" | "important" | "recommended";
+  /** Suggested language to add */
+  suggestion: string;
+}
+
+/**
+ * A red flag detected in the contract.
+ */
+export interface ContractScanRedFlag {
+  /** Severity of the red flag */
+  severity: "high" | "medium" | "low";
+  /** Name of the problematic clause */
+  clause: string;
+  /** Quote from the contract (if applicable) */
+  quote?: string;
+  /** Why this is a problem */
+  explanation: string;
+  /** What to do about it */
+  suggestion: string;
+}
+
+/**
+ * Complete result from scanning a contract.
+ */
+export interface ContractScanResult {
+  /** Overall health score (0-100) */
+  healthScore: number;
+  /** Health level category */
+  healthLevel: ContractHealthLevel;
+
+  /** Breakdown by category */
+  categories: {
+    payment: ContractCategoryAnalysis;
+    contentRights: ContractCategoryAnalysis;
+    exclusivity: ContractCategoryAnalysis;
+    legal: ContractCategoryAnalysis;
+  };
+
+  /** Clauses found in the contract */
+  foundClauses: FoundClause[];
+  /** Important clauses missing from the contract */
+  missingClauses: MissingClause[];
+  /** Red flags detected */
+  redFlags: ContractScanRedFlag[];
+
+  /** Recommendations for the creator */
+  recommendations: string[];
+  /** Pre-generated change request email template */
+  changeRequestTemplate: string;
+}
+
+/**
+ * Response from the contract scanner API.
+ */
+export type ContractScanResponse = ApiResponse<ContractScanResult>;
+
+// =============================================================================
+// QUICK CALCULATOR TYPES
+// =============================================================================
+
+/**
+ * Input for the Quick Calculator - minimal info needed for a rate estimate.
+ * Used on landing page without requiring authentication.
+ */
+export interface QuickCalculatorInput {
+  /** Total follower count */
+  followerCount: number;
+  /** Target platform for content */
+  platform: Platform;
+  /** Content format type */
+  contentFormat: ContentFormat;
+  /** Creator's primary niche (optional, defaults to "lifestyle") */
+  niche?: string;
+}
+
+/**
+ * A factor that could influence the final rate.
+ * Shown to users to encourage signup for full rate card.
+ */
+export interface RateInfluencer {
+  /** Factor name (e.g., "High Engagement") */
+  name: string;
+  /** Description of why this matters */
+  description: string;
+  /** Potential increase (e.g., "+20%") */
+  potentialIncrease: string;
+}
+
+/**
+ * Result from the Quick Calculator.
+ * Provides a rate range estimate without full profile data.
+ */
+export interface QuickEstimateResult {
+  /** Minimum estimated rate (baseRate - 20%) */
+  minRate: number;
+  /** Maximum estimated rate (baseRate + 20%) */
+  maxRate: number;
+  /** Base calculated rate (before range adjustment) */
+  baseRate: number;
+  /** Creator tier name (e.g., "Micro", "Mid-tier") */
+  tierName: string;
+  /** Creator tier value */
+  tier: CreatorTier;
+  /** Factors that could increase the rate */
+  factors: RateInfluencer[];
+  /** Platform used in calculation */
+  platform: Platform;
+  /** Format used in calculation */
+  contentFormat: ContentFormat;
+  /** Niche used in calculation */
+  niche: string;
+}
+
+// =============================================================================
+// BRAND VETTER TYPES
+// =============================================================================
+
+/**
+ * Input for vetting a brand's legitimacy.
+ */
+export interface BrandVettingInput {
+  /** Brand/company name (required) */
+  brandName: string;
+  /** Brand's social handle e.g., @glowskinco (optional) */
+  brandHandle?: string;
+  /** Brand's website URL e.g., https://glowskin.co (optional) */
+  brandWebsite?: string;
+  /** Brand's email address (optional) */
+  brandEmail?: string;
+  /** Platform where brand reached out */
+  platform: Platform;
+}
+
+/**
+ * Result from vetting a brand's legitimacy.
+ */
+export interface BrandVettingResult {
+  /** Overall trust score (0-100) */
+  trustScore: number;
+  /** Trust level category */
+  trustLevel: TrustLevel;
+
+  /** Breakdown by category (each 0-25 points) */
+  breakdown: {
+    socialPresence: BrandCategoryScore;
+    websiteVerification: BrandCategoryScore;
+    collaborationHistory: BrandCategoryScore;
+    scamIndicators: BrandCategoryScore;
+  };
+
+  /** Positive and neutral findings */
+  findings: BrandFinding[];
+  /** Red flags detected */
+  redFlags: BrandRedFlag[];
+  /** Actionable recommendations */
+  recommendations: string[];
+
+  /** When this vetting was performed */
+  checkedAt: Date;
+  /** Sources used for research */
+  dataSources: string[];
+  /** Whether result was from cache */
+  cached: boolean;
+}
+
+/**
+ * Trust level based on brand vetting score.
+ *
+ * - verified: 80-100 - Safe to proceed
+ * - likely_legit: 60-79 - Probably fine, do basic due diligence
+ * - caution: 40-59 - Proceed carefully, ask questions
+ * - high_risk: 0-39 - Likely scam, consider avoiding
+ */
+export type TrustLevel = "verified" | "likely_legit" | "caution" | "high_risk";
+
+/**
+ * Score breakdown for a brand vetting category.
+ */
+export interface BrandCategoryScore {
+  /** Score for this category (0-25) */
+  score: number;
+  /** Confidence in the assessment */
+  confidence: "high" | "medium" | "low";
+  /** Key details for this category */
+  details: string[];
+}
+
+/**
+ * A finding about a brand during vetting.
+ */
+export interface BrandFinding {
+  /** Category this finding relates to */
+  category: "social" | "website" | "collabs" | "scam_check";
+  /** The finding description */
+  finding: string;
+  /** Supporting evidence or data */
+  evidence?: string;
+  /** Whether this is positive, neutral, or negative */
+  sentiment: "positive" | "neutral" | "negative";
+}
+
+/**
+ * A red flag detected during brand vetting.
+ */
+export interface BrandRedFlag {
+  /** Severity of the red flag */
+  severity: "high" | "medium" | "low";
+  /** What the red flag is */
+  flag: string;
+  /** Why this is concerning */
+  explanation: string;
+  /** Where this was detected */
+  source?: string;
+}
+
+/**
+ * Response from the Brand Vetter API.
+ */
+export type BrandVettingResponse = ApiResponse<BrandVettingResult>;

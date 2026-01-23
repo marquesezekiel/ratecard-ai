@@ -170,19 +170,19 @@ describe("dm-parser", () => {
 
     it("throws error for empty DM text", async () => {
       await expect(parseDMText("", profile)).rejects.toThrow(
-        "DM text must be at least 20 characters long"
+        "Message must be at least 20 characters long"
       );
     });
 
     it("throws error for DM text under 20 characters", async () => {
       await expect(parseDMText("Hi there!", profile)).rejects.toThrow(
-        "DM text must be at least 20 characters long"
+        "Message must be at least 20 characters long"
       );
     });
 
     it("throws error for whitespace-only text", async () => {
       await expect(parseDMText("                    ", profile)).rejects.toThrow(
-        "DM text must be at least 20 characters long"
+        "Message must be at least 20 characters long"
       );
     });
   });

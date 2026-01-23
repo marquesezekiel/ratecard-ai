@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useSyncExternalStore, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DMParserForm } from "@/components/forms/dm-parser-form";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Loader2, MessageSquare } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import type { CreatorProfile, DMAnalysis } from "@/lib/types";
 
 const emptySubscribe = () => () => {};
@@ -28,8 +28,12 @@ function useLocalStorageProfile(): CreatorProfile | null | undefined {
 
 export default function AnalyzeDMPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const profile = useLocalStorageProfile();
-  const [lastAnalysis, setLastAnalysis] = useState<DMAnalysis | null>(null);
+  const [, setLastAnalysis] = useState<DMAnalysis | null>(null);
+
+  // Get pre-filled message from query params (from inline analyzer)
+  const initialMessage = searchParams.get("message") || "";
 
   // Loading state
   if (profile === undefined) {
@@ -47,7 +51,7 @@ export default function AnalyzeDMPage() {
         <AlertCircle className="h-12 w-12 text-muted-foreground" />
         <h2 className="text-xl font-semibold">Complete Your Profile First</h2>
         <p className="text-center text-muted-foreground max-w-md">
-          We need your follower counts and engagement rates to analyze DMs and suggest rates.
+          We need your follower counts and engagement rates to analyze messages and suggest rates.
         </p>
         <Button onClick={() => router.push("/dashboard/profile")}>
           Set Up Profile
@@ -67,21 +71,20 @@ export default function AnalyzeDMPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <div className="text-center">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <MessageSquare className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold md:text-3xl">Analyze Brand DM</h1>
-        </div>
+      <header className="space-y-1">
+        <h1 className="text-2xl font-display font-bold">Brand Inbox</h1>
         <p className="text-muted-foreground">
-          Paste a brand message to get instant analysis, detect gift offers, and generate a professional response.
+          Paste any message from a brand — DMs, emails, even screenshots.
+          We&apos;ll tell you what it&apos;s worth and how to respond.
         </p>
-      </div>
+      </header>
 
       {/* DM Parser Form */}
       <DMParserForm
         profile={profile}
+        initialMessage={initialMessage}
         onAnalysisComplete={handleAnalysisComplete}
         onEvaluateGift={handleEvaluateGift}
       />

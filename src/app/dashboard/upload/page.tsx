@@ -64,18 +64,18 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">
+    <div className="mx-auto max-w-2xl space-y-6">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-display font-bold">
           {step === "upload" ? "Upload Brand Brief" : "Review Brief Details"}
         </h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-muted-foreground">
           {step === "upload"
             ? "Upload the brand's campaign brief and we'll extract the key details."
             : "Make sure everything looks right before we calculate your rate."
           }
         </p>
-      </div>
+      </header>
 
       {step === "upload" && (
         <BriefUploader onBriefParsed={handleBriefParsed} />

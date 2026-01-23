@@ -7,7 +7,7 @@
  * 3. Edge cases: UGC-only, Celebrity tier ambassador, Affiliate-only
  */
 
-import { calculatePrice, calculateTier, calculateUGCPrice, calculateRetainerPrice, calculateAffiliatePricing } from "../src/lib/pricing-engine";
+import { calculatePrice, calculateUGCPrice, calculateRetainerPrice, calculateAffiliatePricing } from "../src/lib/pricing-engine";
 import { calculateFitScore } from "../src/lib/fit-score";
 import { calculateDealQuality } from "../src/lib/deal-quality-score";
 import { generateNegotiationTalkingPoints } from "../src/lib/negotiation-talking-points";
@@ -470,7 +470,7 @@ printHeader("TEST 3: CELEBRITY TIER AMBASSADOR PACKAGE (Edge Case)");
 console.log("Scenario: 12-month ambassador deal with events and exclusivity");
 console.log();
 
-const celebFitScore = calculateFitScore(celebrityCreator, ambassadorBrief);
+const _celebFitScore = calculateFitScore(celebrityCreator, ambassadorBrief);
 // Celebrity tier base rate is $12,000
 const celebBaseRate = 12000;
 const celebRetainerPricing = calculateRetainerPrice(celebBaseRate, ambassadorConfig, celebrityCreator.tier);
@@ -511,7 +511,7 @@ printHeader("TEST 4: AFFILIATE-ONLY DEAL (Edge Case)");
 console.log("Scenario: Pure commission-based deal, no flat fee");
 console.log();
 
-const affFitScore = calculateFitScore(affiliateCreator, affiliateBrief);
+const _affFitScore = calculateFitScore(affiliateCreator, affiliateBrief);
 const affiliatePricing = calculateAffiliatePricing(affiliateBrief, affiliateCreator);
 
 console.log(`  Creator: ${affiliateCreator.displayName} (${affiliateCreator.tier} tier)`);
