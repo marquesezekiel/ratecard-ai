@@ -110,7 +110,7 @@ export default function DashboardPage() {
         <InlineMessageAnalyzer />
       </section>
 
-      {/* SECONDARY: Quick actions */}
+      {/* SECONDARY: Quick actions - with distinct visual identities */}
       <section className="grid grid-cols-2 gap-4">
         <QuickActionCard
           href="/dashboard/quick-quote"
@@ -118,6 +118,8 @@ export default function DashboardPage() {
           title="Quick Rate"
           description="Get an instant quote"
           variant="outline"
+          accent="primary"
+          emoji="⚡"
         />
         <QuickActionCard
           href="/dashboard/gifts"
@@ -126,6 +128,8 @@ export default function DashboardPage() {
           badge={pendingGifts > 0 ? `${pendingGifts} pending` : undefined}
           description="Track gift offers"
           variant="outline"
+          accent="coral"
+          emoji="🎁"
         />
       </section>
 

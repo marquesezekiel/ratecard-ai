@@ -216,6 +216,18 @@
   .bg-money\/10 {
     background-color: oklch(0.60 0.17 155 / 0.1);
   }
+  .bg-money\/5 {
+    background-color: oklch(0.60 0.17 155 / 0.05);
+  }
+  .border-money\/30 {
+    border-color: oklch(0.60 0.17 155 / 0.3);
+  }
+  .hover\:border-money\/30:hover {
+    border-color: oklch(0.60 0.17 155 / 0.3);
+  }
+  .hover\:bg-money\/5:hover {
+    background-color: oklch(0.60 0.17 155 / 0.05);
+  }
   .text-energy {
     color: oklch(0.75 0.15 70); /* Amber - energy/urgency */
   }
