@@ -7,6 +7,7 @@ import {
   calculateProfileCompleteness,
 } from "@/components/profile/profile-completeness";
 import { RatePreviewCard } from "@/components/profile/rate-preview-card";
+import { MobileRateSheet } from "@/components/profile/mobile-rate-sheet";
 
 interface ProfileFormValues {
   displayName?: string;
@@ -115,9 +116,9 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Mobile: Show preview at bottom */}
-      <div className="md:hidden mt-6">
-        <RatePreviewCard
+      {/* Mobile: Sticky bottom sheet */}
+      <div className="md:hidden">
+        <MobileRateSheet
           followers={primaryPlatform.followers}
           platform={primaryPlatform.platform}
           engagementRate={primaryPlatform.engagementRate}
