@@ -67,7 +67,7 @@ export default function HomePage() {
 
               {/* CTA */}
               <div className="mt-8 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4">
-                <Link href="/quote">
+                <Link href="/quick-calculate">
                   <Button size="xl" className="w-full sm:w-auto text-lg px-8">
                     Get Your Rate — Free
                     <ArrowRight className="ml-2 h-5 w-5" />
@@ -281,7 +281,7 @@ export default function HomePage() {
                   Join creators who stopped underselling and started getting paid what they deserve.
                 </p>
                 <div className="mt-8">
-                  <Link href="/quote">
+                  <Link href="/quick-calculate">
                     <Button size="xl" variant="secondary" className="bg-white text-primary hover:bg-white/90 text-lg">
                       Get Your Rate — Free
                       <ArrowRight className="ml-2 h-5 w-5" />
