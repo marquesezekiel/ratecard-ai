@@ -45,6 +45,9 @@ export default function SignUpPage() {
         return;
       }
 
+      // Clear any existing profile data so new users start fresh
+      localStorage.removeItem("creatorProfile");
+
       // Use full page navigation to ensure cookies are properly attached
       window.location.href = "/dashboard/profile";
     } catch {
