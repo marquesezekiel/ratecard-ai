@@ -72,6 +72,11 @@ Provide alternative suggestions when you identify better approaches—even if un
 
 RateCard AI is a Next.js 14 application that generates AI-powered rate cards for content creators. Creators upload brand briefs (PDF/DOCX), and the system calculates personalized pricing and fit scores.
 
+# Project Instructions
+## Use Context7 by Default
+
+Always use context7 when I need code generation, setup or configuration steps, or library/API documentation. This means you should automatically use the Context7 MCP tools to resolve library id and get library docs without me having to explicitly ask.
+
 ## Commands
 ```bash
 # Development
