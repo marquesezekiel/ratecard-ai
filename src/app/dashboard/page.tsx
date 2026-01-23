@@ -79,7 +79,7 @@ export default function DashboardPage() {
       {/* PRIMARY: Inline Message Analyzer */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          New Message?
+          Got a brand message?
         </h2>
         <InlineMessageAnalyzer />
       </section>
