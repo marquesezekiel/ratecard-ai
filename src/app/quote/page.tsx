@@ -11,7 +11,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sparkles, Zap, ArrowRight, ArrowLeft, Loader2, Lock } from "lucide-react";
 import { StepProgress } from "@/components/ui/step-progress";
-import { FitScoreDisplay } from "@/components/rate-card/fit-score-display";
 import { PricingBreakdown } from "@/components/rate-card/pricing-breakdown";
 import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-sheet";
 import type { CreatorProfile, ParsedBrief, FitScoreResult, PricingResult, Platform, ContentFormat } from "@/lib/types";
@@ -357,10 +356,8 @@ export default function PublicQuotePage() {
               </TabsList>
 
               <TabsContent value="pricing" className="space-y-6 mt-6">
-                {/* Fit Score Display */}
-                <FitScoreDisplay fitScore={result.fitScore} />
-
-                {/* Pricing Breakdown */}
+                {/* Pricing Breakdown - FitScoreDisplay removed since quick quotes
+                    don't have real brand data to make meaningful predictions */}
                 <PricingBreakdown pricing={result.pricing} />
               </TabsContent>
 

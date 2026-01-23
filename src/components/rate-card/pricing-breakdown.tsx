@@ -87,7 +87,8 @@ export function PricingBreakdown({ pricing, showDetailedExplanation = true }: Pr
         {/* 6-Layer Breakdown */}
         <div className="space-y-2">
           {pricing.layers.map((layer, index) => {
-            const adjustmentPercent = Math.round(layer.adjustment * 100);
+            // Use multiplier to calculate percentage (multiplier of 1.1 = +10%, 0.9 = -10%)
+            const adjustmentPercent = Math.round((layer.multiplier - 1) * 100);
             const isExpanded = expandedLayer === layer.name;
             const styles = getAdjustmentStyles(layer.adjustment);
 
