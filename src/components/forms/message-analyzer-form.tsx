@@ -27,6 +27,7 @@ import {
   FileText,
 } from "lucide-react";
 import { CopyButton } from "@/components/ui/copy-button";
+import { DealBadgesRow } from "@/components/ui/deal-badges-row";
 import type { CreatorProfile, MessageAnalysis, MessageSource } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -396,6 +397,14 @@ Example Email:
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Visual Deal Quality Badges */}
+              <DealBadgesRow
+                dealQualityScore={analysis.dealQualityEstimate}
+                isGiftOffer={analysis.isGiftOffer || analysis.compensationType === "gifted"}
+                hasDeadline={analysis.urgency === "high"}
+                hasRedFlags={analysis.tone === "scam_likely" || analysis.redFlags.length > 0}
+              />
+
               {/* Email Metadata (if email) */}
               {analysis.emailMetadata && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">

@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { FileText, Gift, MessageSquare } from "lucide-react"
+import { DealBadge } from "@/components/ui/deal-badge"
 
 export interface Activity {
   id: string
@@ -7,6 +8,8 @@ export interface Activity {
   title: string
   subtitle?: string
   timestamp: Date
+  dealQuality?: "excellent" | "good" | "fair" | "caution"
+  isGift?: boolean
 }
 
 function formatRelativeTime(date: Date): string {
@@ -60,6 +63,14 @@ export function RecentActivityFeed({ activities }: { activities: Activity[] }) {
                 <p className="font-medium truncate">{activity.title}</p>
                 {activity.subtitle && (
                   <p className="text-sm text-muted-foreground truncate">{activity.subtitle}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {activity.dealQuality && (
+                  <DealBadge type="quality" value={activity.dealQuality} />
+                )}
+                {activity.isGift && (
+                  <DealBadge type="gift" value={true} />
                 )}
               </div>
               <time className="text-xs text-muted-foreground whitespace-nowrap">
