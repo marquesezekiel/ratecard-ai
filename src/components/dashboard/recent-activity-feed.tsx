@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { FileText, Gift, MessageSquare, Sparkles } from "lucide-react"
+import { FileText, Gift, MessageSquare } from "lucide-react"
 
 export interface Activity {
   id: string
@@ -36,17 +36,11 @@ export function RecentActivityFeed({ activities }: { activities: Activity[] }) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Sparkles className="h-6 w-6 text-primary" />
-            </div>
-            <div className="space-y-1">
-              <p className="font-medium">No activity yet</p>
-              <p className="text-sm text-muted-foreground">
-                Analyze your first brand message to get started!
-              </p>
-            </div>
-          </div>
+          <div className="text-4xl mb-3">✨</div>
+          <p className="font-medium">No deals yet - but you&apos;re about to change that</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Paste a brand DM above to see what you should charge.
+          </p>
         </CardContent>
       </Card>
     )

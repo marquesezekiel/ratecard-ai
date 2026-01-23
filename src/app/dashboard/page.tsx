@@ -15,11 +15,20 @@ interface RateCardHistoryItem {
   createdAt: string;
 }
 
+// Time-based greeting helper
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+};
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const [recentRates, setRecentRates] = useState<RateCardHistoryItem[]>([]);
   const [totalGenerated, setTotalGenerated] = useState(0);
   const [pendingGifts, setPendingGifts] = useState(0);
+  const [creatorHandle, setCreatorHandle] = useState<string | null>(null);
 
   useEffect(() => {
     startTransition(() => {
@@ -44,6 +53,18 @@ export default function DashboardPage() {
         const pending = gifts.filter((g: { status: string }) => g.status === "pending" || g.status === "received").length;
         setPendingGifts(pending);
       }
+      // Load creator handle from profile
+      const profile = localStorage.getItem("creatorProfile");
+      if (profile) {
+        try {
+          const data = JSON.parse(profile);
+          if (data.handle) {
+            setCreatorHandle(data.handle);
+          }
+        } catch {
+          // Invalid JSON, ignore
+        }
+      }
     });
   }, []);
 
@@ -60,27 +81,32 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      {/* Success-focused header */}
+      {/* Success-focused header with personalization */}
       <header className="space-y-1">
         <h1 className="text-2xl font-display font-bold">
-          Hey {firstName}
+          {getGreeting()}{creatorHandle ? `, @${creatorHandle}` : `, ${firstName}`}
         </h1>
         <p className="text-muted-foreground">
           {totalGenerated > 0 ? (
             <>
-              You&apos;ve generated <span className="font-mono font-semibold text-primary">${totalGenerated.toLocaleString()}</span> in rates this month
+              You&apos;ve quoted <span className="font-mono font-semibold text-primary">${totalGenerated.toLocaleString()}</span> in rates this month
             </>
           ) : (
-            "Get a defendable rate in minutes."
+            "Ready to know your worth? Let's get you a rate."
           )}
         </p>
       </header>
 
       {/* PRIMARY: Inline Message Analyzer */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Got a brand message?
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Got a brand message?
+          </h2>
+          <span className="text-xs text-muted-foreground">
+            Works with DMs, emails, and briefs
+          </span>
+        </div>
         <InlineMessageAnalyzer />
       </section>
 

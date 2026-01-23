@@ -122,7 +122,7 @@ export function InlineMessageAnalyzer() {
           <Textarea
             placeholder={isDragActive
               ? "Drop your brief here..."
-              : "Got a brand message? Paste it here, or drop a brief file..."
+              : "Paste that brand DM here... or drop a brief 📄"
             }
             value={message}
             onChange={(e) => {
