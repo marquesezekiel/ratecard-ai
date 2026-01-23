@@ -160,7 +160,7 @@ export function PricingBreakdown({ pricing, showDetailedExplanation = true }: Pr
           <div className="relative flex items-center justify-between">
             <div>
               <p className="text-sm font-medium opacity-90">Your Rate</p>
-              <p className="text-4xl font-bold tracking-tight mt-1">
+              <p className="text-4xl md:text-5xl font-bold tracking-tight mt-1">
                 <AnimatedNumber
                   value={pricing.totalPrice}
                   prefix={pricing.currencySymbol}

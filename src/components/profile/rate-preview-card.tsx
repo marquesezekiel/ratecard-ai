@@ -51,15 +51,11 @@ export function RatePreviewCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <div className="text-3xl font-display font-bold">
-            <span className="font-mono">
-              ${estimate.minRate.toLocaleString()}
-            </span>
-            <span className="text-muted-foreground mx-1">-</span>
-            <span className="font-mono">
-              ${estimate.maxRate.toLocaleString()}
-            </span>
+        <div className="text-center">
+          <div className="text-3xl md:text-4xl font-mono font-bold tracking-tight">
+            <span>${estimate.minRate.toLocaleString()}</span>
+            <span className="text-muted-foreground mx-2">–</span>
+            <span>${estimate.maxRate.toLocaleString()}</span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
             For a typical {platform === "youtube" ? "YouTube video" : "Reel/TikTok"}

@@ -296,6 +296,25 @@
     font-family: var(--font-mono), ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
   }
+
+  /* Typography enhancements for display text */
+  .tracking-display {
+    letter-spacing: -0.02em;
+  }
+
+  .tracking-tight-display {
+    letter-spacing: -0.03em;
+  }
+
+  /* Text shadow for headlines on colored backgrounds */
+  .text-shadow-sm {
+    text-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+  }
+
+  /* Heavier font weight for emphasis */
+  .font-black {
+    font-weight: 900;
+  }
 }
 
 /* ========================================

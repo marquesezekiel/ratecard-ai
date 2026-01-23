@@ -83,13 +83,13 @@ export default function DashboardPage() {
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Success-focused header with personalization */}
       <header className="space-y-1">
-        <h1 className="text-2xl font-display font-bold">
-          {getGreeting()}{creatorHandle ? `, @${creatorHandle}` : `, ${firstName}`}
+        <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight">
+          {getGreeting()}{creatorHandle ? `, @${creatorHandle}` : `, ${firstName}`} ✨
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground text-base md:text-lg">
           {totalGenerated > 0 ? (
             <>
-              You&apos;ve quoted <span className="font-mono font-semibold text-primary">${totalGenerated.toLocaleString()}</span> in rates this month
+              You&apos;ve quoted <span className="font-mono font-bold text-primary">${totalGenerated.toLocaleString()}</span> in rates this month
             </>
           ) : (
             "Ready to know your worth? Let's get you a rate."

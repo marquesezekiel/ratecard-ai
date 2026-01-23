@@ -50,8 +50,8 @@ export function MobileRateSheet({
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-lg font-bold font-mono">
-            ${estimate.minRate.toLocaleString()} - ${estimate.maxRate.toLocaleString()}
+          <span className="text-xl font-bold font-mono tracking-tight">
+            ${estimate.minRate.toLocaleString()} – ${estimate.maxRate.toLocaleString()}
           </span>
           {isExpanded ? (
             <ChevronDown className="h-4 w-4 text-muted-foreground" />

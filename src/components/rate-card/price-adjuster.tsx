@@ -58,7 +58,7 @@ export function PriceAdjuster({ calculatedPricing, onPriceChange }: PriceAdjuste
               <label htmlFor="calculated" className="font-medium cursor-pointer">
                 Use RateCard.AI suggestion
               </label>
-              <p className="text-2xl font-bold mt-1">
+              <p className="text-2xl md:text-3xl font-mono font-bold tracking-tight mt-1">
                 {calculatedPricing.currencySymbol || "$"}
                 {calculatedPricing.totalPrice.toLocaleString()}
               </p>
@@ -85,7 +85,7 @@ export function PriceAdjuster({ calculatedPricing, onPriceChange }: PriceAdjuste
                 Set my own price
               </label>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-2xl font-bold">
+                <span className="text-2xl md:text-3xl font-mono font-bold">
                   {calculatedPricing.currencySymbol || "$"}
                 </span>
                 <Input

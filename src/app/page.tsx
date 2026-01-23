@@ -52,8 +52,8 @@ export default function HomePage() {
                 100% free for creators
               </div>
 
-              {/* Main headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-display font-bold tracking-tight leading-[1.1]">
+              {/* Main headline - bigger, bolder */}
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-display font-bold tracking-tight leading-[1.05]">
                 stop guessing.
                 <br />
                 <span className="text-gradient">start charging.</span>
@@ -134,7 +134,7 @@ export default function HomePage() {
       {/* Features - 2 Hero Features */}
       <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-center mb-12">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-center tracking-display mb-12">
             Everything you need to get paid fairly
           </h2>
 
@@ -222,7 +222,7 @@ export default function HomePage() {
       {/* How It Works - Visual Steps */}
       <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-center mb-12">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-center tracking-display mb-12">
             Get your rate in 60 seconds
           </h2>
 
@@ -274,7 +274,7 @@ export default function HomePage() {
 
             <div className="relative px-8 py-16 lg:px-16 lg:py-20">
               <div className="max-w-2xl">
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold tracking-tight text-primary-foreground">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold tracking-tight-display text-primary-foreground text-shadow-sm">
                   ready to know your worth?
                 </h2>
                 <p className="mt-4 text-lg text-primary-foreground/80 max-w-xl">
