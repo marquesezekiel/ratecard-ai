@@ -139,11 +139,11 @@ export default function HomePage() {
           </h2>
 
           <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-            {/* Feature 1: Message Analyzer (Killer Feature) */}
-            <Card className="p-6 md:p-8 border-2 hover:shadow-lg transition-shadow">
+            {/* Feature 1: Message Analyzer - Primary Feature */}
+            <Card className="p-6 md:p-8 border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent hover:shadow-lg transition-all hover:-translate-y-1">
               <div className="space-y-4">
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <MessageSquare className="h-6 w-6 text-primary" />
+                <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
+                  <MessageSquare className="h-6 w-6 text-primary-foreground" />
                 </div>
                 <h3 className="text-xl font-display font-semibold">
                   Analyze Any Brand Message
@@ -154,26 +154,32 @@ export default function HomePage() {
                 </p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
+                    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Check className="h-3 w-3 text-primary" />
+                    </div>
                     Detects gift offers vs paid opportunities
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
+                    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Check className="h-3 w-3 text-primary" />
+                    </div>
                     Spots scams and red flags
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
+                    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Check className="h-3 w-3 text-primary" />
+                    </div>
                     Generates ready-to-send responses
                   </li>
                 </ul>
               </div>
             </Card>
 
-            {/* Feature 2: Rate Cards */}
-            <Card className="p-6 md:p-8 border-2 hover:shadow-lg transition-shadow">
+            {/* Feature 2: Rate Cards - Secondary Feature with coral accent */}
+            <Card className="p-6 md:p-8 border-2 hover:shadow-lg transition-all hover:-translate-y-1 hover:border-coral/30">
               <div className="space-y-4">
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <FileText className="h-6 w-6 text-primary" />
+                <div className="h-12 w-12 rounded-xl bg-coral/10 flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-coral" />
                 </div>
                 <h3 className="text-xl font-display font-semibold">
                   Professional Rate Cards
@@ -184,15 +190,21 @@ export default function HomePage() {
                 </p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
+                    <div className="h-5 w-5 rounded-full bg-coral/10 flex items-center justify-center">
+                      <Check className="h-3 w-3 text-coral" />
+                    </div>
                     10+ pricing factors calculated
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
+                    <div className="h-5 w-5 rounded-full bg-coral/10 flex items-center justify-center">
+                      <Check className="h-3 w-3 text-coral" />
+                    </div>
                     Negotiation talking points included
                   </li>
                   <li className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
+                    <div className="h-5 w-5 rounded-full bg-coral/10 flex items-center justify-center">
+                      <Check className="h-3 w-3 text-coral" />
+                    </div>
                     Looks like it came from an agency
                   </li>
                 </ul>
@@ -221,22 +233,25 @@ export default function HomePage() {
                 title: "Tell us about you",
                 description: "Platform, followers, engagement rate",
                 icon: User,
+                delay: "delay-100",
               },
               {
                 step: "02",
                 title: "Describe the deal",
                 description: "Content type, usage rights, timeline",
                 icon: FileText,
+                delay: "delay-200",
               },
               {
                 step: "03",
                 title: "Get your rate card",
                 description: "Download a PDF ready to send",
                 icon: Download,
+                delay: "delay-300",
               },
             ].map((item) => (
-              <div key={item.step} className="text-center space-y-4">
-                <div className="mx-auto h-16 w-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center">
+              <div key={item.step} className={`text-center space-y-4 animate-fade-in ${item.delay}`}>
+                <div className="mx-auto h-16 w-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/25">
                   <item.icon className="h-8 w-8" />
                 </div>
                 <div className="text-4xl font-display font-bold text-primary/20">
@@ -282,20 +297,37 @@ export default function HomePage() {
       {/* Footer with Social Proof */}
       <footer className="py-12 border-t border-border/40 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
-          {/* Social proof stats */}
-          <div className="grid grid-cols-3 gap-4 mb-8 text-center">
-            <div>
-              <div className="text-2xl font-display font-bold">10K+</div>
-              <div className="text-sm text-muted-foreground">Rate cards generated</div>
+          {/* Social proof stats - more creator-native styling */}
+          <div className="grid grid-cols-3 gap-6 mb-10">
+            <div className="text-center space-y-1">
+              <div className="text-3xl md:text-4xl font-display font-bold text-primary">10K+</div>
+              <div className="text-sm text-muted-foreground">rate cards generated</div>
             </div>
-            <div>
-              <div className="text-2xl font-display font-bold font-money">$2.4M</div>
-              <div className="text-sm text-muted-foreground">In rates calculated</div>
+            <div className="text-center space-y-1">
+              <div className="text-3xl md:text-4xl font-display font-bold font-money text-money">$2.4M</div>
+              <div className="text-sm text-muted-foreground">in rates calculated</div>
             </div>
-            <div>
-              <div className="text-2xl font-display font-bold">4.9/5</div>
-              <div className="text-sm text-muted-foreground">Creator rating</div>
+            <div className="text-center space-y-1">
+              <div className="flex items-center justify-center gap-1">
+                <span className="text-3xl md:text-4xl font-display font-bold">4.9</span>
+                <Star className="h-6 w-6 text-energy fill-energy" />
+              </div>
+              <div className="text-sm text-muted-foreground">creator rating</div>
             </div>
+          </div>
+
+          {/* Creator-style social proof */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="flex -space-x-2">
+              {/* Avatar placeholders - represents real creator community */}
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-400 to-rose-400 border-2 border-background" />
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-400 to-purple-400 border-2 border-background" />
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-teal-400 to-cyan-400 border-2 border-background" />
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 border-2 border-background" />
+            </div>
+            <span className="text-sm text-muted-foreground">
+              Trusted by creators like <span className="font-medium text-foreground">@maya.creates</span>
+            </span>
           </div>
 
           {/* Footer links */}
