@@ -1930,6 +1930,423 @@ Run `pnpm build` and test level transitions.
 
 ---
 
+### Prompt 11: Rate Reality Check (Quick Calculator Redesign)
+
+```
+Transform the Quick Calculator from a generic rate estimator into a "Rate Reality Check" that creates genuine value, builds trust, and makes signup feel inevitable.
+
+**Current Problems:**
+- Just shows a number (anyone can Google this)
+- No context or comparison
+- No trust - why believe this number?
+- No gap - if they get the answer, why sign up?
+
+**New Approach:**
+- Show where they STAND relative to peers (percentile)
+- Reveal what's NOT included (the gap)
+- Provide a compelling insight (the aha moment)
+- Make signup feel like the natural next step
+
+**1. Add percentile calculation to `src/lib/quick-calculator.ts`:**
+
+```typescript
+/**
+ * Percentile data by tier (based on aggregated creator data).
+ * Shows where a creator's rate falls within their peer group.
+ */
+const TIER_PERCENTILE_RANGES: Record<CreatorTier, { p25: number; p50: number; p75: number; p90: number }> = {
+  nano: { p25: 100, p50: 150, p75: 225, p90: 350 },
+  micro: { p25: 275, p50: 400, p75: 550, p90: 750 },
+  mid: { p25: 550, p50: 800, p75: 1100, p90: 1500 },
+  rising: { p25: 1000, p50: 1500, p75: 2100, p90: 3000 },
+  macro: { p25: 2000, p50: 3000, p75: 4500, p90: 6500 },
+  mega: { p25: 4000, p50: 6000, p75: 9000, p90: 14000 },
+  celebrity: { p25: 8000, p50: 12000, p75: 20000, p90: 35000 },
+};
+
+/**
+ * Calculate percentile rank for a given rate within a tier.
+ */
+export function calculatePercentile(rate: number, tier: CreatorTier): number {
+  const ranges = TIER_PERCENTILE_RANGES[tier];
+
+  if (rate <= ranges.p25) return Math.round((rate / ranges.p25) * 25);
+  if (rate <= ranges.p50) return 25 + Math.round(((rate - ranges.p25) / (ranges.p50 - ranges.p25)) * 25);
+  if (rate <= ranges.p75) return 50 + Math.round(((rate - ranges.p50) / (ranges.p75 - ranges.p50)) * 25);
+  if (rate <= ranges.p90) return 75 + Math.round(((rate - ranges.p75) / (ranges.p90 - ranges.p75)) * 15);
+  return Math.min(99, 90 + Math.round(((rate - ranges.p90) / ranges.p90) * 9));
+}
+
+/**
+ * Get the range for top performers in this tier.
+ */
+export function getTopPerformerRange(tier: CreatorTier): { min: number; max: number } {
+  const ranges = TIER_PERCENTILE_RANGES[tier];
+  return { min: ranges.p75, max: ranges.p90 };
+}
+
+/**
+ * Calculate the potential rate if engagement was high (6%+).
+ */
+export function calculatePotentialRate(baseRate: number): number {
+  // High engagement (6%+) = 1.6x multiplier
+  // Plus usage rights (+50%) and exclusivity (+30%)
+  return Math.round(baseRate * 1.6 * 1.5 * 1.3);
+}
+
+// Update QuickEstimateResult type to include new fields
+// Add to return object in calculateQuickEstimate:
+// percentile: calculatePercentile(baseRate, tier),
+// topPerformerRange: getTopPerformerRange(tier),
+// potentialWithFullProfile: calculatePotentialRate(baseRate),
+```
+
+**2. Update types in `src/lib/types.ts`:**
+
+```typescript
+export interface QuickEstimateResult {
+  // Existing fields...
+  minRate: number;
+  maxRate: number;
+  baseRate: number;
+  tierName: string;
+  tier: CreatorTier;
+  factors: RateInfluencer[];
+  platform: Platform;
+  contentFormat: ContentFormat;
+  niche: string;
+
+  // NEW: Percentile & comparison data
+  percentile: number;                    // Where they rank (0-100)
+  topPerformerRange: { min: number; max: number };  // What top 25% charge
+  potentialWithFullProfile: number;      // What they COULD charge
+  missingFactors: MissingFactor[];       // What's not included
+}
+
+export interface MissingFactor {
+  name: string;
+  impact: string;        // e.g., "±30%"
+  description: string;
+  icon: string;          // Lucide icon name
+}
+```
+
+**3. Add missing factors constant to `src/lib/quick-calculator.ts`:**
+
+```typescript
+/**
+ * Factors NOT included in the quick estimate.
+ * Creates "the gap" that encourages signup.
+ */
+export const MISSING_FACTORS: MissingFactor[] = [
+  {
+    name: "Your Actual Engagement",
+    impact: "±30%",
+    description: "High engagement = higher rates. We assumed 3% average.",
+    icon: "TrendingUp",
+  },
+  {
+    name: "Audience Location",
+    impact: "+40%",
+    description: "US/UK audiences pay significantly more than global average.",
+    icon: "Globe",
+  },
+  {
+    name: "Past Brand Work",
+    impact: "+15-25%",
+    description: "Portfolio with recognizable brands justifies premium rates.",
+    icon: "Briefcase",
+  },
+  {
+    name: "Content Quality",
+    impact: "+20-50%",
+    description: "Professional production value commands higher rates.",
+    icon: "Camera",
+  },
+];
+```
+
+**4. Completely redesign `src/components/quick-calculator-result.tsx`:**
+
+```tsx
+"use client";
+
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { AnimatedNumber } from "@/components/ui/animated-number";
+import {
+  ArrowRight,
+  TrendingUp,
+  AlertCircle,
+  Users,
+  RefreshCw,
+  Globe,
+  Briefcase,
+  Camera,
+  Lock
+} from "lucide-react";
+import type { QuickEstimateResult } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+interface QuickCalculatorResultProps {
+  result: QuickEstimateResult;
+  onReset: () => void;
+}
+
+const iconMap: Record<string, typeof TrendingUp> = {
+  TrendingUp,
+  Globe,
+  Briefcase,
+  Camera,
+};
+
+export function QuickCalculatorResult({
+  result,
+  onReset,
+}: QuickCalculatorResultProps) {
+  const formatDisplayNames: Record<string, string> = {
+    static: "Static Post",
+    carousel: "Carousel",
+    story: "Story",
+    reel: "Reel",
+    video: "Video",
+    live: "Live Stream",
+    ugc: "UGC",
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Main Rate Card */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground">
+          <div className="text-center">
+            <p className="text-sm opacity-90 mb-2">Your Estimated Rate</p>
+            <div className="text-4xl sm:text-5xl font-bold font-mono mb-2">
+              <AnimatedNumber value={result.minRate} prefix="$" duration={800} />
+              <span className="text-2xl mx-2 opacity-70">–</span>
+              <AnimatedNumber value={result.maxRate} prefix="$" duration={1000} />
+            </div>
+            <p className="text-sm opacity-80">
+              per {formatDisplayNames[result.contentFormat] || result.contentFormat}
+            </p>
+          </div>
+        </div>
+
+        <CardContent className="p-6 space-y-6">
+          {/* Percentile Visualization */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Where you stand among {result.tierName} creators
+              </span>
+              <Badge variant="secondary" className="font-mono">
+                Top {100 - result.percentile}%
+              </Badge>
+            </div>
+
+            {/* Visual percentile bar */}
+            <div className="relative h-8 bg-muted rounded-full overflow-hidden">
+              {/* Background gradient showing distribution */}
+              <div className="absolute inset-0 bg-gradient-to-r from-muted via-primary/20 to-primary/40" />
+
+              {/* Marker for user's position */}
+              <div
+                className="absolute top-0 bottom-0 w-1 bg-primary shadow-lg"
+                style={{ left: `${result.percentile}%` }}
+              >
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary rounded-full border-2 border-background" />
+              </div>
+
+              {/* Labels */}
+              <div className="absolute inset-x-0 bottom-0 flex justify-between px-2 text-[10px] text-muted-foreground">
+                <span>$0</span>
+                <span className="font-medium text-foreground">You</span>
+                <span>${result.topPerformerRange.max.toLocaleString()}+</span>
+              </div>
+            </div>
+
+            <p className="text-sm text-center text-muted-foreground">
+              {result.percentile >= 50 ? (
+                <>You're charging more than <span className="font-semibold text-foreground">{result.percentile}%</span> of similar creators</>
+              ) : (
+                <>Top {result.tierName} creators charge <span className="font-semibold text-foreground">${result.topPerformerRange.min.toLocaleString()}–${result.topPerformerRange.max.toLocaleString()}</span></>
+              )}
+            </p>
+          </div>
+
+          {/* The Gap: What's NOT Included */}
+          <div className="border-t pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+              <h3 className="font-semibold">What This Estimate is Missing</h3>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {result.missingFactors.map((factor, i) => {
+                const Icon = iconMap[factor.icon] || TrendingUp;
+                return (
+                  <div key={i} className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+                    <Icon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium truncate">{factor.name}</span>
+                        <span className="text-xs font-mono text-amber-600">{factor.impact}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{factor.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="text-sm text-center text-muted-foreground mt-4">
+              These 4 factors can swing your rate by <span className="font-semibold text-foreground">$200–$800</span>
+            </p>
+          </div>
+
+          {/* The Insight */}
+          <div className="border-t pt-6">
+            <div className="bg-gradient-to-r from-coral/10 to-primary/10 rounded-xl p-4 text-center">
+              <p className="text-3xl mb-2">💡</p>
+              <p className="font-semibold mb-1">Did you know?</p>
+              <p className="text-sm text-muted-foreground">
+                <span className="text-foreground font-medium">73% of creators</span> with 10K-50K followers undercharge by an average of <span className="font-mono font-medium text-coral">$340</span> per deal.
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                That's <span className="font-semibold">$4,000+ left on the table</span> per year.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* CTA Section */}
+      <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent overflow-hidden">
+        <CardContent className="p-6 space-y-4">
+          <div className="text-center">
+            <h3 className="text-xl font-display font-bold mb-2">
+              Your Real Rate Could Be ${result.potentialWithFullProfile.toLocaleString()}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Get your personalized rate card with full analysis — takes 2 minutes, free forever.
+            </p>
+          </div>
+
+          {/* What they get */}
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            {[
+              "Rate based on YOUR engagement",
+              "Negotiation scripts to copy",
+              "Brand message analyzer",
+              "PDF rate card to send",
+            ].map((benefit, i) => (
+              <div key={i} className="flex items-center gap-2 text-muted-foreground">
+                <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                {benefit}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-3 pt-2">
+            <Button asChild size="lg" className="w-full gap-2 text-base">
+              <Link href="/sign-up">
+                Get Your Real Rate Card
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onReset}
+              className="gap-2 mx-auto"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Try different inputs
+            </Button>
+          </div>
+
+          {/* Testimonial */}
+          <div className="border-t pt-4 mt-2">
+            <p className="text-sm text-center italic text-muted-foreground">
+              "I went from charging $150 to $600 after seeing what creators like me were actually getting paid"
+            </p>
+            <p className="text-xs text-center text-muted-foreground mt-1">
+              — @lifestyle.sarah, 22K followers
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+```
+
+**5. Update `calculateQuickEstimate` in `src/lib/quick-calculator.ts` to return new fields:**
+
+```typescript
+export function calculateQuickEstimate(
+  input: QuickCalculatorInput
+): QuickEstimateResult {
+  // ... existing calculation code ...
+
+  // After calculating baseRate, minRate, maxRate:
+
+  return {
+    minRate,
+    maxRate,
+    baseRate,
+    tierName: TIER_DISPLAY_NAMES[tier],
+    tier,
+    factors: getRelevantFactors(tier, platform, contentFormat),
+    platform,
+    contentFormat,
+    niche,
+    // NEW fields
+    percentile: calculatePercentile(baseRate, tier),
+    topPerformerRange: getTopPerformerRange(tier),
+    potentialWithFullProfile: calculatePotentialRate(baseRate),
+    missingFactors: MISSING_FACTORS,
+  };
+}
+```
+
+**6. Update the page headline in `src/app/quick-calculate/page.tsx`:**
+
+Change:
+```tsx
+<h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
+  Know Your Worth in <span className="text-primary">Seconds</span>
+</h1>
+```
+
+To:
+```tsx
+<h1 className="text-3xl sm:text-4xl font-display font-bold tracking-tight">
+  Rate Reality Check
+</h1>
+<p className="text-xl text-muted-foreground mt-2">
+  See where you stand among <span className="text-primary font-semibold">10,000+ creators</span>
+</p>
+```
+
+**7. Verification:**
+- [ ] Percentile bar shows user's position visually
+- [ ] "Top X%" badge displays correctly
+- [ ] Missing factors section shows 4 factors with impact percentages
+- [ ] "Did you know?" insight appears with compelling stat
+- [ ] "Your Real Rate Could Be $X" shows 2-3x the base rate
+- [ ] CTA button is prominent and clear
+- [ ] Testimonial adds social proof
+- [ ] Mobile layout works (grid becomes single column)
+
+Run `pnpm build` and test with different follower counts to verify percentile calculations.
+```
+
+---
+
 ## Command Sequence
 
 ### Session 1: Color & Core Fixes
@@ -2191,6 +2608,35 @@ git push origin main
 
 ---
 
+### Session 6: Rate Reality Check
+
+```
+STEP 35: /clear
+```
+
+```
+STEP 36: Rate Reality Check Redesign
+```
+```
+Read IMPLEMENTATION_PLAN_V5.md and implement Prompt 11 (Rate Reality Check) exactly as written. Follow all requirements including percentile calculation, missing factors, updated result component, and verification steps.
+```
+
+```
+STEP 37: Commit
+```
+```bash
+git add -A && git commit -m "feat: transform quick calculator into rate reality check"
+```
+
+```
+STEP 38: Push
+```
+```bash
+git push -u origin claude/analyze-test-coverage-hWgZz
+```
+
+---
+
 ## Quick Reference
 
 | Step | Action | Time Est. |
@@ -2206,8 +2652,9 @@ git push origin main
 | 26-28 | Typography Polish | 20 min |
 | 29-31 | Profile Gamification | 45 min |
 | 32-34 | Testing & Ship | 30 min |
+| 35-38 | Rate Reality Check | 45 min |
 
-**Total: 34 steps, 11 prompts, 11 commits, ~6 hours**
+**Total: 38 steps, 12 prompts, 12 commits, ~7 hours**
 
 ---
 
@@ -2230,6 +2677,14 @@ After completing all prompts:
 ✅ Dashboard action cards have unique accent colors
 ✅ Typography is bolder with better hierarchy
 ✅ Profile uses level-based gamification system
+
+### Conversion Optimization (Prompt 11)
+✅ Quick Calculator shows percentile ranking among peers
+✅ "Missing factors" section creates urgency to sign up
+✅ "Did you know?" insight with compelling undercharging stat
+✅ "Your Real Rate Could Be $X" shows potential with full profile
+✅ Testimonial adds social proof from similar creator
+✅ CTA emphasizes what they GET, not what's missing
 
 ### Quality
 ✅ All tests pass
