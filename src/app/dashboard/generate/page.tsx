@@ -76,7 +76,7 @@ export default function GeneratePage() {
 
   const handleStartOver = () => {
     localStorage.removeItem("currentBrief");
-    router.push("/dashboard/upload");
+    router.push("/dashboard/analyze");
   };
 
   // Loading state
@@ -100,7 +100,7 @@ export default function GeneratePage() {
             : "Please upload a brand brief first."}
         </p>
         <Button
-          onClick={() => router.push(error === "profile" ? "/dashboard/profile" : "/dashboard/upload")}
+          onClick={() => router.push(error === "profile" ? "/dashboard/profile" : "/dashboard/analyze")}
           className="mt-6"
         >
           {error === "profile" ? "Complete Profile" : "Upload Brief"}

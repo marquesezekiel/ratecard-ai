@@ -366,7 +366,7 @@ Example Email:
 
             {analysis.compensationType === "paid" && (
               <Button size="sm" asChild>
-                <Link href="/dashboard/quick-quote">
+                <Link href="/quick-calculate">
                   <FileText className="h-4 w-4 mr-2" />
                   Generate Rate Card
                 </Link>

@@ -23,7 +23,7 @@ interface CalculationResult {
  * POST /api/public-calculate
  *
  * Public endpoint for calculating deal quality score and pricing.
- * No authentication required - used by the public /quote page.
+ * No authentication required - used by the public /quick-calculate page.
  * Does not save to database.
  *
  * Accepts: application/json with { profile: CreatorProfile, brief: ParsedBrief, dealQualityInput?: DealQualityInput }

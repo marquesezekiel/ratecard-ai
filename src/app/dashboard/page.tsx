@@ -113,7 +113,7 @@ export default function DashboardPage() {
       {/* SECONDARY: Quick actions - with distinct visual identities */}
       <section className="grid grid-cols-2 gap-4">
         <QuickActionCard
-          href="/dashboard/quick-quote"
+          href="/quick-calculate"
           icon={Calculator}
           title="Quick Rate"
           description="Get an instant quote"

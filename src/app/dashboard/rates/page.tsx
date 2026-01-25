@@ -16,8 +16,8 @@ export default function SavedRatesPage() {
       </header>
 
       <SavedRates
-        onQuickQuote={() => router.push("/dashboard/quick-quote")}
-        onUploadBrief={() => router.push("/dashboard/upload")}
+        onQuickQuote={() => router.push("/quick-calculate")}
+        onUploadBrief={() => router.push("/dashboard/analyze")}
       />
     </div>
   );

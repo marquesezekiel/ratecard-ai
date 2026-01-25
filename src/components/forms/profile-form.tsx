@@ -400,8 +400,8 @@ export function ProfileForm({ initialData, onValuesChange }: ProfileFormProps) {
       // Save to localStorage for MVP
       localStorage.setItem("creatorProfile", JSON.stringify(profile));
 
-      // Redirect to upload page
-      router.push("/dashboard/upload");
+      // Redirect to analyze page
+      router.push("/dashboard/analyze");
     } catch (error) {
       console.error("Error saving profile:", error);
     } finally {

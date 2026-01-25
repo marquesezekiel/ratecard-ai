@@ -60,7 +60,7 @@ export function InlineMessageAnalyzer() {
       sessionStorage.setItem("pendingBriefFile", JSON.stringify(fileData))
       // Note: We can't store the actual file in sessionStorage,
       // so we navigate to upload page where they can re-select
-      router.push("/dashboard/upload")
+      router.push("/dashboard/analyze?tab=briefs")
     } else if (message.trim()) {
       // Navigate to analyzer with message
       router.push(`/dashboard/analyze?message=${encodeURIComponent(message)}`)
