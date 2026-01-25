@@ -155,7 +155,7 @@ export function QuickCalculatorResult({
         <CardContent className="p-6 space-y-4">
           <div className="text-center">
             <h3 className="text-xl font-display font-bold mb-2">
-              Your Real Rate Could Be ${result.potentialWithFullProfile.toLocaleString()}
+              With full profile, your rate could be ${result.potentialWithFullProfile.toLocaleString()}
             </h3>
             <p className="text-sm text-muted-foreground">
               Get your personalized rate card with full analysis — takes 2 minutes, free forever.
@@ -180,7 +180,7 @@ export function QuickCalculatorResult({
           <div className="flex flex-col gap-3 pt-2">
             <Button asChild size="lg" className="w-full gap-2 text-base">
               <Link href="/sign-up">
-                Get Your Real Rate Card
+                Get Your Full Rate Card
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

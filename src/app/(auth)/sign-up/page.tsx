@@ -97,7 +97,7 @@ export default function SignUpPage() {
               </div>
               <div className="flex items-center gap-3 text-white/80">
                 <CheckCircle2 className="h-5 w-5 text-white/60" />
-                <span>6-layer pricing algorithm</span>
+                <span>Multi-factor pricing algorithm</span>
               </div>
               <div className="flex items-center gap-3 text-white/80">
                 <CheckCircle2 className="h-5 w-5 text-white/60" />

@@ -123,7 +123,7 @@ export default function HomePage() {
                 </div>
                 <div className="absolute -bottom-4 -right-4 bg-card border border-border/50 px-4 py-2 rounded-full text-sm shadow-lg flex items-center gap-2">
                   <Star className="h-4 w-4 text-energy fill-energy" />
-                  <span className="font-medium">Fit score: 92</span>
+                  <span className="font-medium">Deal Quality: 92</span>
                 </div>
               </div>
             </div>
@@ -223,7 +223,7 @@ export default function HomePage() {
       <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-center tracking-display mb-12">
-            Get your rate in 60 seconds
+            Get your rate in 30 seconds
           </h2>
 
           <div className="grid md:grid-cols-3 gap-8">

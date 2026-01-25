@@ -191,11 +191,11 @@ export default function GeneratePage() {
           </CardContent>
         </Card>
 
-        {/* Fit Score Card */}
+        {/* Deal Quality Card */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Brand Fit Score</CardTitle>
+              <CardTitle>Deal Quality</CardTitle>
               <Badge className={fitLevelColors[fitScore.fitLevel]}>
                 {fitScore.fitLevel.charAt(0).toUpperCase() + fitScore.fitLevel.slice(1)} Fit
               </Badge>
