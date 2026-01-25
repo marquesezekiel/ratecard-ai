@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { calculateDealQualityWithCompat } from "@/lib/deal-quality-score";
+import { calculateDealQuality } from "@/lib/deal-quality-score";
 import { calculatePrice } from "@/lib/pricing-engine";
 import type {
   ApiResponse,
   CreatorProfile,
   ParsedBrief,
-  FitScoreResult,
   DealQualityResult,
   DealQualityInput,
   PricingResult,
@@ -14,9 +13,7 @@ import type {
 import { headers } from "next/headers";
 
 interface CalculationResult {
-  /** @deprecated Use dealQuality instead */
-  fitScore: FitScoreResult;
-  /** New creator-centric deal quality score */
+  /** Creator-centric deal quality score */
   dealQuality: DealQualityResult;
   pricing: PricingResult;
 }
@@ -69,22 +66,21 @@ export async function POST(
       );
     }
 
-    // Calculate deal quality score (returns both new and legacy formats)
+    // Calculate deal quality score
     // Pass empty input if not provided - the function will use sensible defaults
-    const { dealQuality, fitScore } = calculateDealQualityWithCompat(
+    const dealQuality = calculateDealQuality(
       profile,
       brief,
       dealQualityInput || {}
     );
 
-    // Calculate pricing using the new deal quality score
+    // Calculate pricing using the deal quality score
     const pricing = calculatePrice(profile, brief, dealQuality);
 
     return NextResponse.json({
       success: true,
       data: {
-        fitScore, // Deprecated - for backward compatibility
-        dealQuality, // New creator-centric score
+        dealQuality,
         pricing,
       },
     });

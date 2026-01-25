@@ -873,8 +873,9 @@ export function calculateDealQuality(
 /**
  * Convert a DealQualityResult to FitScoreResult for backward compatibility.
  *
- * This allows existing code that expects FitScoreResult to continue working
- * while we transition to the new Deal Quality Score system.
+ * @deprecated This function is deprecated and will be removed in a future version.
+ * Use calculateDealQuality directly instead. The FitScore system has been replaced
+ * by the creator-centric Deal Quality Score system.
  *
  * @param dealQuality - The deal quality result to convert
  * @returns FitScoreResult-compatible object
@@ -945,8 +946,9 @@ export function dealQualityToFitScore(dealQuality: DealQualityResult): FitScoreR
 /**
  * Calculate Deal Quality Score and return both native result and FitScore-compatible result.
  *
- * This is the main function to use during the transition period.
- * It provides both the new DealQualityResult and a backward-compatible FitScoreResult.
+ * @deprecated This function is deprecated and will be removed in a future version.
+ * Use calculateDealQuality directly instead. The FitScore compatibility layer is no
+ * longer needed as the codebase has been migrated to Deal Quality Score.
  *
  * @param profile - Creator's profile
  * @param brief - Parsed brand brief

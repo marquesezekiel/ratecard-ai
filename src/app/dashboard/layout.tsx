@@ -191,13 +191,17 @@ export default function DashboardLayout({
                     Profile
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild className="rounded-lg">
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                  More Tools
+                </DropdownMenuLabel>
+                <DropdownMenuItem asChild className="rounded-lg text-muted-foreground hover:text-foreground">
                   <Link href="/dashboard/tools/brand-vetter">
                     <Shield className="mr-2 h-4 w-4" />
                     Brand Vetter
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild className="rounded-lg">
+                <DropdownMenuItem asChild className="rounded-lg text-muted-foreground hover:text-foreground">
                   <Link href="/dashboard/tools/contract-scanner">
                     <FileSearch className="mr-2 h-4 w-4" />
                     Contract Scanner
