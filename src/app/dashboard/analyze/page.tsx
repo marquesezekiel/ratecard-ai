@@ -9,8 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProgressSteps } from "@/components/ui/progress-steps";
-import { AlertCircle, Loader2, MessageSquare, FileText, Upload } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { AlertCircle, Loader2, MessageSquare, FileText, Upload, User } from "lucide-react";
 import type { CreatorProfile, DMAnalysis, ParsedBrief, ApiResponse } from "@/lib/types";
+import { calculateTier } from "@/lib/pricing-engine";
 
 const emptySubscribe = () => () => {};
 
@@ -65,6 +75,14 @@ export default function AnalyzeDMPage() {
   const [briefError, setBriefError] = useState<string | null>(null);
   const [parsedBrief, setParsedBrief] = useState<ParsedBrief | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Inline profile capture state (for users without a profile)
+  const [inlineProfile, setInlineProfile] = useState<{
+    platform: string;
+    followers: string;
+    engagementRate: string;
+  }>({ platform: "instagram", followers: "", engagementRate: "" });
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
 
   const isLoading = parseStep !== "idle" && parseStep !== "error" && parseStep !== "complete";
 
@@ -137,6 +155,46 @@ export default function AnalyzeDMPage() {
     setParseStep("idle");
   };
 
+  const handleInlineProfileSubmit = useCallback(async () => {
+    const followers = parseInt(inlineProfile.followers, 10);
+    if (!followers || followers < 100) return;
+
+    setIsCreatingProfile(true);
+
+    try {
+      // Create a minimal profile
+      const minimalProfile: Partial<CreatorProfile> = {
+        displayName: "Creator",
+        handle: "creator",
+        location: "United States",
+        currency: "USD",
+        niches: ["lifestyle"],
+        tier: calculateTier(followers),
+        totalReach: followers,
+        avgEngagementRate: parseFloat(inlineProfile.engagementRate) || 3.0,
+        [inlineProfile.platform]: {
+          followers,
+          engagementRate: parseFloat(inlineProfile.engagementRate) || 3.0,
+        },
+        audience: {
+          ageRange: "18-24",
+          genderSplit: { male: 40, female: 55, other: 5 },
+          topLocations: ["United States"],
+          interests: ["lifestyle"],
+        },
+      };
+
+      // Save to localStorage
+      localStorage.setItem("creatorProfile", JSON.stringify(minimalProfile));
+
+      // Force a re-render by reloading - the profile hook will pick up the new value
+      window.location.reload();
+    } catch (error) {
+      console.error("Error creating profile:", error);
+      setIsCreatingProfile(false);
+    }
+  }, [inlineProfile]);
+
   // Loading state
   if (profile === undefined) {
     return (
@@ -146,18 +204,86 @@ export default function AnalyzeDMPage() {
     );
   }
 
-  // No profile state
+  // No profile state - show inline capture form
   if (!profile) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 py-16">
-        <AlertCircle className="h-12 w-12 text-muted-foreground" />
-        <h2 className="text-xl font-semibold">Complete Your Profile First</h2>
-        <p className="text-center text-muted-foreground max-w-md">
-          We need your follower counts and engagement rates to analyze messages and suggest rates.
-        </p>
-        <Button onClick={() => router.push("/dashboard/profile")}>
-          Set Up Profile
-        </Button>
+      <div className="max-w-xl mx-auto space-y-6">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="mx-auto h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+              <User className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle>Quick Profile Setup</CardTitle>
+            <CardDescription>
+              Tell us about your account so we can analyze messages and suggest rates.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="platform">Platform</Label>
+              <Select
+                value={inlineProfile.platform}
+                onValueChange={(value) => setInlineProfile(prev => ({ ...prev, platform: value }))}
+              >
+                <SelectTrigger id="platform">
+                  <SelectValue placeholder="Select platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="tiktok">TikTok</SelectItem>
+                  <SelectItem value="youtube">YouTube</SelectItem>
+                  <SelectItem value="twitter">Twitter/X</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="followers">Followers</Label>
+              <Input
+                id="followers"
+                type="number"
+                placeholder="e.g., 15000"
+                value={inlineProfile.followers}
+                onChange={(e) => setInlineProfile(prev => ({ ...prev, followers: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="engagement">
+                Engagement Rate (%) <span className="text-muted-foreground text-xs">optional</span>
+              </Label>
+              <Input
+                id="engagement"
+                type="number"
+                step="0.1"
+                placeholder="e.g., 4.2"
+                value={inlineProfile.engagementRate}
+                onChange={(e) => setInlineProfile(prev => ({ ...prev, engagementRate: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                (Likes + Comments) / Followers × 100. We&apos;ll assume 3% if you skip this.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                onClick={handleInlineProfileSubmit}
+                disabled={!inlineProfile.followers || parseInt(inlineProfile.followers, 10) < 100 || isCreatingProfile}
+                className="w-full"
+              >
+                {isCreatingProfile ? "Setting up..." : "Continue to Inbox"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/dashboard/profile")}
+                className="text-muted-foreground"
+              >
+                I want to add more details
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, startTransition, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { ProfileForm } from "@/components/forms/profile-form";
 import {
   ProfileCompleteness,
@@ -11,6 +12,20 @@ import { MobileRateSheet } from "@/components/profile/mobile-rate-sheet";
 import { useCelebration } from "@/hooks/use-celebration";
 import { CelebrationToast } from "@/components/ui/celebration-toast";
 import { getCreatorLevel, type CreatorLevel } from "@/lib/gamification";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Zap, ChevronDown } from "lucide-react";
+import { calculateTier } from "@/lib/pricing-engine";
+import type { CreatorProfile } from "@/lib/types";
 
 interface ProfileFormValues {
   displayName?: string;
@@ -29,11 +44,22 @@ interface ProfileFormValues {
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [initialData, setInitialData] = useState<Record<string, unknown> | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [formValues, setFormValues] = useState<ProfileFormValues>({});
   const [completeness, setCompleteness] = useState(0);
   const prevLevelRef = useRef<CreatorLevel | null>(null);
+  const [showFullForm, setShowFullForm] = useState(false);
+  const [hasExistingProfile, setHasExistingProfile] = useState(false);
+
+  // Quick setup state
+  const [quickSetup, setQuickSetup] = useState({
+    platform: "instagram",
+    followers: "",
+    engagementRate: "",
+  });
+  const [isQuickSaving, setIsQuickSaving] = useState(false);
 
   const { celebration, celebrate, dismissCelebration } = useCelebration();
 
@@ -49,6 +75,9 @@ export default function ProfilePage() {
           setCompleteness(initialCompleteness);
           // Set initial level without triggering celebration
           prevLevelRef.current = getCreatorLevel(initialCompleteness);
+          // User has existing profile, show full form by default
+          setHasExistingProfile(true);
+          setShowFullForm(true);
         } catch {
           // Invalid JSON, start fresh
         }
@@ -80,6 +109,46 @@ export default function ProfilePage() {
     setCompleteness(calculateProfileCompleteness(values));
   }, []);
 
+  const handleQuickSetup = useCallback(async () => {
+    const followers = parseInt(quickSetup.followers, 10);
+    if (!followers || followers < 100) return;
+
+    setIsQuickSaving(true);
+
+    try {
+      // Create a minimal profile
+      const minimalProfile: Partial<CreatorProfile> = {
+        displayName: "Creator",
+        handle: "creator",
+        location: "United States",
+        currency: "USD",
+        niches: ["lifestyle"],
+        tier: calculateTier(followers),
+        totalReach: followers,
+        avgEngagementRate: parseFloat(quickSetup.engagementRate) || 3.0,
+        [quickSetup.platform]: {
+          followers,
+          engagementRate: parseFloat(quickSetup.engagementRate) || 3.0,
+        },
+        audience: {
+          ageRange: "18-24",
+          genderSplit: { male: 40, female: 55, other: 5 },
+          topLocations: ["United States"],
+          interests: ["lifestyle"],
+        },
+      };
+
+      // Save to localStorage
+      localStorage.setItem("creatorProfile", JSON.stringify(minimalProfile));
+
+      // Redirect to analyze page
+      router.push("/dashboard/analyze");
+    } catch (error) {
+      console.error("Error creating profile:", error);
+      setIsQuickSaving(false);
+    }
+  }, [quickSetup, router]);
+
   // Get the primary platform's data for the preview
   const getPrimaryPlatformData = () => {
     const platforms = formValues.activePlatforms || ["instagram"];
@@ -104,6 +173,90 @@ export default function ProfilePage() {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  // Show quick setup for new users who haven't shown full form yet
+  if (!hasExistingProfile && !showFullForm) {
+    return (
+      <div className="max-w-xl mx-auto space-y-6">
+        {/* Quick Setup Card */}
+        <Card className="border-2 border-primary/20">
+          <CardHeader className="text-center">
+            <div className="mx-auto h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+              <Zap className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle>Quick Setup</CardTitle>
+            <CardDescription>
+              Get started in seconds. You can add more details later.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="qs-platform">Platform</Label>
+              <Select
+                value={quickSetup.platform}
+                onValueChange={(value) => setQuickSetup(prev => ({ ...prev, platform: value }))}
+              >
+                <SelectTrigger id="qs-platform">
+                  <SelectValue placeholder="Select platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="tiktok">TikTok</SelectItem>
+                  <SelectItem value="youtube">YouTube</SelectItem>
+                  <SelectItem value="twitter">Twitter/X</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="qs-followers">Followers</Label>
+              <Input
+                id="qs-followers"
+                type="number"
+                placeholder="e.g., 15000"
+                value={quickSetup.followers}
+                onChange={(e) => setQuickSetup(prev => ({ ...prev, followers: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="qs-engagement">
+                Engagement Rate (%) <span className="text-muted-foreground text-xs">optional</span>
+              </Label>
+              <Input
+                id="qs-engagement"
+                type="number"
+                step="0.1"
+                placeholder="e.g., 4.2"
+                value={quickSetup.engagementRate}
+                onChange={(e) => setQuickSetup(prev => ({ ...prev, engagementRate: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                (Likes + Comments) / Followers × 100. We&apos;ll assume 3% if you skip this.
+              </p>
+            </div>
+
+            <Button
+              onClick={handleQuickSetup}
+              disabled={!quickSetup.followers || parseInt(quickSetup.followers, 10) < 100 || isQuickSaving}
+              className="w-full"
+            >
+              {isQuickSaving ? "Setting up..." : "Start Analyzing Deals"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Expand to full form */}
+        <button
+          onClick={() => setShowFullForm(true)}
+          className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+        >
+          <ChevronDown className="h-4 w-4" />
+          Add more details for better accuracy
+        </button>
       </div>
     );
   }

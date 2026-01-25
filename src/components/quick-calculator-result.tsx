@@ -14,6 +14,7 @@ import {
   Globe,
   Briefcase,
   Camera,
+  Lightbulb,
 } from "lucide-react";
 import type { QuickEstimateResult } from "@/lib/types";
 
@@ -74,7 +75,7 @@ export function QuickCalculatorResult({
               </Badge>
             </div>
 
-            {/* Visual percentile bar */}
+            {/* Visual percentile bar - 0% to 100% scale */}
             <div className="relative h-8 bg-muted rounded-full overflow-hidden">
               {/* Background gradient showing distribution */}
               <div className="absolute inset-0 bg-gradient-to-r from-muted via-primary/20 to-primary/40" />
@@ -87,11 +88,11 @@ export function QuickCalculatorResult({
                 <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-primary rounded-full border-2 border-background" />
               </div>
 
-              {/* Labels */}
+              {/* Labels - percentile scale */}
               <div className="absolute inset-x-0 bottom-0 flex justify-between px-2 text-[10px] text-muted-foreground">
-                <span>$0</span>
-                <span className="font-medium text-foreground">You</span>
-                <span>${result.topPerformerRange.max.toLocaleString()}+</span>
+                <span>0%</span>
+                <span className="font-medium text-foreground">You: {result.percentile}%</span>
+                <span>100%</span>
               </div>
             </div>
 
@@ -111,18 +112,18 @@ export function QuickCalculatorResult({
               <h3 className="font-semibold">What This Estimate is Missing</h3>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {result.missingFactors.map((factor, i) => {
                 const Icon = iconMap[factor.icon] || TrendingUp;
                 return (
                   <div key={i} className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
                     <Icon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">{factor.name}</span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium">{factor.name}</span>
                         <span className="text-xs font-mono text-amber-600">{factor.impact}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{factor.description}</p>
+                      <p className="text-xs text-muted-foreground">{factor.description}</p>
                     </div>
                   </div>
                 );
@@ -136,11 +137,11 @@ export function QuickCalculatorResult({
 
           {/* The Insight */}
           <div className="border-t pt-6">
-            <div className="bg-gradient-to-r from-coral/10 to-primary/10 rounded-xl p-4 text-center">
-              <p className="text-3xl mb-2">💡</p>
+            <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 text-center">
+              <Lightbulb className="h-8 w-8 text-primary mx-auto mb-2" />
               <p className="font-semibold mb-1">Did you know?</p>
               <p className="text-sm text-muted-foreground">
-                <span className="text-foreground font-medium">73% of creators</span> with 10K-50K followers undercharge by an average of <span className="font-mono font-medium text-coral">$340</span> per deal.
+                <span className="text-foreground font-medium">73% of creators</span> with 10K-50K followers undercharge by an average of <span className="font-mono font-medium text-foreground">$340</span> per deal.
               </p>
               <p className="text-xs text-muted-foreground mt-2">
                 That&apos;s <span className="font-semibold">$4,000+ left on the table</span> per year.
@@ -163,7 +164,7 @@ export function QuickCalculatorResult({
           </div>
 
           {/* What they get */}
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             {[
               "Rate based on YOUR engagement",
               "Negotiation scripts to copy",
@@ -171,7 +172,7 @@ export function QuickCalculatorResult({
               "PDF rate card to send",
             ].map((benefit, i) => (
               <div key={i} className="flex items-center gap-2 text-muted-foreground">
-                <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                <div className="h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
                 {benefit}
               </div>
             ))}

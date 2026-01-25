@@ -23,28 +23,28 @@ export default function QuickCalculatePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border/40">
-        <div className="mx-auto max-w-4xl px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-              <Sparkles className="h-5 w-5 text-primary-foreground" />
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+                <Sparkles className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="text-lg font-bold tracking-tight">RateCard.AI</span>
+            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/sign-in">
+                <Button variant="ghost" size="sm">Sign in</Button>
+              </Link>
+              <Link href="/sign-up">
+                <Button size="sm">Get Started</Button>
+              </Link>
             </div>
-            <span className="font-bold">RateCard.AI</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/sign-in">
-              <Button variant="ghost" size="sm">
-                Sign in
-              </Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button size="sm">Sign up free</Button>
-            </Link>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-8 md:py-12">
+      <main className="mx-auto max-w-4xl px-4 pt-24 pb-8 md:pt-28 md:pb-12">
         {!result ? (
           <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-start">
             {/* Left: Value Proposition */}
