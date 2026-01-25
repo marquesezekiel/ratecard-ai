@@ -2,7 +2,7 @@
 
 **Created**: January 25, 2026
 **Purpose**: Address 43 identified issues across ethics, routing, copy, pricing, UX, architecture, and legal compliance.
-**Estimated Prompts**: 9 (including testing)
+**Estimated Prompts**: 10 (including testing)
 **Branch**: `claude/analyze-test-coverage-hWgZz`
 
 ---
@@ -19,7 +19,8 @@
 | Medium - Architecture | 6 | Medium |
 | Medium - Legal | 2 | Medium |
 | Low - Scope Cleanup | 4 | Low |
-| **Total** | **43** | |
+| **High - Onboarding Flow** | **4** | **High** |
+| **Total** | **47** | |
 
 ---
 
@@ -581,6 +582,275 @@ pnpm build
 
 ---
 
+## Prompt 9: Onboarding Flow & Access Control
+
+**Issues Addressed**: 44, 45, 46, 47 (NEW)
+**Files Created**:
+- `src/app/onboarding/page.tsx` (dedicated onboarding route)
+- `src/components/onboarding/dashboard-tour.tsx`
+- `src/components/dashboard/profile-completion-banner.tsx`
+- `src/lib/onboarding.ts`
+
+**Files Modified**:
+- `src/app/(dashboard)/layout.tsx`
+- `src/app/(dashboard)/profile/page.tsx`
+- `src/lib/types.ts`
+- `src/prisma/schema.prisma`
+
+### Problem Statement
+
+**Observed Behavior:**
+1. User clicks "Add more details for better accuracy" from quick sign-up
+2. Redirects to full profile page
+3. User clicks browser Back button
+4. User lands on dashboard (WRONG - shouldn't have access yet)
+
+**Root Causes:**
+- No onboarding gate on dashboard
+- Navigation stack doesn't preserve quick setup flow
+- No tracking of onboarding completion state
+- No first-time user guidance
+
+### Requirements
+
+#### Issue 44: Dashboard Access Gate
+- **File**: `src/app/(dashboard)/layout.tsx`
+- Add onboarding completion check on mount
+- If `quickSetupComplete === false`, redirect to `/onboarding`
+- Prevent dashboard access until minimum profile data collected
+
+```typescript
+// In dashboard layout
+const { profile } = await getProfile(userId);
+
+if (!profile?.quickSetupComplete) {
+  redirect('/onboarding');
+}
+```
+
+#### Issue 45: Fix "Add More Details" Navigation
+- **File**: `src/app/(dashboard)/profile/page.tsx`
+- Change "Add more details for better accuracy" behavior:
+  - **Option A (Recommended)**: Open as Sheet/Modal overlay instead of route navigation
+  - **Option B**: Save quick setup data FIRST, then navigate (so back goes to dashboard, which is now allowed)
+- Ensure back navigation never bypasses onboarding
+
+```tsx
+// Use Sheet component instead of Link
+<Sheet>
+  <SheetTrigger asChild>
+    <Button variant="link">Add more details for better accuracy</Button>
+  </SheetTrigger>
+  <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+    <SheetHeader>
+      <SheetTitle>Complete Your Profile</SheetTitle>
+      <SheetDescription>
+        More details = more accurate rates
+      </SheetDescription>
+    </SheetHeader>
+    <FullProfileForm />
+  </SheetContent>
+</Sheet>
+```
+
+#### Issue 46: First-Time Dashboard Tooltips
+- **File**: `src/components/onboarding/dashboard-tour.tsx`
+- Create guided tour component for first dashboard visit
+- Highlight 3 key features:
+  1. **Message Analyzer**: "Paste a brand DM or email here to analyze"
+  2. **Brief Upload**: "Or upload a brief (PDF/DOCX) for detailed analysis"
+  3. **Profile Link**: "Complete your profile for more accurate rates"
+- Track completion with `hasSeenDashboardTour` flag
+- Allow skip, mark as seen either way
+
+```tsx
+interface TourStep {
+  target: string;        // CSS selector
+  title: string;
+  description: string;
+  position: 'top' | 'bottom' | 'left' | 'right';
+}
+
+const TOUR_STEPS: TourStep[] = [
+  {
+    target: '[data-tour="message-input"]',
+    title: 'Analyze Brand Messages',
+    description: 'Paste any DM or email from a brand. We\'ll tell you if it\'s legit and what to charge.',
+    position: 'bottom',
+  },
+  {
+    target: '[data-tour="brief-upload"]',
+    title: 'Upload Briefs',
+    description: 'Got a PDF or DOCX brief? Drop it here for detailed analysis.',
+    position: 'bottom',
+  },
+  {
+    target: '[data-tour="profile-link"]',
+    title: 'Complete Your Profile',
+    description: 'The more we know, the more accurate your rates. Add engagement, niche, and audience data.',
+    position: 'right',
+  },
+];
+```
+
+#### Issue 47: Persistent Profile Completion Prompt
+- **File**: `src/components/dashboard/profile-completion-banner.tsx`
+- Show banner when `profileCompleteness < 100`
+- Display: "Your profile is X% complete — [Complete Profile →]"
+- Position: Below header OR floating in sidebar
+- Dismissible for 24 hours (stored in localStorage), reappears if still incomplete
+- Disappears permanently at 100%
+
+```tsx
+export function ProfileCompletionBanner() {
+  const { profile } = useProfile();
+  const [dismissed, setDismissed] = useState(false);
+
+  // Check localStorage for dismissal
+  useEffect(() => {
+    const dismissedAt = localStorage.getItem('profile-banner-dismissed');
+    if (dismissedAt) {
+      const hoursSince = (Date.now() - parseInt(dismissedAt)) / (1000 * 60 * 60);
+      if (hoursSince < 24) setDismissed(true);
+    }
+  }, []);
+
+  if (!profile || profile.profileCompleteness >= 100 || dismissed) {
+    return null;
+  }
+
+  return (
+    <div className="bg-primary/10 border-b border-primary/20 px-4 py-2">
+      <div className="flex items-center justify-between max-w-7xl mx-auto">
+        <div className="flex items-center gap-3">
+          <Progress value={profile.profileCompleteness} className="w-24 h-2" />
+          <span className="text-sm">
+            Your profile is {profile.profileCompleteness}% complete
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link href="/dashboard/profile">
+            <Button size="sm" variant="ghost">
+              Complete Profile <ArrowRight className="ml-1 h-3 w-3" />
+            </Button>
+          </Link>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              localStorage.setItem('profile-banner-dismissed', Date.now().toString());
+              setDismissed(true);
+            }}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+### Onboarding State Schema
+
+Add to `src/lib/types.ts`:
+```typescript
+export interface OnboardingState {
+  /** Has completed quick setup (platform + followers) */
+  quickSetupComplete: boolean;
+  /** Profile completeness percentage (0-100) */
+  profileCompleteness: number;
+  /** Has dismissed/completed dashboard tour */
+  hasSeenDashboardTour: boolean;
+  /** When quick setup was completed */
+  onboardingCompletedAt?: Date;
+}
+```
+
+Add to `src/prisma/schema.prisma` (CreatorProfile model):
+```prisma
+model CreatorProfile {
+  // ... existing fields
+
+  // Onboarding state
+  quickSetupComplete    Boolean   @default(false)
+  profileCompleteness   Int       @default(0)
+  hasSeenDashboardTour  Boolean   @default(false)
+  onboardingCompletedAt DateTime?
+}
+```
+
+### Profile Completeness Calculation
+
+Add to `src/lib/onboarding.ts`:
+```typescript
+export function calculateProfileCompleteness(profile: Partial<CreatorProfile>): number {
+  const weights = {
+    // Required (40%)
+    platform: 20,
+    followers: 20,
+
+    // Important (40%)
+    engagementRate: 15,
+    niche: 10,
+    location: 10,
+    displayName: 5,
+
+    // Nice to have (20%)
+    bio: 5,
+    audience: 10,
+    handle: 5,
+  };
+
+  let score = 0;
+
+  // Check each field
+  if (profile.instagram || profile.tiktok || profile.youtube || profile.twitter) {
+    score += weights.platform;
+  }
+  if (profile.totalReach && profile.totalReach > 0) {
+    score += weights.followers;
+  }
+  if (profile.avgEngagementRate && profile.avgEngagementRate > 0) {
+    score += weights.engagementRate;
+  }
+  if (profile.niches && profile.niches.length > 0) {
+    score += weights.niche;
+  }
+  if (profile.location) {
+    score += weights.location;
+  }
+  if (profile.displayName) {
+    score += weights.displayName;
+  }
+  if (profile.bio) {
+    score += weights.bio;
+  }
+  if (profile.audience && profile.audience.topLocations?.length > 0) {
+    score += weights.audience;
+  }
+  if (profile.handle) {
+    score += weights.handle;
+  }
+
+  return Math.min(100, score);
+}
+```
+
+### Success Criteria
+- [ ] Users cannot access dashboard without completing quick setup
+- [ ] "Add more details" opens Sheet, doesn't break navigation
+- [ ] First-time dashboard visitors see guided tour
+- [ ] Tour can be skipped or completed
+- [ ] Profile completion banner shows percentage
+- [ ] Banner dismissible for 24 hours
+- [ ] Banner disappears at 100% completion
+- [ ] `quickSetupComplete` flag persists in database
+- [ ] `pnpm build` succeeds
+- [ ] `pnpm lint` passes
+
+---
+
 ## Quick Reference
 
 | Prompt | Focus | Issues | Est. Complexity |
@@ -594,6 +864,7 @@ pnpm build
 | 6 | Legal Disclaimers | 38-39 | Low |
 | 7 | Scope Cleanup | 40-43 | Medium |
 | 8 | Testing & Polish | All | Medium |
+| 9 | Onboarding Flow | 44-47 | High |
 
 ---
 
@@ -607,6 +878,10 @@ pnpm build
 ### Files to CREATE
 - `src/app/api/quick-calculate/route.ts`
 - `src/lib/analytics.ts`
+- `src/app/onboarding/page.tsx`
+- `src/components/onboarding/dashboard-tour.tsx`
+- `src/components/dashboard/profile-completion-banner.tsx`
+- `src/lib/onboarding.ts`
 
 ### Major Modifications
 - `src/lib/pricing-engine.ts` (7 changes)
