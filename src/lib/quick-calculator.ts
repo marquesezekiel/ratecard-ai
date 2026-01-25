@@ -101,36 +101,120 @@ const ESTIMATED_TIER_RANGES: Record<CreatorTier, { p25: number; p50: number; p75
   celebrity: { p25: 8000, p50: 12000, p75: 20000, p90: 35000 },
 };
 
+// =============================================================================
+// MISSING FACTORS DEFINITIONS
+// =============================================================================
+
 /**
- * Factors NOT included in the quick estimate.
- * Creates "the gap" that encourages signup.
+ * Individual missing factor definitions.
+ * Used by getMissingFactors() to build dynamic lists.
  */
-const MISSING_FACTORS: MissingFactor[] = [
-  {
-    name: "Your Actual Engagement",
-    impact: "±30%",
-    description: "High engagement = higher rates. We assumed 3% average.",
-    icon: "TrendingUp",
-  },
-  {
-    name: "Audience Location",
-    impact: "+40%",
-    description: "US/UK audiences pay significantly more than global average.",
-    icon: "Globe",
-  },
-  {
-    name: "Past Brand Work",
-    impact: "+15-25%",
-    description: "Portfolio with recognizable brands justifies premium rates.",
-    icon: "Briefcase",
-  },
-  {
-    name: "Content Quality",
-    impact: "+20-50%",
-    description: "Professional production value commands higher rates.",
-    icon: "Camera",
-  },
+const ENGAGEMENT_FACTOR: MissingFactor = {
+  name: "Your Actual Engagement",
+  impact: "±30%",
+  description: "High engagement = higher rates. We assumed 3% average.",
+  icon: "TrendingUp",
+};
+
+const LOCATION_FACTOR: MissingFactor = {
+  name: "Audience Location",
+  impact: "+40%",
+  description: "US/UK audiences pay significantly more than global average.",
+  icon: "Globe",
+};
+
+const BRAND_WORK_FACTOR: MissingFactor = {
+  name: "Past Brand Work",
+  impact: "+15-25%",
+  description: "Portfolio with recognizable brands justifies premium rates.",
+  icon: "Briefcase",
+};
+
+const QUALITY_FACTOR: MissingFactor = {
+  name: "Content Quality",
+  impact: "+20-50%",
+  description: "Professional production value commands higher rates.",
+  icon: "Camera",
+};
+
+const AUDIENCE_DEMO_FACTOR: MissingFactor = {
+  name: "Audience Demographics",
+  impact: "+20-35%",
+  description: "Age, income level, and interests affect brand value.",
+  icon: "Users",
+};
+
+const PLATFORM_GROWTH_FACTOR: MissingFactor = {
+  name: "Growth Velocity",
+  impact: "+10-20%",
+  description: "Fast-growing accounts command premium rates.",
+  icon: "TrendingUp",
+};
+
+const NICHE_AUTHORITY_FACTOR: MissingFactor = {
+  name: "Niche Authority",
+  impact: "+15-30%",
+  description: "Being a recognized expert in your niche adds value.",
+  icon: "Award",
+};
+
+/**
+ * Get missing factors dynamically based on input.
+ * Returns relevant factors based on the creator's platform, tier, and format.
+ *
+ * @param input - The quick calculator input
+ * @returns Array of missing factors (max 4)
+ */
+export function getMissingFactors(input: QuickCalculatorInput): MissingFactor[] {
+  const factors: MissingFactor[] = [];
+  const tier = calculateTier(input.followerCount);
+
+  // Always show engagement - everyone can improve this
+  factors.push(ENGAGEMENT_FACTOR);
+
+  // Show location factor for most platforms (except LinkedIn which is more global)
+  if (input.platform !== "linkedin") {
+    factors.push(LOCATION_FACTOR);
+  }
+
+  // Show brand work factor for non-nano creators (they have more opportunity)
+  if (tier !== "nano") {
+    factors.push(BRAND_WORK_FACTOR);
+  } else {
+    // For nano creators, show growth potential instead
+    factors.push(PLATFORM_GROWTH_FACTOR);
+  }
+
+  // Show quality factor for video formats (where production matters more)
+  if (["reel", "video", "live"].includes(input.contentFormat)) {
+    factors.push(QUALITY_FACTOR);
+  } else if (["static", "carousel"].includes(input.contentFormat)) {
+    // For static content, show niche authority
+    factors.push(NICHE_AUTHORITY_FACTOR);
+  }
+
+  // For larger creators, audience demographics matter more
+  if (["mid", "rising", "macro", "mega", "celebrity"].includes(tier)) {
+    factors.push(AUDIENCE_DEMO_FACTOR);
+  }
+
+  // Limit to 4 factors for cleaner UI
+  return factors.slice(0, 4);
+}
+
+/**
+ * @deprecated Use getMissingFactors(input) instead for dynamic factors.
+ * Kept for backwards compatibility - export if external code needs it.
+ */
+const _DEPRECATED_MISSING_FACTORS: MissingFactor[] = [
+  ENGAGEMENT_FACTOR,
+  LOCATION_FACTOR,
+  BRAND_WORK_FACTOR,
+  QUALITY_FACTOR,
 ];
+
+// Export deprecated constant for any code that might still reference it
+export { _DEPRECATED_MISSING_FACTORS as MISSING_FACTORS };
 
 // =============================================================================
 // RATE INFLUENCER DEFINITIONS
@@ -344,7 +428,8 @@ export function calculateQuickEstimate(
     percentile: calculatePercentile(baseRate, tier),
     topPerformerRange: getTopPerformerRange(tier),
     potentialWithFullProfile: calculatePotentialRate(baseRate),
-    missingFactors: MISSING_FACTORS,
+    // Dynamic missing factors based on input
+    missingFactors: getMissingFactors(input),
   };
 }
 

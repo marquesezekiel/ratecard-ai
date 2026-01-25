@@ -3,6 +3,7 @@ import {
   calculateQuickEstimate,
   getTierDisplayName,
   getAllRateInfluencers,
+  getMissingFactors,
 } from "@/lib/quick-calculator";
 import type { QuickCalculatorInput, CreatorTier } from "@/lib/types";
 
@@ -548,6 +549,221 @@ describe("quick-calculator", () => {
         niche: "finance",
       });
       expect(premium.baseRate).toBeGreaterThan(10000);
+    });
+  });
+
+  // ==========================================================================
+  // DYNAMIC MISSING FACTORS TESTS
+  // ==========================================================================
+
+  describe("dynamic missing factors (getMissingFactors)", () => {
+    it("always includes engagement factor for all inputs", () => {
+      const inputs: QuickCalculatorInput[] = [
+        { followerCount: 5000, platform: "instagram", contentFormat: "static" },
+        { followerCount: 100000, platform: "youtube", contentFormat: "video" },
+        { followerCount: 500000, platform: "linkedin", contentFormat: "carousel" },
+      ];
+
+      inputs.forEach((input) => {
+        const factors = getMissingFactors(input);
+        const hasEngagement = factors.some((f) =>
+          f.name.toLowerCase().includes("engagement")
+        );
+        expect(hasEngagement).toBe(true);
+      });
+    });
+
+    it("includes location factor for non-LinkedIn platforms", () => {
+      const instagramFactors = getMissingFactors({
+        followerCount: 25000,
+        platform: "instagram",
+        contentFormat: "static",
+      });
+
+      const hasLocation = instagramFactors.some((f) =>
+        f.name.toLowerCase().includes("location")
+      );
+      expect(hasLocation).toBe(true);
+    });
+
+    it("excludes location factor for LinkedIn (more global audience)", () => {
+      const linkedinFactors = getMissingFactors({
+        followerCount: 25000,
+        platform: "linkedin",
+        contentFormat: "static",
+      });
+
+      const hasLocation = linkedinFactors.some((f) =>
+        f.name.toLowerCase().includes("location")
+      );
+      expect(hasLocation).toBe(false);
+    });
+
+    it("includes brand work factor for non-nano creators", () => {
+      const microFactors = getMissingFactors({
+        followerCount: 25000, // Micro tier
+        platform: "instagram",
+        contentFormat: "static",
+      });
+
+      const hasBrandWork = microFactors.some((f) =>
+        f.name.toLowerCase().includes("brand work")
+      );
+      expect(hasBrandWork).toBe(true);
+    });
+
+    it("includes growth factor instead of brand work for nano creators", () => {
+      const nanoFactors = getMissingFactors({
+        followerCount: 5000, // Nano tier
+        platform: "instagram",
+        contentFormat: "static",
+      });
+
+      const hasBrandWork = nanoFactors.some((f) =>
+        f.name.toLowerCase().includes("brand work")
+      );
+      const hasGrowth = nanoFactors.some((f) =>
+        f.name.toLowerCase().includes("growth")
+      );
+
+      expect(hasBrandWork).toBe(false);
+      expect(hasGrowth).toBe(true);
+    });
+
+    it("includes quality factor for video formats", () => {
+      const videoFormats: ("reel" | "video" | "live")[] = ["reel", "video", "live"];
+
+      videoFormats.forEach((format) => {
+        const factors = getMissingFactors({
+          followerCount: 25000,
+          platform: "instagram",
+          contentFormat: format,
+        });
+
+        const hasQuality = factors.some((f) =>
+          f.name.toLowerCase().includes("quality")
+        );
+        expect(hasQuality).toBe(true);
+      });
+    });
+
+    it("includes niche authority factor for static content", () => {
+      const staticFactors = getMissingFactors({
+        followerCount: 25000,
+        platform: "instagram",
+        contentFormat: "static",
+      });
+
+      const hasNicheAuthority = staticFactors.some((f) =>
+        f.name.toLowerCase().includes("niche authority")
+      );
+      expect(hasNicheAuthority).toBe(true);
+    });
+
+    it("includes audience demographics for mid-tier and above when there is room", () => {
+      // Use LinkedIn (no location factor) and story format (no quality/niche factor)
+      // to ensure demographics has room in the 4-factor limit
+      const factors = getMissingFactors({
+        followerCount: 75000, // Mid tier
+        platform: "linkedin", // No location factor
+        contentFormat: "story", // No quality or niche authority factor
+      });
+
+      // With LinkedIn + story + mid tier, we get:
+      // 1. Engagement
+      // 2. Brand work (non-nano)
+      // 3. Audience demographics (mid+)
+      // Only 3 factors, so demographics should be included
+      const hasAudienceDemo = factors.some((f) =>
+        f.name.toLowerCase().includes("demographics")
+      );
+      expect(hasAudienceDemo).toBe(true);
+    });
+
+    it("may exclude demographics due to 4-factor limit when other factors take precedence", () => {
+      // Instagram + static content + mid tier = 5 potential factors
+      // 1. Engagement (always)
+      // 2. Location (non-LinkedIn)
+      // 3. Brand work (non-nano)
+      // 4. Niche authority (static content)
+      // 5. Demographics (mid+) <- This gets cut to stay under 4
+      const factors = getMissingFactors({
+        followerCount: 75000, // Mid tier
+        platform: "instagram", // Has location factor
+        contentFormat: "static", // Has niche authority factor
+      });
+
+      expect(factors.length).toBe(4);
+      // Demographics may or may not be present due to limit
+    });
+
+    it("limits factors to maximum 4 for cleaner UI", () => {
+      // Create a scenario that would generate many factors
+      const factors = getMissingFactors({
+        followerCount: 500000, // Mega tier - would add demographics
+        platform: "youtube", // Not LinkedIn - adds location
+        contentFormat: "video", // Adds quality
+      });
+
+      expect(factors.length).toBeLessThanOrEqual(4);
+    });
+
+    it("each missing factor has required properties", () => {
+      const factors = getMissingFactors({
+        followerCount: 25000,
+        platform: "instagram",
+        contentFormat: "reel",
+      });
+
+      factors.forEach((factor) => {
+        expect(factor.name).toBeDefined();
+        expect(factor.name.length).toBeGreaterThan(0);
+        expect(factor.impact).toBeDefined();
+        expect(factor.impact.length).toBeGreaterThan(0);
+        expect(factor.description).toBeDefined();
+        expect(factor.description.length).toBeGreaterThan(0);
+        expect(factor.icon).toBeDefined();
+      });
+    });
+
+    it("returns different factors for different inputs", () => {
+      const nanoStatic = getMissingFactors({
+        followerCount: 5000, // Nano
+        platform: "instagram",
+        contentFormat: "static",
+      });
+
+      const macroVideo = getMissingFactors({
+        followerCount: 375000, // Macro
+        platform: "youtube",
+        contentFormat: "video",
+      });
+
+      // The factor sets should be different
+      const nanoFactorNames = nanoStatic.map((f) => f.name).sort();
+      const macroFactorNames = macroVideo.map((f) => f.name).sort();
+
+      expect(nanoFactorNames).not.toEqual(macroFactorNames);
+    });
+
+    it("calculateQuickEstimate uses dynamic missingFactors", () => {
+      const nanoResult = calculateQuickEstimate({
+        followerCount: 5000,
+        platform: "instagram",
+        contentFormat: "static",
+      });
+
+      const macroResult = calculateQuickEstimate({
+        followerCount: 375000,
+        platform: "youtube",
+        contentFormat: "video",
+      });
+
+      // Results should have different missing factors
+      const nanoFactorNames = nanoResult.missingFactors.map((f) => f.name).sort();
+      const macroFactorNames = macroResult.missingFactors.map((f) => f.name).sort();
+
+      expect(nanoFactorNames).not.toEqual(macroFactorNames);
     });
   });
 });

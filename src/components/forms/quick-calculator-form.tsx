@@ -11,9 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Calculator } from "lucide-react";
+import { Loader2, Calculator, AlertCircle } from "lucide-react";
 import { calculateQuickEstimate } from "@/lib/quick-calculator";
+import { trackEvent } from "@/lib/analytics";
 import type { QuickEstimateResult, Platform, ContentFormat } from "@/lib/types";
+
+// Validation constants
+const MIN_FOLLOWER_COUNT = 1_000;
+const MAX_FOLLOWER_COUNT = 10_000_000; // 10M
 
 // All supported platforms
 const PLATFORMS: { value: Platform; label: string }[] = [
@@ -94,8 +99,13 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
     const followers = getNumericValue(followerCount);
 
     // Validation
-    if (followers < 1000) {
-      setError("Enter your follower count (minimum 1,000)");
+    if (followers < MIN_FOLLOWER_COUNT) {
+      setError(`Enter your follower count (minimum ${MIN_FOLLOWER_COUNT.toLocaleString()})`);
+      return;
+    }
+
+    if (followers > MAX_FOLLOWER_COUNT) {
+      setError(`For creators with ${MAX_FOLLOWER_COUNT.toLocaleString()}+ followers, we recommend a custom consultation. Our tool is optimized for creators with up to 10M followers.`);
       return;
     }
 
@@ -111,22 +121,66 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
 
     setLoading(true);
 
-    // Simulate a brief delay for UX (calculation is instant)
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    const input = {
+      followerCount: followers,
+      platform: platform as Platform,
+      contentFormat: contentFormat as ContentFormat,
+      niche,
+    };
 
     try {
-      const result = calculateQuickEstimate({
-        followerCount: followers,
-        platform: platform as Platform,
-        contentFormat: contentFormat as ContentFormat,
-        niche,
+      // Try API first (server-side calculation with rate limiting and analytics)
+      const response = await fetch("/api/quick-calculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
       });
 
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          onResult(data.data);
+          return;
+        }
+      }
+
+      // Handle rate limiting
+      if (response.status === 429) {
+        setError("Too many requests. Please wait a moment and try again.");
+        return;
+      }
+
+      // Fallback to client-side calculation if API fails
+      console.warn("API call failed, using client-side fallback");
+      trackEvent("quick_calculate_submit", {
+        followerCount: followers,
+        platform,
+        contentFormat,
+        niche,
+        fallback: true,
+      });
+
+      const result = calculateQuickEstimate(input);
       onResult(result);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Something went wrong"
-      );
+      // Network error - use client-side fallback
+      console.warn("Network error, using client-side fallback:", err);
+      trackEvent("quick_calculate_submit", {
+        followerCount: followers,
+        platform,
+        contentFormat,
+        niche,
+        fallback: true,
+      });
+
+      try {
+        const result = calculateQuickEstimate(input);
+        onResult(result);
+      } catch (calcErr) {
+        setError(
+          calcErr instanceof Error ? calcErr.message : "Something went wrong"
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -149,8 +203,17 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
           className="text-lg h-12"
         />
         <p className="text-xs text-muted-foreground">
-          Your total followers on your primary platform
+          Your total followers on your primary platform (up to 10M)
         </p>
+        {/* Celebrity tier notice */}
+        {getNumericValue(followerCount) > 1_000_000 && getNumericValue(followerCount) <= MAX_FOLLOWER_COUNT && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+            <AlertCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Celebrity tier detected.</span> Rates at this level vary significantly based on brand relationships and exclusivity deals.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Platform */}

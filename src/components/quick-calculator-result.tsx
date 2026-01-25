@@ -15,6 +15,7 @@ import {
   Briefcase,
   Camera,
   Lightbulb,
+  Award,
 } from "lucide-react";
 import type { QuickEstimateResult } from "@/lib/types";
 
@@ -28,6 +29,8 @@ const iconMap: Record<string, typeof TrendingUp> = {
   Globe,
   Briefcase,
   Camera,
+  Users,
+  Award,
 };
 
 export function QuickCalculatorResult({
