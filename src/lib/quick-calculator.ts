@@ -87,10 +87,11 @@ const TIER_DISPLAY_NAMES: Record<CreatorTier, string> = {
 };
 
 /**
- * Percentile data by tier (based on aggregated creator data).
- * Shows where a creator's rate falls within their peer group.
+ * Estimated rate ranges by tier (based on industry benchmarks, not real user data).
+ * These are estimates used to show creators where their rate might fall.
+ * Note: These are NOT based on aggregated user data - they are industry estimates.
  */
-const TIER_PERCENTILE_RANGES: Record<CreatorTier, { p25: number; p50: number; p75: number; p90: number }> = {
+const ESTIMATED_TIER_RANGES: Record<CreatorTier, { p25: number; p50: number; p75: number; p90: number }> = {
   nano: { p25: 100, p50: 150, p75: 225, p90: 350 },
   micro: { p25: 275, p50: 400, p75: 550, p90: 750 },
   mid: { p25: 550, p50: 800, p75: 1100, p90: 1500 },
@@ -203,10 +204,11 @@ function roundToNearestFive(price: number): number {
 }
 
 /**
- * Calculate percentile rank for a given rate within a tier.
+ * Calculate estimated percentile rank for a given rate within a tier.
+ * Note: These percentiles are estimates based on industry benchmarks, not real user data.
  */
 export function calculatePercentile(rate: number, tier: CreatorTier): number {
-  const ranges = TIER_PERCENTILE_RANGES[tier];
+  const ranges = ESTIMATED_TIER_RANGES[tier];
 
   if (rate <= ranges.p25) return Math.round((rate / ranges.p25) * 25);
   if (rate <= ranges.p50) return 25 + Math.round(((rate - ranges.p25) / (ranges.p50 - ranges.p25)) * 25);
@@ -216,10 +218,11 @@ export function calculatePercentile(rate: number, tier: CreatorTier): number {
 }
 
 /**
- * Get the range for top performers in this tier.
+ * Get the estimated range for top performers in this tier.
+ * Note: These ranges are estimates based on industry benchmarks.
  */
 export function getTopPerformerRange(tier: CreatorTier): { min: number; max: number } {
-  const ranges = TIER_PERCENTILE_RANGES[tier];
+  const ranges = ESTIMATED_TIER_RANGES[tier];
   return { min: ranges.p75, max: ranges.p90 };
 }
 

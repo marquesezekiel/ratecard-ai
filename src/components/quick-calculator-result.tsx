@@ -67,10 +67,10 @@ export function QuickCalculatorResult({
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Where you stand among {result.tierName} creators
+                Estimated position in {result.tierName} range
               </span>
               <Badge variant="secondary" className="font-mono">
-                Top {100 - result.percentile}%
+                Est. Top {100 - result.percentile}%
               </Badge>
             </div>
 
@@ -195,15 +195,6 @@ export function QuickCalculatorResult({
             </Button>
           </div>
 
-          {/* Testimonial */}
-          <div className="border-t pt-4 mt-2">
-            <p className="text-sm text-center italic text-muted-foreground">
-              &quot;I went from charging $150 to $600 after seeing what creators like me were actually getting paid&quot;
-            </p>
-            <p className="text-xs text-center text-muted-foreground mt-1">
-              — @lifestyle.sarah, 22K followers
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>

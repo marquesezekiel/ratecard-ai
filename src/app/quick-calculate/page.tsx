@@ -54,8 +54,8 @@ export default function QuickCalculatePage() {
                   Rate Reality Check
                 </h1>
                 <p className="text-xl text-muted-foreground mt-2">
-                  See where you stand among{" "}
-                  <span className="text-primary font-semibold">10,000+ creators</span>
+                  Based on{" "}
+                  <span className="text-primary font-semibold">industry benchmarks</span>
                 </p>
                 <p className="text-muted-foreground mt-3">
                   Get an instant rate estimate based on your follower count,
@@ -67,7 +67,7 @@ export default function QuickCalculatePage() {
               <div className="space-y-3">
                 {[
                   "See your estimated rate range instantly",
-                  "Based on 2025 industry standards",
+                  `Based on ${new Date().getFullYear()} industry standards`,
                   "Learn what factors can increase your rate",
                   "Works for all major platforms",
                 ].map((benefit, i) => (
@@ -81,9 +81,9 @@ export default function QuickCalculatePage() {
               {/* Social Proof */}
               <div className="p-4 rounded-lg bg-muted/50">
                 <p className="text-sm text-muted-foreground">
-                  Used by{" "}
-                  <span className="font-semibold text-foreground">10,000+</span>{" "}
-                  creators to price their brand deals with confidence.
+                  Pricing data based on{" "}
+                  <span className="font-semibold text-foreground">{new Date().getFullYear()} industry standards</span>{" "}
+                  for creator sponsorship rates.
                 </p>
               </div>
             </div>
