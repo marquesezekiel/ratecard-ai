@@ -23,6 +23,7 @@ import type {
   UGCFormat,
   WhitelistingType,
   Region,
+  AudienceGeography,
   Platform,
   AffiliateCategory,
   AffiliateConfig,
@@ -77,6 +78,25 @@ function getFitLevelFromScore(score: ScoreInput): FitLevel {
 }
 
 // =============================================================================
+// GLOBAL PRICING CAPS
+// =============================================================================
+
+/**
+ * Maximum total multiplier cap to prevent volatile/unrealistic outputs.
+ * Even with all premiums stacked (engagement, niche, format, rights, etc.),
+ * the final rate cannot exceed 3.0x the base rate.
+ *
+ * This prevents edge cases where a creator with:
+ * - High engagement (2.0x)
+ * - Finance niche (1.5x)
+ * - Video format (+35%)
+ * - Full exclusivity (+50%)
+ * - Paid social whitelisting (+100%)
+ * ...would result in a 9x+ multiplier.
+ */
+const MAX_TOTAL_MULTIPLIER = 3.0;
+
+// =============================================================================
 // LAYER 1: BASE RATES BY TIER
 // =============================================================================
 
@@ -99,10 +119,13 @@ const BASE_RATES: Record<CreatorTier, number> = {
  * UGC (User-Generated Content) base rates.
  * UGC is priced as a SERVICE, not based on audience size.
  * These are flat rates per deliverable.
+ *
+ * Raised to align with "don't undersell" mission.
+ * Previous rates ($100 photo, $175 video) were below market.
  */
 const UGC_BASE_RATES: Record<UGCFormat, number> = {
-  video: 175, // UGC video content
-  photo: 100, // UGC photo content
+  video: 275, // UGC video content (raised from $175)
+  photo: 200, // UGC photo content (raised from $100)
 };
 
 // =============================================================================
@@ -224,6 +247,32 @@ const ENGAGEMENT_THRESHOLDS = [
   { maxRate: Infinity, multiplier: 2.0 }, // 8%+: Exceptional
 ];
 
+/**
+ * Platform-specific engagement rate normalization factors.
+ * Different platforms have different typical engagement rates.
+ *
+ * Instagram is the baseline (1.0). Other platforms are normalized
+ * so that a "good" engagement rate on TikTok is comparable to
+ * a "good" engagement rate on Instagram.
+ *
+ * Example: 5% TikTok engagement ≈ 3% Instagram engagement
+ *          2% YouTube engagement ≈ 3% Instagram engagement
+ */
+const PLATFORM_ENGAGEMENT_NORMS: Record<Platform, number> = {
+  instagram: 1.0,       // Baseline - 3% is "average"
+  tiktok: 1.67,         // TikTok avg ~5%, so 5% TikTok = 3% IG → 1.67x norm
+  youtube: 0.67,        // YouTube avg ~2%, so 2% YT = 3% IG → 0.67x norm
+  youtube_shorts: 1.2,  // Shorts have higher eng than long-form
+  twitter: 0.8,         // Twitter avg lower ~2.5%
+  threads: 1.0,         // Similar to Instagram
+  pinterest: 0.5,       // Very low typical engagement
+  linkedin: 0.6,        // Lower typical engagement
+  bluesky: 1.0,         // Assume similar to Twitter/Instagram for now
+  lemon8: 1.2,          // Emerging, assume similar to TikTok-lite
+  snapchat: 1.0,        // Assume baseline
+  twitch: 0.5,          // Live platforms measured differently
+};
+
 // =============================================================================
 // LAYER 2.5: NICHE/INDUSTRY PREMIUM
 // =============================================================================
@@ -232,48 +281,51 @@ const ENGAGEMENT_THRESHOLDS = [
  * Niche/industry premium multipliers.
  * Different niches command different rates based on advertiser demand
  * and audience purchasing power.
+ *
+ * Conservative approach: No penalties below 1.0x baseline.
+ * We don't want to undervalue any creator's work.
+ * Reduced extreme premiums (finance 2.0x → 1.5x) to prevent volatility.
  */
 const NICHE_PREMIUMS: Record<string, number> = {
   // High-value niches (high advertiser demand, high-intent audiences)
-  finance: 2.0,
-  investing: 2.0,
-  "b2b": 1.8,
-  business: 1.8,
-  tech: 1.7,
-  software: 1.7,
-  technology: 1.7,
-  legal: 1.7,
-  medical: 1.7,
-  healthcare: 1.7,
-  luxury: 1.5,
-  "high-end fashion": 1.5,
+  // Note: Reduced from 2.0x to 1.5x for more conservative estimates
+  finance: 1.5,
+  investing: 1.5,
+  "b2b": 1.4,
+  business: 1.4,
+  tech: 1.35,
+  software: 1.35,
+  technology: 1.35,
+  legal: 1.35,
+  medical: 1.35,
+  healthcare: 1.35,
+  luxury: 1.3,
+  "high-end fashion": 1.3,
 
   // Premium niches
-  beauty: 1.3,
-  skincare: 1.3,
-  cosmetics: 1.3,
-  fitness: 1.2,
-  wellness: 1.2,
-  health: 1.2,
+  beauty: 1.25,
+  skincare: 1.25,
+  cosmetics: 1.25,
+  fitness: 1.15,
+  wellness: 1.15,
+  health: 1.15,
 
   // Standard niches
-  food: 1.15,
-  cooking: 1.15,
-  recipes: 1.15,
-  travel: 1.15,
-  parenting: 1.1,
-  family: 1.1,
-  motherhood: 1.1,
+  food: 1.1,
+  cooking: 1.1,
+  recipes: 1.1,
+  travel: 1.1,
+  parenting: 1.05,
+  family: 1.05,
+  motherhood: 1.05,
 
-  // Baseline niches
+  // Baseline niches (no penalty - everyone gets at least 1.0x)
   lifestyle: 1.0,
   entertainment: 1.0,
   comedy: 1.0,
   music: 1.0,
-
-  // Below baseline
-  gaming: 0.95,
-  esports: 0.95,
+  gaming: 1.0,  // Raised from 0.95x - no penalties below baseline
+  esports: 1.0, // Raised from 0.95x - no penalties below baseline
 };
 
 /** Default multiplier for unknown niches */
@@ -349,16 +401,20 @@ const EXCLUSIVITY_PREMIUMS: Record<ExclusivityLevel, number> = {
  * whitelisting represents additional value when brands use creator content
  * in their own channels/ads.
  *
+ * IMPORTANT: Capped at +100% max to prevent double-counting with usage rights.
+ * Usage rights already cover duration/exclusivity - whitelisting is the
+ * additional value for channel usage specifically.
+ *
  * - none: Content stays on creator's channels only (0%)
- * - organic: Brand can repost organically (+50%)
- * - paid_social: Brand can run as paid social ads (+100%)
- * - full_media: Full media buy - TV, OOH, digital ads (+200%)
+ * - organic: Brand can repost organically (+25%)
+ * - paid_social: Brand can run as paid social ads (+50%)
+ * - full_media: Full media buy - TV, OOH, digital ads (+100% max)
  */
 const WHITELISTING_PREMIUMS: Record<WhitelistingType, number> = {
-  none: 0, // No whitelisting
-  organic: 0.5, // Brand reposts (+50%)
-  paid_social: 1.0, // Brand runs as paid ads (+100%)
-  full_media: 2.0, // Full media buy (+200%)
+  none: 0,          // No whitelisting
+  organic: 0.25,    // Brand reposts (+25%, was +50%)
+  paid_social: 0.5, // Brand runs as paid ads (+50%, was +100%)
+  full_media: 1.0,  // Full media buy (+100% max, was +200%)
 };
 
 /** Default whitelisting type */
@@ -489,13 +545,16 @@ const HYBRID_BASE_FEE_DISCOUNT = 0.5;
 /**
  * Volume discounts for retainer deals based on contract length.
  * Longer commitments receive better per-deliverable rates.
+ *
+ * Capped at 20% max to prevent underselling.
+ * Previous 35% discount for 12-month deals was too aggressive.
  */
 const VOLUME_DISCOUNTS: Record<DealLength, number> = {
-  one_time: 0, // No discount for single projects
-  monthly: 0, // No discount for month-to-month (no commitment)
-  "3_month": 0.15, // 15% discount for 3-month commitment
-  "6_month": 0.25, // 25% discount for 6-month commitment
-  "12_month": 0.35, // 35% discount for 12-month ambassador deals
+  one_time: 0,      // No discount for single projects
+  monthly: 0,       // No discount for month-to-month (no commitment)
+  "3_month": 0.10,  // 10% discount for 3-month commitment (was 15%)
+  "6_month": 0.15,  // 15% discount for 6-month commitment (was 25%)
+  "12_month": 0.20, // 20% discount max for ambassador deals (was 35%)
 };
 
 /**
@@ -1148,23 +1207,38 @@ export function calculateTier(followers: number): CreatorTier {
 }
 
 /**
- * Get regional rate multiplier based on creator's primary market.
- * Returns the multiplier for the specified region, or default (0.7x) for unknown regions.
+ * Get regional rate multiplier based on audience geography.
+ * Prefers audienceGeography over the deprecated region field.
  *
- * @param region - The creator's region identifier
+ * Returns the multiplier for the specified geography, or default (0.7x) for unknown regions.
+ *
+ * MIGRATION NOTE: This function now accepts both the new audienceGeography
+ * and legacy region fields. audienceGeography takes precedence when both are provided.
+ *
+ * @param geography - The audience's primary geography OR legacy region
+ * @param legacyRegion - Optional legacy region (deprecated, use audienceGeography)
  * @returns Multiplier value (e.g., 1.0 for US, 0.95 for UK, 0.4 for India)
  */
-export function getRegionalMultiplier(region: string | undefined): number {
-  if (!region) return REGIONAL_MULTIPLIERS[DEFAULT_REGION];
-  const normalizedRegion = region.toLowerCase().trim().replace(/\s+/g, "_") as Region;
+export function getRegionalMultiplier(
+  geography: AudienceGeography | Region | string | undefined,
+  legacyRegion?: Region | string
+): number {
+  // Prefer audienceGeography over legacy region
+  const effectiveGeography = geography || legacyRegion;
+
+  if (!effectiveGeography) return REGIONAL_MULTIPLIERS[DEFAULT_REGION];
+
+  const normalizedRegion = effectiveGeography.toLowerCase().trim().replace(/\s+/g, "_") as Region;
   return REGIONAL_MULTIPLIERS[normalizedRegion] ?? REGIONAL_MULTIPLIERS.other;
 }
 
 /**
- * Get display name for a region.
+ * Get display name for a region or audience geography.
  */
-function getRegionDisplayName(region: Region | undefined): string {
-  return REGION_DISPLAY_NAMES[region || DEFAULT_REGION];
+function getRegionDisplayName(geography: AudienceGeography | Region | string | undefined): string {
+  if (!geography) return REGION_DISPLAY_NAMES[DEFAULT_REGION];
+  const normalizedRegion = geography.toLowerCase().trim().replace(/\s+/g, "_") as Region;
+  return REGION_DISPLAY_NAMES[normalizedRegion] || geography;
 }
 
 /**
@@ -1190,11 +1264,44 @@ function getPlatformDisplayName(platform: Platform | string | undefined): string
 }
 
 /**
- * Get engagement rate multiplier.
+ * Normalize engagement rate by platform.
+ * Converts platform-specific engagement to an Instagram-equivalent rate
+ * for fair comparison across platforms.
+ *
+ * Example: 5% TikTok engagement → 3% normalized (since TikTok avg is higher)
+ *
+ * @param engagementRate - Raw engagement rate from the platform
+ * @param platform - The platform the engagement was measured on
+ * @returns Normalized engagement rate (Instagram-equivalent)
  */
-function getEngagementMultiplier(engagementRate: number): number {
+export function normalizeEngagementByPlatform(
+  engagementRate: number,
+  platform: Platform | string | undefined
+): number {
+  if (!platform) return engagementRate;
+  const normalizedPlatform = platform.toLowerCase().trim().replace(/\s+/g, "_") as Platform;
+  const normFactor = PLATFORM_ENGAGEMENT_NORMS[normalizedPlatform] ?? 1.0;
+  return engagementRate / normFactor;
+}
+
+/**
+ * Get engagement rate multiplier.
+ * Optionally normalizes engagement by platform before applying thresholds.
+ *
+ * @param engagementRate - Raw engagement rate
+ * @param platform - Optional platform for normalization
+ */
+function getEngagementMultiplier(
+  engagementRate: number,
+  platform?: Platform | string
+): number {
+  // Normalize engagement by platform if provided
+  const normalizedRate = platform
+    ? normalizeEngagementByPlatform(engagementRate, platform)
+    : engagementRate;
+
   for (const threshold of ENGAGEMENT_THRESHOLDS) {
-    if (engagementRate < threshold.maxRate) {
+    if (normalizedRate < threshold.maxRate) {
       return threshold.multiplier;
     }
   }
@@ -1665,16 +1772,17 @@ function calculateStandardSponsoredPrice(
   currentPrice *= platformMultiplier;
 
   // -------------------------------------------------------------------------
-  // Layer 1.5: Regional Multiplier
+  // Layer 1.5: Regional Multiplier (based on audience geography)
   // -------------------------------------------------------------------------
-  const region = profile.region || DEFAULT_REGION;
-  const regionalMultiplier = getRegionalMultiplier(region);
-  const regionDisplayName = getRegionDisplayName(region);
+  // Prefer audienceGeography over deprecated region field
+  const effectiveGeography = profile.audienceGeography || profile.region || DEFAULT_REGION;
+  const regionalMultiplier = getRegionalMultiplier(effectiveGeography);
+  const regionDisplayName = getRegionDisplayName(effectiveGeography);
 
   layers.push({
-    name: "Regional",
-    description: `${regionDisplayName} market rate`,
-    baseValue: region,
+    name: "Audience Geography",
+    description: `${regionDisplayName} audience rates`,
+    baseValue: effectiveGeography,
     multiplier: regionalMultiplier,
     adjustment: currentPrice * regionalMultiplier - currentPrice,
   });
@@ -1682,14 +1790,16 @@ function calculateStandardSponsoredPrice(
   currentPrice *= regionalMultiplier;
 
   // -------------------------------------------------------------------------
-  // Layer 2: Engagement Multiplier
+  // Layer 2: Engagement Multiplier (with platform normalization)
   // -------------------------------------------------------------------------
   const engagementRate = profile.avgEngagementRate;
-  const engagementMultiplier = getEngagementMultiplier(engagementRate);
+  // Normalize engagement by platform for fair comparison
+  const normalizedEngagement = normalizeEngagementByPlatform(engagementRate, platform);
+  const engagementMultiplier = getEngagementMultiplier(engagementRate, platform);
 
   layers.push({
     name: "Engagement Multiplier",
-    description: `${engagementRate.toFixed(1)}% engagement rate`,
+    description: `${engagementRate.toFixed(1)}% engagement rate${platform !== 'instagram' ? ` (${normalizedEngagement.toFixed(1)}% normalized)` : ''}`,
     baseValue: `${engagementRate.toFixed(1)}%`,
     multiplier: engagementMultiplier,
     adjustment: currentPrice * engagementMultiplier - currentPrice,
@@ -1843,9 +1953,27 @@ function calculateStandardSponsoredPrice(
   currentPrice *= 1 + seasonalPremium;
 
   // -------------------------------------------------------------------------
-  // Final Calculations
+  // Final Calculations with Multiplier Cap
   // -------------------------------------------------------------------------
-  const pricePerDeliverable = roundToNearestFive(currentPrice);
+  // Calculate total multiplier from base rate to prevent volatile outputs
+  const totalMultiplier = currentPrice / baseRate;
+  let cappedPrice = currentPrice;
+  let wasCapped = false;
+
+  // Apply MAX_TOTAL_MULTIPLIER cap if exceeded
+  if (totalMultiplier > MAX_TOTAL_MULTIPLIER) {
+    cappedPrice = baseRate * MAX_TOTAL_MULTIPLIER;
+    wasCapped = true;
+    layers.push({
+      name: "Multiplier Cap",
+      description: `Capped at ${MAX_TOTAL_MULTIPLIER}x base rate (was ${totalMultiplier.toFixed(2)}x)`,
+      baseValue: `${MAX_TOTAL_MULTIPLIER}x`,
+      multiplier: MAX_TOTAL_MULTIPLIER / totalMultiplier,
+      adjustment: cappedPrice - currentPrice,
+    });
+  }
+
+  const pricePerDeliverable = roundToNearestFive(cappedPrice);
   const quantity = brief.content.quantity;
   const totalPrice = pricePerDeliverable * quantity;
 
@@ -1857,7 +1985,8 @@ function calculateStandardSponsoredPrice(
     `× (1 ${formatPremium(totalRightsPremium)}) ` +
     `× (1 ${formatPremium(whitelistingPremium)}) ` +
     `× (1 ${formatPremium(complexityPremium)}) ` +
-    `× (1 ${formatPremium(seasonalPremium)})`;
+    `× (1 ${formatPremium(seasonalPremium)})` +
+    (wasCapped ? ` [capped at ${MAX_TOTAL_MULTIPLIER}x]` : "");
 
   // Get currency info from profile
   const currencyInfo = CURRENCIES.find(c => c.code === profile.currency) || CURRENCIES[0];

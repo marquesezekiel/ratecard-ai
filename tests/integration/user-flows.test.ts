@@ -559,14 +559,14 @@ describe("FLOW 3: Mid-Tier Creator with Complex Paid Deal", () => {
       expect(tier).toBe("rising");
     });
 
-    it("applies finance niche premium (2.0x)", () => {
+    it("applies finance niche premium (1.5x - reduced from 2.0x per Prompt 3)", () => {
       const fitScore = calculateFitScore(profile, brief);
       const pricing = calculatePrice(profile, brief, fitScore);
 
       // Finance niche should have highest premium
       const nicheLayer = pricing.layers.find((l) => l.name.toLowerCase().includes("niche"));
       if (nicheLayer) {
-        expect(nicheLayer.multiplier).toBe(2.0);
+        expect(nicheLayer.multiplier).toBe(1.5);
       }
     });
 
@@ -600,7 +600,7 @@ describe("FLOW 3: Mid-Tier Creator with Complex Paid Deal", () => {
       }
     });
 
-    it("calculates retainer pricing with 6-month volume discount (25%)", () => {
+    it("calculates retainer pricing with 6-month volume discount (15% - reduced from 25% per Prompt 3)", () => {
       // Rising tier base rate is $1500, function takes (baseRate, config, tier)
       const risingBaseRate = 1500;
       const tier: CreatorTier = "rising";
@@ -611,7 +611,7 @@ describe("FLOW 3: Mid-Tier Creator with Complex Paid Deal", () => {
       );
 
       expect(retainerBreakdown).toBeDefined();
-      expect(retainerBreakdown.volumeDiscount).toBe(25);
+      expect(retainerBreakdown.volumeDiscount).toBe(15);
       expect(retainerBreakdown.contractMonths).toBe(6);
       expect(retainerBreakdown.totalContractValue).toBeGreaterThan(0);
     });
@@ -756,12 +756,12 @@ describe("FLOW 5: Ambassador Deal", () => {
       expect(calculatedTier).toBe("mega");
     });
 
-    it("applies 35% volume discount for 12-month deal", () => {
+    it("applies 20% volume discount max for 12-month deal (reduced from 35% per Prompt 3)", () => {
       // calculateRetainerPrice takes (baseRate, retainerConfig, tier)
       const retainerBreakdown = calculateRetainerPrice(megaBaseRate, ambassadorConfig, tier);
 
       expect(retainerBreakdown).toBeDefined();
-      expect(retainerBreakdown.volumeDiscount).toBe(35);
+      expect(retainerBreakdown.volumeDiscount).toBe(20);
     });
 
     it("calculates monthly deliverables value correctly", () => {

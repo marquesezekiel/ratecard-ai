@@ -155,54 +155,55 @@ describe("quick-calculator", () => {
       contentFormat: "static", // 0% premium
     };
 
-    it("applies finance premium (2.0x)", () => {
+    // NOTE: Niche premiums reduced per Prompt 3 for conservative estimates
+    it("applies finance premium (1.5x - reduced from 2.0x)", () => {
       const result = calculateQuickEstimate({
         ...baseInput,
         niche: "finance",
       });
 
-      // $400 * 2.0 = $800
-      expect(result.baseRate).toBe(800);
+      // $400 * 1.5 = $600
+      expect(result.baseRate).toBe(600);
     });
 
-    it("applies business/B2B premium (1.8x)", () => {
+    it("applies business/B2B premium (1.4x - reduced from 1.8x)", () => {
       const result = calculateQuickEstimate({
         ...baseInput,
         niche: "business",
       });
 
-      // $400 * 1.8 = $720
-      expect(result.baseRate).toBe(720);
+      // $400 * 1.4 = $560
+      expect(result.baseRate).toBe(560);
     });
 
-    it("applies tech premium (1.7x)", () => {
+    it("applies tech premium (1.35x - reduced from 1.7x)", () => {
       const result = calculateQuickEstimate({
         ...baseInput,
         niche: "tech",
       });
 
-      // $400 * 1.7 = $680
-      expect(result.baseRate).toBe(680);
+      // $400 * 1.35 = $540
+      expect(result.baseRate).toBe(540);
     });
 
-    it("applies beauty premium (1.3x)", () => {
+    it("applies beauty premium (1.25x - reduced from 1.3x)", () => {
       const result = calculateQuickEstimate({
         ...baseInput,
         niche: "beauty",
       });
 
-      // $400 * 1.3 = $520
-      expect(result.baseRate).toBe(520);
+      // $400 * 1.25 = $500
+      expect(result.baseRate).toBe(500);
     });
 
-    it("applies gaming discount (0.95x)", () => {
+    it("applies gaming at baseline (1.0x - no longer 0.95x penalty)", () => {
       const result = calculateQuickEstimate({
         ...baseInput,
         niche: "gaming",
       });
 
-      // $400 * 0.95 = $380
-      expect(result.baseRate).toBe(380);
+      // $400 * 1.0 = $400 (no penalty)
+      expect(result.baseRate).toBe(400);
     });
 
     it("defaults to lifestyle (1.0x) when niche not specified", () => {
@@ -522,12 +523,12 @@ describe("quick-calculator", () => {
         followerCount: 100000, // Rising tier: $1,500
         platform: "youtube", // 1.4x
         contentFormat: "video", // +35%
-        niche: "tech", // 1.7x (actual value from pricing-engine)
+        niche: "tech", // 1.35x (reduced from 1.7x per Prompt 3)
       });
 
-      // $1,500 * 1.4 * 1.7 * 1.35 = $4,819.50 → $4,820 (rounded to nearest 5)
+      // $1,500 * 1.4 * 1.35 * 1.35 = $3,827.25 → $3,825 (rounded to nearest 5)
       // With 3% engagement assumed (1.0x multiplier)
-      expect(result.baseRate).toBe(4820);
+      expect(result.baseRate).toBe(3825);
     });
 
     it("produces reasonable rates across different scenarios", () => {
