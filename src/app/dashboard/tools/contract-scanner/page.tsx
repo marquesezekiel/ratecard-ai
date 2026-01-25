@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { FileText } from "lucide-react";
+import { FileText, AlertTriangle } from "lucide-react";
 import { ContractScannerForm } from "@/components/forms/contract-scanner-form";
 import { ContractScanResult } from "@/components/contract-scan-result";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import type { ContractScanResult as ContractScanResultType } from "@/lib/types";
 
 export default function ContractScannerPage() {
@@ -19,6 +20,17 @@ export default function ContractScannerPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Legal Disclaimer */}
+      <Alert variant="warning">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Not Legal Advice</AlertTitle>
+        <AlertDescription>
+          This tool provides general guidance only and is not a substitute for
+          professional legal advice. Always consult a qualified attorney before
+          signing contracts.
+        </AlertDescription>
+      </Alert>
+
       {/* Header */}
       <header className="text-center space-y-2">
         <div className="flex items-center justify-center gap-2">

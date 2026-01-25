@@ -154,11 +154,11 @@ export function BrandVetterForm({ onVettingComplete }: BrandVetterFormProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Shield className="h-5 w-5" />
-          Check Brand Legitimacy
+          Analyze Brand Signals
         </CardTitle>
         <CardDescription>
           Enter the brand&apos;s details below. The more information you provide, the more accurate
-          our assessment will be.
+          our signal analysis will be.
         </CardDescription>
       </CardHeader>
       <CardContent>
