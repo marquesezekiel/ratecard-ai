@@ -209,30 +209,30 @@ describe("brand-vetter", () => {
   describe("getTrustLevelInfo", () => {
     it("returns correct info for verified level", () => {
       const info = getTrustLevelInfo("verified");
-      expect(info.label).toBe("Verified");
+      expect(info.label).toBe("Strong Signals");
       expect(info.color).toBe("green");
-      expect(info.description).toContain("Safe");
+      expect(info.description).toContain("diligence");
     });
 
     it("returns correct info for likely_legit level", () => {
       const info = getTrustLevelInfo("likely_legit");
-      expect(info.label).toBe("Likely Legit");
+      expect(info.label).toBe("Good Signals");
       expect(info.color).toBe("blue");
-      expect(info.description).toContain("due diligence");
+      expect(info.description).toContain("verify");
     });
 
     it("returns correct info for caution level", () => {
       const info = getTrustLevelInfo("caution");
-      expect(info.label).toContain("Caution");
+      expect(info.label).toBe("Mixed Signals");
       expect(info.color).toBe("yellow");
-      expect(info.description).toContain("carefully");
+      expect(info.description).toContain("concerns");
     });
 
     it("returns correct info for high_risk level", () => {
       const info = getTrustLevelInfo("high_risk");
-      expect(info.label).toBe("High Risk");
+      expect(info.label).toBe("Caution Advised");
       expect(info.color).toBe("red");
-      expect(info.description).toContain("scam");
+      expect(info.description).toContain("warning");
     });
   });
 

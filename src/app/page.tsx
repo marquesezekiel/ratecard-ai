@@ -89,7 +89,7 @@ export default function HomePage() {
                   <div className="flex items-center gap-3 mb-6">
                     <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary to-primary/60" />
                     <div>
-                      <div className="font-bold">@maya.creates</div>
+                      <div className="font-bold">@yourcreatorhandle</div>
                       <div className="text-sm text-muted-foreground">18.5K followers</div>
                     </div>
                   </div>
@@ -294,40 +294,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer with Social Proof */}
+      {/* Footer */}
       <footer className="py-12 border-t border-border/40 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
-          {/* Social proof stats - more creator-native styling */}
-          <div className="grid grid-cols-3 gap-6 mb-10">
-            <div className="text-center space-y-1">
-              <div className="text-3xl md:text-4xl font-display font-bold text-primary">10K+</div>
-              <div className="text-sm text-muted-foreground">rate cards generated</div>
-            </div>
-            <div className="text-center space-y-1">
-              <div className="text-3xl md:text-4xl font-display font-bold font-money text-money">$2.4M</div>
-              <div className="text-sm text-muted-foreground">in rates calculated</div>
-            </div>
-            <div className="text-center space-y-1">
-              <div className="flex items-center justify-center gap-1">
-                <span className="text-3xl md:text-4xl font-display font-bold">4.9</span>
-                <Star className="h-6 w-6 text-energy fill-energy" />
-              </div>
-              <div className="text-sm text-muted-foreground">creator rating</div>
-            </div>
-          </div>
-
-          {/* Creator-style social proof */}
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <div className="flex -space-x-2">
-              {/* Avatar placeholders - represents real creator community */}
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-400 to-rose-400 border-2 border-background" />
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-400 to-purple-400 border-2 border-background" />
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-teal-400 to-cyan-400 border-2 border-background" />
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 border-2 border-background" />
-            </div>
-            <span className="text-sm text-muted-foreground">
-              Trusted by creators like <span className="font-medium text-foreground">@maya.creates</span>
-            </span>
+          {/* Aspirational message */}
+          <div className="text-center mb-10">
+            <p className="text-lg text-muted-foreground">
+              Join thousands of creators who stopped guessing and started getting paid what they deserve.
+            </p>
           </div>
 
           {/* Footer links */}
