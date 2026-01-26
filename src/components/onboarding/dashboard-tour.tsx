@@ -7,6 +7,64 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MessageSquare, Upload, User, X, ArrowRight, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Custom hook to trap focus within a container element.
+ * Returns to the previously focused element when unmounted.
+ */
+function useFocusTrap(containerRef: React.RefObject<HTMLElement | null>, isActive: boolean) {
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isActive) return;
+
+    // Store the previously focused element
+    previousFocusRef.current = document.activeElement as HTMLElement;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    // Focus the first focusable element
+    const focusableElements = container.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (firstElement) {
+      firstElement.focus();
+    }
+
+    // Handle tab key to trap focus
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+
+      if (e.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement?.focus();
+        }
+      } else {
+        // Tab
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement?.focus();
+        }
+      }
+    };
+
+    container.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      container.removeEventListener("keydown", handleKeyDown);
+      // Return focus to the previously focused element
+      if (previousFocusRef.current && typeof previousFocusRef.current.focus === "function") {
+        previousFocusRef.current.focus();
+      }
+    };
+  }, [containerRef, isActive]);
+}
+
 interface TourStep {
   target: string;
   title: string;
@@ -68,6 +126,9 @@ export function DashboardTour({ show, onComplete }: DashboardTourProps) {
   const [popoverPos, setPopoverPos] = useState<PopoverPosition | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Apply focus trap when tour is visible
+  useFocusTrap(popoverRef, isVisible);
 
   // Calculate element position for highlight
   const updatePositions = useCallback(() => {
@@ -250,6 +311,10 @@ export function DashboardTour({ show, onComplete }: DashboardTourProps) {
       {popoverPos && (
         <div
           ref={popoverRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tour-title"
+          aria-describedby="tour-description"
           className="fixed z-[102] w-80 animate-in zoom-in-95 fade-in duration-300"
           style={{
             top: popoverPos.top - window.scrollY,
@@ -274,7 +339,7 @@ export function DashboardTour({ show, onComplete }: DashboardTourProps) {
                   <Icon className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg">{step.title}</CardTitle>
+                  <CardTitle id="tour-title" className="text-lg">{step.title}</CardTitle>
                   <CardDescription className="text-xs">
                     Step {currentStep + 1} of {TOUR_STEPS.length}
                   </CardDescription>
@@ -283,7 +348,7 @@ export function DashboardTour({ show, onComplete }: DashboardTourProps) {
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground">{step.description}</p>
+              <p id="tour-description" className="text-sm text-muted-foreground">{step.description}</p>
 
               {/* Progress dots */}
               <div className="flex items-center justify-center gap-2">

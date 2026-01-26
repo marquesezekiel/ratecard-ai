@@ -55,6 +55,11 @@ const SOURCE_OPTIONS: { value: MessageSource | "auto"; label: string }[] = [
  * Unified analyzer for brand DMs and emails.
  * Detects gift offers, analyzes tone, and generates recommended responses.
  */
+/**
+ * Form instructions for screen readers
+ */
+const FORM_INSTRUCTIONS = "Fields marked with * are required.";
+
 export function MessageAnalyzerForm({
   profile,
   initialMessage = "",
@@ -68,18 +73,21 @@ export function MessageAnalyzerForm({
   const [analysis, setAnalysis] = useState<MessageAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!messageText.trim() || messageText.trim().length < 20) {
       setError("Please paste a message (at least 20 characters)");
+      setStatusMessage("");
       return;
     }
 
     setLoading(true);
     setError(null);
     setAnalysis(null);
+    setStatusMessage("Analyzing your message...");
 
     try {
       const response = await fetch("/api/parse-dm", {
@@ -99,11 +107,13 @@ export function MessageAnalyzerForm({
       }
 
       setAnalysis(result.data);
+      setStatusMessage("Message analyzed successfully");
       onAnalysisComplete?.(result.data);
       toast.success("Message analyzed successfully");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
       setError(errorMessage);
+      setStatusMessage("");
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -267,7 +277,11 @@ export function MessageAnalyzerForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" aria-describedby="message-form-instructions">
+            {/* Form instructions for screen readers */}
+            <p id="message-form-instructions" className="sr-only">{FORM_INSTRUCTIONS}</p>
+            <p className="text-xs text-muted-foreground" aria-hidden="true">{FORM_INSTRUCTIONS}</p>
+
             <div className="space-y-2">
               <Label htmlFor="source-hint">Message Source (optional)</Label>
               <Select value={sourceHint} onValueChange={(v) => setSourceHint(v as MessageSource | "auto")}>
@@ -288,7 +302,7 @@ export function MessageAnalyzerForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="message-text">Brand Message</Label>
+              <Label htmlFor="message-text" required>Brand Message</Label>
               <Textarea
                 id="message-text"
                 placeholder={`Paste a brand message here...
@@ -315,9 +329,17 @@ Example Email:
               </div>
             </div>
 
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
-            )}
+            {/* Status announcements for screen readers */}
+            <div role="status" aria-live="polite" className="sr-only">
+              {statusMessage}
+            </div>
+
+            {/* Error announcements for screen readers */}
+            <div role="alert" aria-live="assertive">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
+              )}
+            </div>
 
             <Button type="submit" disabled={loading || messageText.trim().length < 20} className="w-full">
               {loading ? (

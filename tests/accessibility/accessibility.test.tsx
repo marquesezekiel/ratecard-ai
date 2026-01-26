@@ -282,3 +282,284 @@ describe("Accessibility - Loading States", () => {
     expect(loadingHTML).toContain('aria-label="Loading dashboard"');
   });
 });
+
+// =============================================================================
+// WCAG AA COMPLIANCE TESTS (Issue 6-11)
+// =============================================================================
+
+describe("WCAG AA - Required Field Indicators (Issue 7)", () => {
+  it("Label component should render visual asterisk for required fields", async () => {
+    const { Label } = await import("@/components/ui/label");
+    render(<Label required>Test Field</Label>);
+
+    // Visual asterisk should be present
+    const asterisk = screen.getByText("*");
+    expect(asterisk).toBeInTheDocument();
+    expect(asterisk).toHaveAttribute("aria-hidden", "true");
+    expect(asterisk).toHaveClass("text-destructive");
+  });
+
+  it("Label component should include sr-only (required) text", async () => {
+    const { Label } = await import("@/components/ui/label");
+    render(<Label required>Test Field</Label>);
+
+    // sr-only text should be present for screen readers
+    const srOnlyText = screen.getByText("(required)");
+    expect(srOnlyText).toBeInTheDocument();
+    expect(srOnlyText).toHaveClass("sr-only");
+  });
+
+  it("Label component should not render indicators when not required", async () => {
+    const { Label } = await import("@/components/ui/label");
+    render(<Label>Optional Field</Label>);
+
+    // No asterisk or (required) text
+    expect(screen.queryByText("*")).not.toBeInTheDocument();
+    expect(screen.queryByText("(required)")).not.toBeInTheDocument();
+  });
+});
+
+describe("WCAG AA - Aria-Live Regions (Issue 8)", () => {
+  it("quick-calculator-form should have aria-live region for status updates", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const componentPath = path.join(
+      process.cwd(),
+      "src/components/forms/quick-calculator-form.tsx"
+    );
+    const componentContent = fs.readFileSync(componentPath, "utf-8");
+
+    // Check for aria-live region
+    expect(componentContent).toContain('role="status"');
+    expect(componentContent).toContain('aria-live="polite"');
+  });
+
+  it("quick-calculator-form should have aria-live region for errors", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const componentPath = path.join(
+      process.cwd(),
+      "src/components/forms/quick-calculator-form.tsx"
+    );
+    const componentContent = fs.readFileSync(componentPath, "utf-8");
+
+    // Check for error alert region
+    expect(componentContent).toContain('role="alert"');
+    expect(componentContent).toContain('aria-live="assertive"');
+  });
+
+  it("message-analyzer-form should have aria-live regions", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const componentPath = path.join(
+      process.cwd(),
+      "src/components/forms/message-analyzer-form.tsx"
+    );
+    const componentContent = fs.readFileSync(componentPath, "utf-8");
+
+    // Check for status region
+    expect(componentContent).toContain('role="status"');
+    expect(componentContent).toContain('aria-live="polite"');
+
+    // Check for error alert region
+    expect(componentContent).toContain('role="alert"');
+    expect(componentContent).toContain('aria-live="assertive"');
+  });
+
+  it("quick-calculator-result should announce results to screen readers", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const componentPath = path.join(
+      process.cwd(),
+      "src/components/quick-calculator-result.tsx"
+    );
+    const componentContent = fs.readFileSync(componentPath, "utf-8");
+
+    // Check for result announcement
+    expect(componentContent).toContain('role="status"');
+    expect(componentContent).toContain('aria-live="polite"');
+    expect(componentContent).toContain("Your estimated rate is");
+  });
+});
+
+describe("WCAG AA - Color Contrast Documentation (Issue 6)", () => {
+  it("globals.css should document color contrast verification", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const cssPath = path.join(process.cwd(), "src/app/globals.css");
+    const cssContent = fs.readFileSync(cssPath, "utf-8");
+
+    // Check for WCAG contrast documentation
+    expect(cssContent).toContain("WCAG AA COLOR CONTRAST VERIFICATION");
+    expect(cssContent).toContain("4.5:1 minimum contrast ratio");
+    expect(cssContent).toContain("PASSES AA");
+  });
+
+  it("accent colors should be darkened for WCAG AA compliance", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const cssPath = path.join(process.cwd(), "src/app/globals.css");
+    const cssContent = fs.readFileSync(cssPath, "utf-8");
+
+    // Check that accent colors have been adjusted
+    expect(cssContent).toContain("oklch(0.45 0.17 155)"); // text-money (darkened)
+    expect(cssContent).toContain("oklch(0.50 0.15 70)"); // text-energy (darkened)
+    expect(cssContent).toContain("oklch(0.50 0.16 45)"); // text-coral (darkened)
+  });
+});
+
+describe("WCAG AA - Heading Hierarchy (Issue 10)", () => {
+  it("dashboard page should have single h1", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const pagePath = path.join(process.cwd(), "src/app/dashboard/page.tsx");
+    const pageContent = fs.readFileSync(pagePath, "utf-8");
+
+    // Count h1 elements (should be exactly one)
+    const h1Matches = pageContent.match(/<h1[^>]*>/g) || [];
+    expect(h1Matches.length).toBe(1);
+  });
+
+  it("analyze page should have single h1", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const pagePath = path.join(
+      process.cwd(),
+      "src/app/dashboard/analyze/page.tsx"
+    );
+    const pageContent = fs.readFileSync(pagePath, "utf-8");
+
+    const h1Matches = pageContent.match(/<h1[^>]*>/g) || [];
+    expect(h1Matches.length).toBe(1);
+  });
+
+  it("profile page should have single h1", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const pagePath = path.join(
+      process.cwd(),
+      "src/app/dashboard/profile/page.tsx"
+    );
+    const pageContent = fs.readFileSync(pagePath, "utf-8");
+
+    const h1Matches = pageContent.match(/<h1[^>]*>/g) || [];
+    expect(h1Matches.length).toBe(1);
+  });
+
+  it("quick-calculate page should have single h1", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const pagePath = path.join(process.cwd(), "src/app/quick-calculate/page.tsx");
+    const pageContent = fs.readFileSync(pagePath, "utf-8");
+
+    const h1Matches = pageContent.match(/<h1[^>]*>/g) || [];
+    expect(h1Matches.length).toBe(1);
+  });
+
+  it("quick-calculator-result should use h2 not h3 for subheadings", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const componentPath = path.join(
+      process.cwd(),
+      "src/components/quick-calculator-result.tsx"
+    );
+    const componentContent = fs.readFileSync(componentPath, "utf-8");
+
+    // Check that it uses h2 (not h3 which would skip levels)
+    expect(componentContent).toContain("<h2");
+    // Should not have h3 in this component (it's under a page h1)
+    expect(componentContent).not.toContain("<h3");
+  });
+});
+
+describe("WCAG AA - Focus Management (Issue 9)", () => {
+  it("dashboard-tour should have focus trap implementation", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const componentPath = path.join(
+      process.cwd(),
+      "src/components/onboarding/dashboard-tour.tsx"
+    );
+    const componentContent = fs.readFileSync(componentPath, "utf-8");
+
+    // Check for focus trap hook
+    expect(componentContent).toContain("useFocusTrap");
+
+    // Check for role="dialog" and aria-modal
+    expect(componentContent).toContain('role="dialog"');
+    expect(componentContent).toContain('aria-modal="true"');
+  });
+
+  it("dialog component should use Radix UI for built-in focus management", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const componentPath = path.join(
+      process.cwd(),
+      "src/components/ui/dialog.tsx"
+    );
+    const componentContent = fs.readFileSync(componentPath, "utf-8");
+
+    // Radix Dialog has built-in focus management
+    expect(componentContent).toContain("@radix-ui/react-dialog");
+    expect(componentContent).toContain('className="sr-only">Close</span>');
+  });
+
+  it("sheet component should use Radix UI for built-in focus management", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const componentPath = path.join(
+      process.cwd(),
+      "src/components/ui/sheet.tsx"
+    );
+    const componentContent = fs.readFileSync(componentPath, "utf-8");
+
+    // Radix Dialog (used for Sheet) has built-in focus management
+    expect(componentContent).toContain("@radix-ui/react-dialog");
+    expect(componentContent).toContain('className="sr-only">Close</span>');
+  });
+});
+
+describe("WCAG AA - Form Instructions (Issue 7)", () => {
+  it("quick-calculator-form should have form instructions", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const componentPath = path.join(
+      process.cwd(),
+      "src/components/forms/quick-calculator-form.tsx"
+    );
+    const componentContent = fs.readFileSync(componentPath, "utf-8");
+
+    expect(componentContent).toContain("Fields marked with * are required");
+    expect(componentContent).toContain('aria-describedby="form-instructions"');
+    expect(componentContent).toContain('id="form-instructions"');
+  });
+
+  it("message-analyzer-form should have form instructions", async () => {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    const componentPath = path.join(
+      process.cwd(),
+      "src/components/forms/message-analyzer-form.tsx"
+    );
+    const componentContent = fs.readFileSync(componentPath, "utf-8");
+
+    expect(componentContent).toContain("Fields marked with * are required");
+    expect(componentContent).toContain("aria-describedby=");
+  });
+});

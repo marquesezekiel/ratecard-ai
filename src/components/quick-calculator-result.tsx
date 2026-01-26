@@ -53,6 +53,11 @@ export function QuickCalculatorResult({
 
   return (
     <div className="space-y-6">
+      {/* Screen reader announcement for results */}
+      <div role="status" aria-live="polite" className="sr-only">
+        Your estimated rate is ${result.minRate.toLocaleString()} to ${result.maxRate.toLocaleString()} per {formatDisplayNames[result.contentFormat] || result.contentFormat}.
+      </div>
+
       {/* Main Rate Card */}
       <Card className="overflow-hidden">
         <div className="bg-gradient-to-br from-primary to-primary/80 p-6 text-primary-foreground">
@@ -116,7 +121,7 @@ export function QuickCalculatorResult({
           <div className="border-t pt-6">
             <div className="flex items-center gap-2 mb-4">
               <AlertCircle className="h-5 w-5 text-amber-500" />
-              <h3 className="font-semibold">What This Estimate is Missing</h3>
+              <h2 className="font-semibold text-base">What This Estimate is Missing</h2>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -162,9 +167,9 @@ export function QuickCalculatorResult({
       <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent overflow-hidden">
         <CardContent className="p-6 space-y-4">
           <div className="text-center">
-            <h3 className="text-xl font-display font-bold mb-2">
+            <h2 className="text-xl font-display font-bold mb-2">
               With full profile, your rate could be ${result.potentialWithFullProfile.toLocaleString()}
-            </h3>
+            </h2>
             <p className="text-sm text-muted-foreground">
               Get your personalized rate card with full analysis — takes 2 minutes, free forever.
             </p>

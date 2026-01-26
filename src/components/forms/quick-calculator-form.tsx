@@ -66,6 +66,11 @@ interface QuickCalculatorFormProps {
   onResult: (result: QuickEstimateResult) => void;
 }
 
+/**
+ * Form instructions for screen readers
+ */
+const FORM_INSTRUCTIONS = "Fields marked with * are required.";
+
 export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
   const [followerCount, setFollowerCount] = useState("");
   const [platform, setPlatform] = useState<Platform | "">("");
@@ -73,6 +78,7 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
   const [niche, setNiche] = useState("lifestyle");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>("");
 
   // Format number with commas for display
   const formatNumber = (value: string): string => {
@@ -95,6 +101,7 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setStatusMessage("");
 
     const followers = getNumericValue(followerCount);
 
@@ -120,6 +127,7 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
     }
 
     setLoading(true);
+    setStatusMessage("Calculating your rate...");
 
     const input = {
       followerCount: followers,
@@ -187,11 +195,15 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-5" aria-describedby="form-instructions">
+      {/* Form instructions for screen readers */}
+      <p id="form-instructions" className="sr-only">{FORM_INSTRUCTIONS}</p>
+      <p className="text-xs text-muted-foreground" aria-hidden="true">{FORM_INSTRUCTIONS}</p>
+
       {/* Follower Count */}
       <div className="space-y-2">
-        <Label htmlFor="followers">
-          Follower Count <span className="text-destructive">*</span>
+        <Label htmlFor="followers" required>
+          Follower Count
         </Label>
         <Input
           id="followers"
@@ -218,8 +230,8 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
 
       {/* Platform */}
       <div className="space-y-2">
-        <Label>
-          Platform <span className="text-destructive">*</span>
+        <Label required>
+          Platform
         </Label>
         <Select
           value={platform}
@@ -240,8 +252,8 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
 
       {/* Content Format */}
       <div className="space-y-2">
-        <Label>
-          Content Type <span className="text-destructive">*</span>
+        <Label required>
+          Content Type
         </Label>
         <Select
           value={contentFormat}
@@ -280,12 +292,19 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
         </Select>
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
-          {error}
-        </div>
-      )}
+      {/* Status announcements for screen readers */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {statusMessage}
+      </div>
+
+      {/* Error announcements for screen readers */}
+      <div role="alert" aria-live="assertive">
+        {error && (
+          <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
+            {error}
+          </div>
+        )}
+      </div>
 
       {/* Submit */}
       <Button
