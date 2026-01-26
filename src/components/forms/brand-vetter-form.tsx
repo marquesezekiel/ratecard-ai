@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Shield, Search, Globe, AtSign, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 import type { BrandVettingResult, Platform } from "@/lib/types";
 
 interface BrandVetterFormProps {
@@ -130,6 +131,12 @@ export function BrandVetterForm({ onVettingComplete }: BrandVetterFormProps) {
       }
 
       onVettingComplete?.(result.data);
+
+      // Track brand vetting
+      trackEvent('brand_vetted', {
+        trustLevel: result.data.trustLevel,
+      });
+
       toast.success("Brand vetting complete");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";

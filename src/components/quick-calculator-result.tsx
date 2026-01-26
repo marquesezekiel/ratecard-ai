@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { QuickEstimateResult } from "@/lib/types";
 import { useSession } from "@/lib/auth-client";
+import { trackEvent } from "@/lib/analytics";
 
 interface QuickCalculatorResultProps {
   result: QuickEstimateResult;
@@ -191,7 +192,15 @@ export function QuickCalculatorResult({
           </div>
 
           <div className="flex flex-col gap-3 pt-2">
-            <Button asChild size="lg" className="w-full gap-2 text-base">
+            <Button
+              asChild
+              size="lg"
+              className="w-full gap-2 text-base"
+              onClick={() => trackEvent('quick_calculate_cta_click', {
+                destination: isAuthenticated ? '/dashboard' : '/sign-up',
+                estimatedRate: result.maxRate,
+              })}
+            >
               <Link href={isAuthenticated ? "/dashboard" : "/sign-up"}>
                 {isAuthenticated ? "Create Your Rate Card" : "Get Your Full Rate Card"}
                 <ArrowRight className="h-4 w-4" />

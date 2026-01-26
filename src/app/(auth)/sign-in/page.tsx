@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sparkles, Loader2, ArrowRight, Zap, TrendingUp, DollarSign } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { trackEvent } from "@/lib/analytics";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -55,6 +56,9 @@ export default function SignInPage() {
         setIsLoading(false);
         return;
       }
+
+      // Track successful login
+      trackEvent('login_complete');
 
       // Use full page navigation to ensure cookies are properly attached
       window.location.href = "/dashboard";

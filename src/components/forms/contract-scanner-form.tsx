@@ -21,6 +21,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, FileText, Upload, ChevronDown, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 import type { ContractScanResult, Platform, DealType } from "@/lib/types";
 
 interface ContractScannerFormProps {
@@ -151,6 +152,12 @@ export function ContractScannerForm({ onScanComplete }: ContractScannerFormProps
       }
 
       onScanComplete?.(result.data);
+
+      // Track contract scan
+      trackEvent('contract_scanned', {
+        healthScore: result.data.healthScore,
+      });
+
       toast.success("Contract analyzed successfully");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";

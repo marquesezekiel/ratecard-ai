@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signUp } from "@/lib/auth-client";
@@ -9,10 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sparkles, Loader2, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { trackEvent } from "@/lib/analytics";
 
 export default function SignUpPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const hasTrackedStart = useRef(false);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -20,6 +22,14 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Track signup start once
+  useEffect(() => {
+    if (!hasTrackedStart.current && !authLoading && !isAuthenticated) {
+      trackEvent('signup_start');
+      hasTrackedStart.current = true;
+    }
+  }, [authLoading, isAuthenticated]);
 
   // Redirect authenticated users
   useEffect(() => {
@@ -69,6 +79,9 @@ export default function SignUpPage() {
         setIsLoading(false);
         return;
       }
+
+      // Track successful signup
+      trackEvent('signup_complete', { source: 'email' });
 
       // Clear any existing profile data so new users start fresh
       localStorage.removeItem("creatorProfile");

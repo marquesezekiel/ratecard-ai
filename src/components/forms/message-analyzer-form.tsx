@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { CopyButton } from "@/components/ui/copy-button";
 import { DealBadgesRow } from "@/components/ui/deal-badges-row";
+import { trackEvent } from "@/lib/analytics";
 import type { CreatorProfile, MessageAnalysis, MessageSource } from "@/lib/types";
 import { toast } from "sonner";
 
@@ -109,6 +110,14 @@ export function MessageAnalyzerForm({
       setAnalysis(result.data);
       setStatusMessage("Message analyzed successfully");
       onAnalysisComplete?.(result.data);
+
+      // Track DM analysis
+      trackEvent('dm_analyzed', {
+        source: result.data.detectedSource,
+        compensationType: result.data.compensationType,
+        hasGiftOffer: result.data.isGiftOffer || false,
+      });
+
       toast.success("Message analyzed successfully");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";

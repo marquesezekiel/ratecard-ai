@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Sparkles, Loader2, ArrowRight, Zap } from "lucide-react";
 import { calculateTier } from "@/lib/pricing-engine";
 import { useAuth } from "@/hooks/use-auth";
+import { trackEvent, setUserProperties } from "@/lib/analytics";
 import type { CreatorProfile, Platform } from "@/lib/types";
 
 const PLATFORMS: { value: Platform; label: string }[] = [
@@ -32,12 +33,21 @@ const PLATFORMS: { value: Platform; label: string }[] = [
 export default function OnboardingPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const hasTrackedStart = useRef(false);
 
   const [platform, setPlatform] = useState<Platform>("instagram");
   const [followers, setFollowers] = useState("");
   const [engagementRate, setEngagementRate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // Track onboarding start once
+  useEffect(() => {
+    if (!hasTrackedStart.current && !authLoading && user) {
+      trackEvent('onboarding_start');
+      hasTrackedStart.current = true;
+    }
+  }, [authLoading, user]);
 
   // Redirect to sign-in if not authenticated
   useEffect(() => {
@@ -100,6 +110,22 @@ export default function OnboardingPage() {
 
       // Also save to localStorage for client-side use
       localStorage.setItem("creatorProfile", JSON.stringify(profileData));
+
+      // Track onboarding complete
+      const followerCount = parseInt(followers, 10);
+      trackEvent('onboarding_complete', {
+        platform,
+        followers: followerCount,
+        tier: profileData.tier,
+      });
+
+      // Set user properties for segmentation
+      setUserProperties({
+        tier: profileData.tier,
+        primaryPlatform: platform,
+        totalFollowers: followerCount,
+        avgEngagementRate: profileData.avgEngagementRate,
+      });
 
       // Redirect to dashboard
       router.push("/dashboard");

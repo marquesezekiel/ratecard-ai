@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Zap, ArrowRight, FileText, TrendingUp, Star, MessageSquare, Check, User, Download } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { trackEvent } from "@/lib/analytics";
 
 export default function HomePage() {
   const router = useRouter();
@@ -97,7 +98,11 @@ export default function HomePage() {
               {/* CTA */}
               <div className="mt-8 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4">
                 <Link href="/quick-calculate">
-                  <Button size="xl" className="w-full sm:w-auto text-lg px-8">
+                  <Button
+                    size="xl"
+                    className="w-full sm:w-auto text-lg px-8"
+                    onClick={() => trackEvent('cta_click', { location: 'hero', destination: '/quick-calculate' })}
+                  >
                     Get Your Rate — Free
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -311,7 +316,12 @@ export default function HomePage() {
                 </p>
                 <div className="mt-8">
                   <Link href="/quick-calculate">
-                    <Button size="xl" variant="secondary" className="bg-white text-primary hover:bg-white/90 text-lg">
+                    <Button
+                      size="xl"
+                      variant="secondary"
+                      className="bg-white text-primary hover:bg-white/90 text-lg"
+                      onClick={() => trackEvent('cta_click', { location: 'bottom_cta', destination: '/quick-calculate' })}
+                    >
                       Get Your Rate — Free
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>

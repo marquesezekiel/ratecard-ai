@@ -10,6 +10,7 @@ import { PriceAdjuster } from "@/components/rate-card/price-adjuster";
 import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-sheet";
 import { ShareActions } from "@/components/rate-card/share-actions";
 import { useProfile } from "@/hooks/use-profile";
+import { trackEvent } from "@/lib/analytics";
 import type { ParsedBrief, FitScoreResult, PricingResult, ApiResponse } from "@/lib/types";
 
 type PageState = "loading" | "calculating" | "success" | "error" | "missing-data";
@@ -66,6 +67,14 @@ export default function GeneratePage() {
         setFitScore(result.data.fitScore);
         setPricing(result.data.pricing);
         setPageState("success");
+
+        // Track rate card generation
+        trackEvent('rate_card_generated', {
+          platform: parsedBrief.content.platform,
+          format: parsedBrief.content.format,
+          rate: result.data.pricing.totalPrice,
+          dealQuality: result.data.fitScore.totalScore,
+        });
       } catch (err) {
         setPageState("error");
         setError(err instanceof Error ? err.message : "An unexpected error occurred");

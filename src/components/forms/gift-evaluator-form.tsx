@@ -27,6 +27,7 @@ import {
   ArrowRight,
   Target,
 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 import type {
   CreatorProfile,
   GiftEvaluationInput,
@@ -109,6 +110,13 @@ export function GiftEvaluatorForm({ profile, initialData, onEvaluationComplete }
       setEvaluation(result.data.evaluation);
       setResponse(result.data.response);
       onEvaluationComplete?.(result.data.evaluation, result.data.response);
+
+      // Track gift evaluation
+      trackEvent('gift_evaluated', {
+        productValue: formData.estimatedProductValue,
+        recommendation: result.data.evaluation.recommendation,
+      });
+
       toast.success("Gift evaluated successfully");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
