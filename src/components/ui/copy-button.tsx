@@ -41,12 +41,12 @@ export function CopyButton({
     >
       {copied ? (
         <>
-          <Check className="h-4 w-4 text-green-500" />
+          <Check className="h-4 w-4 text-green-500" aria-hidden="true" />
           <span className="text-green-500">Copied!</span>
         </>
       ) : (
         <>
-          <Copy className="h-4 w-4" />
+          <Copy className="h-4 w-4" aria-hidden="true" />
           <span>{label}</span>
         </>
       )}
@@ -80,11 +80,12 @@ export function CopyIconButton({
       size="icon"
       onClick={handleCopy}
       className={cn("h-8 w-8", className)}
+      aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
     >
       {copied ? (
-        <Check className="h-4 w-4 text-green-500" />
+        <Check className="h-4 w-4 text-green-500" aria-hidden="true" />
       ) : (
-        <Copy className="h-4 w-4 text-muted-foreground" />
+        <Copy className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
       )}
     </Button>
   )

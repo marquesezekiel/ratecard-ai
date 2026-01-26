@@ -442,3 +442,40 @@
     touch-action: pan-y;
   }
 }
+
+/* ========================================
+ * REDUCED MOTION - WCAG 2.3.3
+ * Respect user preference for reduced motion
+ * ======================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Disable specific animations */
+  .animate-sparkle,
+  .animate-bounce-subtle,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-float,
+  .animate-spin {
+    animation: none !important;
+  }
+
+  /* Disable hover transforms */
+  .hover-lift:hover,
+  .hover-scale:hover {
+    transform: none !important;
+  }
+
+  /* Keep essential loading indicators visible but static */
+  .animate-spin {
+    animation: none !important;
+    /* Show static indicator instead */
+  }
+}

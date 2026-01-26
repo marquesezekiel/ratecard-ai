@@ -67,20 +67,20 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
     return (
       <Card className="border-dashed">
         <CardContent className="py-8 text-center">
-          <Bookmark className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
+          <Bookmark className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" aria-hidden="true" />
           <p className="text-muted-foreground mb-4">
             No saved rates yet. Generate a quote and save it for quick access.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             {onQuickQuote && (
               <Button onClick={onQuickQuote}>
-                <Zap className="mr-2 h-4 w-4" />
+                <Zap className="mr-2 h-4 w-4" aria-hidden="true" />
                 Quick Quote
               </Button>
             )}
             {onUploadBrief && (
               <Button variant="outline" onClick={onUploadBrief}>
-                <FileText className="mr-2 h-4 w-4" />
+                <FileText className="mr-2 h-4 w-4" aria-hidden="true" />
                 Upload Brief
               </Button>
             )}
@@ -96,21 +96,21 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <Bookmark className="h-5 w-5 text-primary" />
+              <Bookmark className="h-5 w-5 text-primary" aria-hidden="true" />
             </div>
             <CardTitle>Saved Rates</CardTitle>
           </div>
           <div className="flex gap-2">
             {onQuickQuote && (
               <Button variant="ghost" size="sm" onClick={onQuickQuote} className="h-10 sm:h-9">
-                <Zap className="mr-1 h-4 w-4" />
+                <Zap className="mr-1 h-4 w-4" aria-hidden="true" />
                 <span className="hidden sm:inline">Quick Quote</span>
                 <span className="sm:hidden">Quote</span>
               </Button>
             )}
             {onUploadBrief && (
               <Button variant="ghost" size="sm" onClick={onUploadBrief} className="h-10 sm:h-9">
-                <FileText className="mr-1 h-4 w-4" />
+                <FileText className="mr-1 h-4 w-4" aria-hidden="true" />
                 <span className="hidden sm:inline">Upload Brief</span>
                 <span className="sm:hidden">Upload</span>
               </Button>
@@ -154,11 +154,12 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
                 size="icon"
                 className="h-11 w-11 sm:h-9 sm:w-9"
                 onClick={() => copyRate(rate)}
+                aria-label={copiedId === rate.id ? "Copied to clipboard" : `Copy rate for ${rate.name}`}
               >
                 {copiedId === rate.id ? (
-                  <Check className="h-4 w-4 text-emerald-500" />
+                  <Check className="h-4 w-4 text-emerald-500" aria-hidden="true" />
                 ) : (
-                  <Copy className="h-4 w-4" />
+                  <Copy className="h-4 w-4" aria-hidden="true" />
                 )}
               </Button>
               <Button
@@ -166,8 +167,9 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
                 size="icon"
                 className="h-11 w-11 sm:h-9 sm:w-9 text-muted-foreground hover:text-destructive"
                 onClick={() => deleteRate(rate.id)}
+                aria-label={`Delete rate for ${rate.name}`}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
           </div>
