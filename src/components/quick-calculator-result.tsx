@@ -18,6 +18,7 @@ import {
   Award,
 } from "lucide-react";
 import type { QuickEstimateResult } from "@/lib/types";
+import { useSession } from "@/lib/auth-client";
 
 interface QuickCalculatorResultProps {
   result: QuickEstimateResult;
@@ -37,6 +38,9 @@ export function QuickCalculatorResult({
   result,
   onReset,
 }: QuickCalculatorResultProps) {
+  const { data: session } = useSession();
+  const isAuthenticated = !!session?.user;
+
   const formatDisplayNames: Record<string, string> = {
     static: "Static Post",
     carousel: "Carousel",
@@ -183,8 +187,8 @@ export function QuickCalculatorResult({
 
           <div className="flex flex-col gap-3 pt-2">
             <Button asChild size="lg" className="w-full gap-2 text-base">
-              <Link href="/sign-up">
-                Get Your Full Rate Card
+              <Link href={isAuthenticated ? "/dashboard" : "/sign-up"}>
+                {isAuthenticated ? "Create Your Rate Card" : "Get Your Full Rate Card"}
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
