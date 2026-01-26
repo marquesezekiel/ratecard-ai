@@ -70,7 +70,7 @@ export function FitScoreDisplay({ fitScore }: FitScoreDisplayProps) {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
             <Target className="h-5 w-5 text-primary" />
           </div>
-          <CardTitle className="text-xl">Brand Fit Score</CardTitle>
+          <CardTitle className="text-xl">Deal Quality</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">

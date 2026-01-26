@@ -1,20 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { calculateDealQualityWithCompat } from "@/lib/deal-quality-score";
+import { calculateDealQuality } from "@/lib/deal-quality-score";
 import { calculatePrice } from "@/lib/pricing-engine";
 import type {
   ApiResponse,
   CreatorProfile,
   ParsedBrief,
-  FitScoreResult,
   DealQualityResult,
   DealQualityInput,
   PricingResult,
 } from "@/lib/types";
 
 interface CalculationResult {
-  /** @deprecated Use dealQuality instead */
-  fitScore: FitScoreResult;
-  /** New creator-centric deal quality score */
+  /** Creator-centric deal quality score */
   dealQuality: DealQualityResult;
   pricing: PricingResult;
 }
@@ -23,7 +20,7 @@ interface CalculationResult {
  * POST /api/public-calculate
  *
  * Public endpoint for calculating deal quality score and pricing.
- * No authentication required - used by the public /quote page.
+ * No authentication required - used by the public /quick-calculate page.
  * Does not save to database.
  *
  * Accepts: application/json with { profile: CreatorProfile, brief: ParsedBrief, dealQualityInput?: DealQualityInput }
@@ -56,21 +53,20 @@ export async function POST(
       );
     }
 
-    // Calculate deal quality score (returns both new and legacy formats)
-    const { dealQuality, fitScore } = calculateDealQualityWithCompat(
+    // Calculate deal quality score
+    const dealQuality = calculateDealQuality(
       profile,
       brief,
       dealQualityInput || {}
     );
 
-    // Calculate pricing using the new deal quality score
+    // Calculate pricing using the deal quality score
     const pricing = calculatePrice(profile, brief, dealQuality);
 
     return NextResponse.json({
       success: true,
       data: {
-        fitScore, // Deprecated - for backward compatibility
-        dealQuality, // New creator-centric score
+        dealQuality,
         pricing,
       },
     });

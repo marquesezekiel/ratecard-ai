@@ -11,9 +11,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Calculator } from "lucide-react";
+import { Loader2, Calculator, AlertCircle } from "lucide-react";
 import { calculateQuickEstimate } from "@/lib/quick-calculator";
+import { trackEvent } from "@/lib/analytics";
 import type { QuickEstimateResult, Platform, ContentFormat } from "@/lib/types";
+
+// Validation constants
+const MIN_FOLLOWER_COUNT = 1_000;
+const MAX_FOLLOWER_COUNT = 10_000_000; // 10M
 
 // All supported platforms
 const PLATFORMS: { value: Platform; label: string }[] = [
@@ -61,6 +66,11 @@ interface QuickCalculatorFormProps {
   onResult: (result: QuickEstimateResult) => void;
 }
 
+/**
+ * Form instructions for screen readers
+ */
+const FORM_INSTRUCTIONS = "Fields marked with * are required.";
+
 export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
   const [followerCount, setFollowerCount] = useState("");
   const [platform, setPlatform] = useState<Platform | "">("");
@@ -68,6 +78,7 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
   const [niche, setNiche] = useState("lifestyle");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string>("");
 
   // Format number with commas for display
   const formatNumber = (value: string): string => {
@@ -90,12 +101,18 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setStatusMessage("");
 
     const followers = getNumericValue(followerCount);
 
     // Validation
-    if (followers < 1000) {
-      setError("Enter your follower count (minimum 1,000)");
+    if (followers < MIN_FOLLOWER_COUNT) {
+      setError(`Enter your follower count (minimum ${MIN_FOLLOWER_COUNT.toLocaleString()})`);
+      return;
+    }
+
+    if (followers > MAX_FOLLOWER_COUNT) {
+      setError(`For creators with ${MAX_FOLLOWER_COUNT.toLocaleString()}+ followers, we recommend a custom consultation. Our tool is optimized for creators with up to 10M followers.`);
       return;
     }
 
@@ -110,34 +127,83 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
     }
 
     setLoading(true);
+    setStatusMessage("Calculating your rate...");
 
-    // Simulate a brief delay for UX (calculation is instant)
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    const input = {
+      followerCount: followers,
+      platform: platform as Platform,
+      contentFormat: contentFormat as ContentFormat,
+      niche,
+    };
 
     try {
-      const result = calculateQuickEstimate({
-        followerCount: followers,
-        platform: platform as Platform,
-        contentFormat: contentFormat as ContentFormat,
-        niche,
+      // Try API first (server-side calculation with rate limiting and analytics)
+      const response = await fetch("/api/quick-calculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
       });
 
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          onResult(data.data);
+          return;
+        }
+      }
+
+      // Handle rate limiting
+      if (response.status === 429) {
+        setError("Too many requests. Please wait a moment and try again.");
+        return;
+      }
+
+      // Fallback to client-side calculation if API fails
+      console.warn("API call failed, using client-side fallback");
+      trackEvent("quick_calculate_submit", {
+        followerCount: followers,
+        platform,
+        contentFormat,
+        niche,
+        fallback: true,
+      });
+
+      const result = calculateQuickEstimate(input);
       onResult(result);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Something went wrong"
-      );
+      // Network error - use client-side fallback
+      console.warn("Network error, using client-side fallback:", err);
+      trackEvent("quick_calculate_submit", {
+        followerCount: followers,
+        platform,
+        contentFormat,
+        niche,
+        fallback: true,
+      });
+
+      try {
+        const result = calculateQuickEstimate(input);
+        onResult(result);
+      } catch (calcErr) {
+        setError(
+          calcErr instanceof Error ? calcErr.message : "Something went wrong"
+        );
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-5" aria-describedby="form-instructions">
+      {/* Form instructions for screen readers */}
+      <p id="form-instructions" className="sr-only">{FORM_INSTRUCTIONS}</p>
+      <p className="text-xs text-muted-foreground" aria-hidden="true">{FORM_INSTRUCTIONS}</p>
+
       {/* Follower Count */}
       <div className="space-y-2">
-        <Label htmlFor="followers">
-          Follower Count <span className="text-destructive">*</span>
+        <Label htmlFor="followers" required>
+          Follower Count
         </Label>
         <Input
           id="followers"
@@ -149,14 +215,23 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
           className="text-lg h-12"
         />
         <p className="text-xs text-muted-foreground">
-          Your total followers on your primary platform
+          Your total followers on your primary platform (up to 10M)
         </p>
+        {/* Celebrity tier notice */}
+        {getNumericValue(followerCount) > 1_000_000 && getNumericValue(followerCount) <= MAX_FOLLOWER_COUNT && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+            <AlertCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">Celebrity tier detected.</span> Rates at this level vary significantly based on brand relationships and exclusivity deals.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Platform */}
       <div className="space-y-2">
-        <Label>
-          Platform <span className="text-destructive">*</span>
+        <Label required>
+          Platform
         </Label>
         <Select
           value={platform}
@@ -177,8 +252,8 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
 
       {/* Content Format */}
       <div className="space-y-2">
-        <Label>
-          Content Type <span className="text-destructive">*</span>
+        <Label required>
+          Content Type
         </Label>
         <Select
           value={contentFormat}
@@ -217,12 +292,19 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
         </Select>
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
-          {error}
-        </div>
-      )}
+      {/* Status announcements for screen readers */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {statusMessage}
+      </div>
+
+      {/* Error announcements for screen readers */}
+      <div role="alert" aria-live="assertive">
+        {error && (
+          <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg">
+            {error}
+          </div>
+        )}
+      </div>
 
       {/* Submit */}
       <Button

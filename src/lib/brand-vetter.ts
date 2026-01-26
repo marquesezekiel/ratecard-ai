@@ -326,6 +326,7 @@ export function getTrustLevel(score: number): TrustLevel {
 
 /**
  * Get trust level display info.
+ * Note: Labels use "signals" language rather than definitive claims.
  */
 export function getTrustLevelInfo(level: TrustLevel): {
   label: string;
@@ -335,27 +336,27 @@ export function getTrustLevelInfo(level: TrustLevel): {
   switch (level) {
     case "verified":
       return {
-        label: "Verified",
+        label: "Strong Signals",
         color: "green",
-        description: "Safe to proceed - this brand checks out",
+        description: "Positive signals detected - proceed with normal diligence",
       };
     case "likely_legit":
       return {
-        label: "Likely Legit",
+        label: "Good Signals",
         color: "blue",
-        description: "Probably fine - do basic due diligence",
+        description: "Mostly positive signals - verify key details",
       };
     case "caution":
       return {
-        label: "Proceed with Caution",
+        label: "Mixed Signals",
         color: "yellow",
-        description: "Proceed carefully - ask questions before committing",
+        description: "Some concerns detected - ask questions before committing",
       };
     case "high_risk":
       return {
-        label: "High Risk",
+        label: "Caution Advised",
         color: "red",
-        description: "Likely scam - consider avoiding",
+        description: "Multiple warning signals - research thoroughly before proceeding",
       };
   }
 }
@@ -679,17 +680,18 @@ export async function vetBrand(input: BrandVettingInput): Promise<BrandVettingRe
 
 /**
  * Get a default recommendation based on trust level.
+ * Uses signals language rather than definitive claims.
  */
 function getDefaultRecommendation(level: TrustLevel): string {
   switch (level) {
     case "verified":
-      return "This brand appears legitimate. Proceed with normal due diligence.";
+      return "Positive signals detected. Proceed with normal due diligence and verify payment terms.";
     case "likely_legit":
-      return "This brand looks okay. Verify payment terms and get everything in writing.";
+      return "Good signals overall. Verify payment terms and get everything in writing.";
     case "caution":
-      return "Proceed carefully. Ask clarifying questions about compensation and expectations before committing.";
+      return "Mixed signals detected. Ask clarifying questions about compensation and expectations before committing.";
     case "high_risk":
-      return "Multiple red flags detected. Consider declining or requesting significantly more information before proceeding.";
+      return "Multiple warning signals detected. Consider requesting significantly more information before proceeding.";
   }
 }
 

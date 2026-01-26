@@ -32,6 +32,7 @@ import {
 import { ProfileSection } from "@/components/profile/profile-section";
 
 import { calculateTier } from "@/lib/pricing-engine";
+import { useProfile } from "@/hooks/use-profile";
 import type { CreatorProfile, PlatformMetrics, CurrencyCode } from "@/lib/types";
 import { CURRENCIES } from "@/lib/types";
 
@@ -210,11 +211,13 @@ function createInitialEstimatedFieldsState(): EstimatedFieldsState {
 
 export function ProfileForm({ initialData, onValuesChange }: ProfileFormProps) {
   const router = useRouter();
+  const { mutate: mutateProfile } = useProfile();
   const [selectedNiches, setSelectedNiches] = useState<string[]>(initialData?.niches ?? []);
   const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformOption[]>(
     (initialData?.activePlatforms as PlatformOption[]) ?? ["instagram"]
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Track which fields are estimated (auto-calculated) vs manually entered
   const [estimatedFields, setEstimatedFields] = useState<EstimatedFieldsState>(() => {
@@ -367,6 +370,7 @@ export function ProfileForm({ initialData, onValuesChange }: ProfileFormProps) {
 
   const onSubmit = async (values: ProfileFormValues) => {
     setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
       // Calculate derived values
@@ -375,7 +379,7 @@ export function ProfileForm({ initialData, onValuesChange }: ProfileFormProps) {
       const tier = calculateTier(totalReach);
 
       // Build the complete profile
-      const profile: Omit<CreatorProfile, "id" | "userId" | "createdAt" | "updatedAt"> = {
+      const profileData: Omit<CreatorProfile, "id" | "userId" | "createdAt" | "updatedAt"> = {
         displayName: values.displayName,
         handle: values.handle,
         bio: values.bio ?? "",
@@ -397,13 +401,26 @@ export function ProfileForm({ initialData, onValuesChange }: ProfileFormProps) {
         avgEngagementRate,
       };
 
-      // Save to localStorage for MVP
-      localStorage.setItem("creatorProfile", JSON.stringify(profile));
+      // Save to API
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profileData),
+      });
 
-      // Redirect to upload page
-      router.push("/dashboard/upload");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to save profile");
+      }
+
+      // Invalidate the SWR cache
+      mutateProfile();
+
+      // Redirect to analyze page
+      router.push("/dashboard/analyze");
     } catch (error) {
       console.error("Error saving profile:", error);
+      setSubmitError(error instanceof Error ? error.message : "Failed to save profile");
     } finally {
       setIsSubmitting(false);
     }
@@ -911,7 +928,10 @@ export function ProfileForm({ initialData, onValuesChange }: ProfileFormProps) {
         </ProfileSection>
 
         {/* Submit Button */}
-        <div className="flex justify-end">
+        <div className="flex flex-col items-end gap-2">
+          {submitError && (
+            <p className="text-sm text-destructive">{submitError}</p>
+          )}
           <Button type="submit" size="lg" disabled={isSubmitting}>
             {isSubmitting ? "Saving..." : "Save & Continue"}
           </Button>

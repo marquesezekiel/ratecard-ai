@@ -1,7 +1,12 @@
 /**
  * Outcome Analytics Library
  *
- * Tracks deal outcomes to build market intelligence and provide creator insights.
+ * INTERNAL USE ONLY - Not exposed in UI.
+ *
+ * This library tracks deal outcomes to build market intelligence for future
+ * internal dashboards and aggregate data analysis. The data is collected
+ * but not currently surfaced to users.
+ *
  * Supports both paid deals and gift conversions with comprehensive analytics.
  */
 

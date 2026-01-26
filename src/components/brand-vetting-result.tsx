@@ -68,42 +68,42 @@ function getTrustLevelInfo(level: TrustLevel): {
   switch (level) {
     case "verified":
       return {
-        label: "Verified",
+        label: "Strong Signals",
         bgColor: "bg-green-500",
         textColor: "text-green-700",
         lightBg: "bg-green-50",
         borderColor: "border-green-200",
-        description: "Safe to proceed - this brand checks out",
+        description: "Positive signals detected - proceed with normal diligence",
         icon: <ShieldCheck className="h-5 w-5 text-green-600" />,
       };
     case "likely_legit":
       return {
-        label: "Likely Legit",
+        label: "Good Signals",
         bgColor: "bg-blue-500",
         textColor: "text-blue-700",
         lightBg: "bg-blue-50",
         borderColor: "border-blue-200",
-        description: "Probably fine - do basic due diligence",
+        description: "Mostly positive signals - verify key details",
         icon: <CheckCircle className="h-5 w-5 text-blue-600" />,
       };
     case "caution":
       return {
-        label: "Proceed with Caution",
+        label: "Mixed Signals",
         bgColor: "bg-yellow-500",
         textColor: "text-yellow-700",
         lightBg: "bg-yellow-50",
         borderColor: "border-yellow-200",
-        description: "Ask questions before committing",
+        description: "Some concerns detected - ask questions before committing",
         icon: <AlertTriangle className="h-5 w-5 text-yellow-600" />,
       };
     case "high_risk":
       return {
-        label: "High Risk",
+        label: "Caution Advised",
         bgColor: "bg-red-500",
         textColor: "text-red-700",
         lightBg: "bg-red-50",
         borderColor: "border-red-200",
-        description: "Likely scam - consider avoiding",
+        description: "Multiple warning signals - research thoroughly before proceeding",
         icon: <XCircle className="h-5 w-5 text-red-600" />,
       };
   }

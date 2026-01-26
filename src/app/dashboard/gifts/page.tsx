@@ -1,32 +1,12 @@
 "use client";
 
-import { useState, useSyncExternalStore, useRef, useCallback } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GiftEvaluatorForm } from "@/components/forms/gift-evaluator-form";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Loader2, Gift, TrendingUp } from "lucide-react";
-import type { CreatorProfile, DMAnalysis, GiftEvaluationInput } from "@/lib/types";
-
-const emptySubscribe = () => () => {};
-
-function useLocalStorageProfile(): CreatorProfile | null | undefined {
-  const cacheRef = useRef<{ raw: string | null; parsed: CreatorProfile | null }>({ raw: null, parsed: null });
-
-  const getSnapshot = useCallback(() => {
-    const raw = localStorage.getItem("creatorProfile");
-    if (raw !== cacheRef.current.raw) {
-      cacheRef.current.raw = raw;
-      cacheRef.current.parsed = raw ? JSON.parse(raw) as CreatorProfile : null;
-    }
-    return cacheRef.current.parsed;
-  }, []);
-
-  const getServerSnapshot = useCallback((): CreatorProfile | null | undefined => undefined, []);
-
-  return useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot);
-}
+import { AlertCircle, Loader2, Gift } from "lucide-react";
+import { useProfile } from "@/hooks/use-profile";
+import type { DMAnalysis, GiftEvaluationInput } from "@/lib/types";
 
 /**
  * Parses gift analysis from session storage (client-side only).
@@ -56,17 +36,16 @@ function getInitialGiftData(shouldEvaluate: boolean): Partial<GiftEvaluationInpu
 export default function GiftsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const profile = useLocalStorageProfile();
+  const { profile, isLoading: profileLoading } = useProfile();
 
   // Compute initial data synchronously on first render (avoids setState in effect)
   const shouldEvaluate = searchParams.get("evaluate") === "true";
   const [initialData] = useState(() => getInitialGiftData(shouldEvaluate));
-  const [activeTab, setActiveTab] = useState("evaluate");
 
   // Loading state
-  if (profile === undefined) {
+  if (profileLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
+      <div className="flex h-64 items-center justify-center" role="status" aria-label="Loading profile">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -93,58 +72,19 @@ export default function GiftsPage() {
       {/* Header */}
       <header className="text-center space-y-2">
         <div className="flex items-center justify-center gap-2">
-          <Gift className="h-6 w-6 text-purple-600" />
-          <h1 className="text-2xl font-display font-bold md:text-3xl">Gift Deals</h1>
+          <Gift className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-display font-bold md:text-3xl">Gift Evaluator</h1>
         </div>
         <p className="text-muted-foreground">
           Evaluate gift offers and decide if they&apos;re worth your time.
         </p>
       </header>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="evaluate" className="flex items-center gap-2">
-            <Gift className="h-4 w-4" />
-            Evaluate Gift
-          </TabsTrigger>
-          <TabsTrigger value="track" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Track Gifts
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="evaluate" className="mt-6">
-          <GiftEvaluatorForm
-            profile={profile}
-            initialData={initialData}
-          />
-        </TabsContent>
-
-        <TabsContent value="track" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Gift Tracker
-              </CardTitle>
-              <CardDescription>
-                Track your gift collaborations and convert them to paid partnerships.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Gift className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-semibold mb-2">Coming Soon</h3>
-                <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  The gift tracker will help you manage brand relationships,
-                  track content performance, and convert gifts into paid partnerships.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Gift Evaluator Form */}
+      <GiftEvaluatorForm
+        profile={profile}
+        initialData={initialData}
+      />
     </div>
   );
 }

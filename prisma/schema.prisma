@@ -22,13 +22,14 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  sessions  Session[]
-  accounts  Account[]
-  profile   CreatorProfile?
-  briefs    Brief[]
-  rateCards RateCard[]
-  giftDeals GiftDeal[]
-  outcomes  Outcome[]
+  sessions        Session[]
+  accounts        Account[]
+  profile         CreatorProfile?
+  briefs          Brief[]
+  rateCards       RateCard[]
+  giftDeals       GiftDeal[]
+  outcomes        Outcome[]
+  savedRateCards  SavedRateCard[]
 }
 
 model Session {
@@ -96,6 +97,12 @@ model CreatorProfile {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Onboarding state
+  quickSetupComplete    Boolean   @default(false)
+  profileCompleteness   Int       @default(0)
+  hasSeenDashboardTour  Boolean   @default(false)
+  onboardingCompletedAt DateTime?
 
   @@index([userId])
 }
@@ -189,6 +196,38 @@ model GiftDeal {
   @@index([creatorId])
   @@index([status])
   @@index([createdAt])
+}
+
+// =============================================================================
+// SAVED RATE CARDS
+// =============================================================================
+
+model SavedRateCard {
+  id              String    @id @default(cuid())
+  creatorId       String
+  creator         User      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Rate card data
+  name            String    @default("Untitled Rate Card")
+  platform        String
+  contentFormat   String
+  baseRate        Float
+  finalRate       Float
+  adjustments     Json      // Array of PricingAdjustment
+  dealQuality     Json?     // DealQualityResult
+
+  // Brief data (if from brief upload)
+  briefId         String?
+  brandName       String?
+  campaignName    String?
+
+  // Metadata
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastAccessedAt  DateTime  @default(now())
+
+  @@index([creatorId])
+  @@index([creatorId, createdAt])
 }
 
 // =============================================================================

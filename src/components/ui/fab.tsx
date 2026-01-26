@@ -13,7 +13,7 @@ export function FAB({ className }: FABProps) {
 
   return (
     <button
-      onClick={() => router.push('/dashboard/quick-quote')}
+      onClick={() => router.push('/quick-calculate')}
       className={cn(
         "fixed bottom-20 right-4 z-50 md:bottom-6 md:right-6",
         "h-14 w-14 rounded-full",
@@ -27,7 +27,7 @@ export function FAB({ className }: FABProps) {
       )}
       aria-label="Create new rate card"
     >
-      <Plus className="h-6 w-6" />
+      <Plus className="h-6 w-6" aria-hidden="true" />
     </button>
   )
 }

@@ -1,16 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Calculator, CheckCircle2 } from "lucide-react";
 import { QuickCalculatorForm } from "@/components/forms/quick-calculator-form";
 import { QuickCalculatorResult } from "@/components/quick-calculator-result";
+import { useAuth } from "@/hooks/use-auth";
 import type { QuickEstimateResult } from "@/lib/types";
 
 export default function QuickCalculatePage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [result, setResult] = useState<QuickEstimateResult | null>(null);
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  // Show loading while checking auth
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Sparkles className="h-6 w-6 text-primary animate-sparkle" />
+          </div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleResult = (estimate: QuickEstimateResult) => {
     setResult(estimate);
@@ -23,28 +48,28 @@ export default function QuickCalculatePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border/40">
-        <div className="mx-auto max-w-4xl px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-              <Sparkles className="h-5 w-5 text-primary-foreground" />
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+                <Sparkles className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="text-lg font-bold tracking-tight">RateCard.AI</span>
+            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/sign-in">
+                <Button variant="ghost" size="sm">Sign in</Button>
+              </Link>
+              <Link href="/sign-up">
+                <Button size="sm">Get Started</Button>
+              </Link>
             </div>
-            <span className="font-bold">RateCard.AI</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Link href="/sign-in">
-              <Button variant="ghost" size="sm">
-                Sign in
-              </Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button size="sm">Sign up free</Button>
-            </Link>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-8 md:py-12">
+      <main className="mx-auto max-w-4xl px-4 pt-24 pb-8 md:pt-28 md:pb-12">
         {!result ? (
           <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-start">
             {/* Left: Value Proposition */}
@@ -54,8 +79,8 @@ export default function QuickCalculatePage() {
                   Rate Reality Check
                 </h1>
                 <p className="text-xl text-muted-foreground mt-2">
-                  See where you stand among{" "}
-                  <span className="text-primary font-semibold">10,000+ creators</span>
+                  Based on{" "}
+                  <span className="text-primary font-semibold">industry benchmarks</span>
                 </p>
                 <p className="text-muted-foreground mt-3">
                   Get an instant rate estimate based on your follower count,
@@ -67,7 +92,7 @@ export default function QuickCalculatePage() {
               <div className="space-y-3">
                 {[
                   "See your estimated rate range instantly",
-                  "Based on 2025 industry standards",
+                  `Based on ${new Date().getFullYear()} industry standards`,
                   "Learn what factors can increase your rate",
                   "Works for all major platforms",
                 ].map((benefit, i) => (
@@ -81,9 +106,9 @@ export default function QuickCalculatePage() {
               {/* Social Proof */}
               <div className="p-4 rounded-lg bg-muted/50">
                 <p className="text-sm text-muted-foreground">
-                  Used by{" "}
-                  <span className="font-semibold text-foreground">10,000+</span>{" "}
-                  creators to price their brand deals with confidence.
+                  Pricing data based on{" "}
+                  <span className="font-semibold text-foreground">{new Date().getFullYear()} industry standards</span>{" "}
+                  for creator sponsorship rates.
                 </p>
               </div>
             </div>

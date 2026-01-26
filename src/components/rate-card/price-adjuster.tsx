@@ -48,10 +48,18 @@ export function PriceAdjuster({ calculatedPricing, onPriceChange }: PriceAdjuste
         >
           {/* Option 1: Use Calculated */}
           <div
+            role="button"
+            tabIndex={0}
             className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer ${
               useCalculated ? "border-primary bg-primary/5" : "border-gray-200"
-            }`}
+            } focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
             onClick={() => setUseCalculated(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setUseCalculated(true);
+              }
+            }}
           >
             <RadioGroupItem value="calculated" id="calculated" className="mt-1" />
             <div className="flex-1">
@@ -73,10 +81,18 @@ export function PriceAdjuster({ calculatedPricing, onPriceChange }: PriceAdjuste
 
           {/* Option 2: Custom Price */}
           <div
+            role="button"
+            tabIndex={0}
             className={`flex items-start space-x-3 p-3 rounded-lg border cursor-pointer mt-3 ${
               !useCalculated ? "border-primary bg-primary/5" : "border-gray-200"
-            }`}
+            } focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
             onClick={() => setUseCalculated(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setUseCalculated(false);
+              }
+            }}
           >
             <RadioGroupItem value="custom" id="custom" className="mt-1" />
             <div className="flex-1">

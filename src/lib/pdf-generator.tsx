@@ -1710,7 +1710,7 @@ export function RateCardDocument({
           {/* AI Disclosure Note (if applicable) */}
           {ftcGuidance.aiDisclosure && (
             <View style={styles.ftcAiBox}>
-              <Text style={styles.ftcAiTitle}>AI Content Disclosure (2025 Guidance)</Text>
+              <Text style={styles.ftcAiTitle}>AI Content Disclosure (2026 Guidance)</Text>
               <Text style={styles.ftcAiText}>{ftcGuidance.aiDisclosure.explanation}</Text>
               <Text style={[styles.ftcAiText, { marginTop: 4, fontWeight: "bold" }]}>
                 {`Suggested text: "${ftcGuidance.aiDisclosure.suggestedText}"`}

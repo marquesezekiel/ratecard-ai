@@ -37,7 +37,7 @@ const LAYER_EXPLANATIONS: Record<string, string> = {
   "Base Rate": "Starting rate based on your follower tier. Nano (1K-10K): $100, Micro (10K-50K): $250, Mid (50K-500K): $750, Macro (500K+): $2,500.",
   "Engagement Multiplier": "Higher engagement means your audience actually pays attention. Brands pay more for engaged audiences.",
   "Format Premium": "Video content (Reels, TikToks) takes more effort than static posts. Complex formats command higher rates.",
-  "Fit Score": "When your audience matches the brand's target customer, your content performs better—justifying a premium.",
+  "Deal Quality": "When your audience matches the brand's target customer, your content performs better—justifying a premium.",
   "Usage Rights": "If the brand wants to use your content in their ads, that's worth significantly more than organic posting only.",
   "Complexity Premium": "Productions requiring multiple locations, professional equipment, or extensive editing justify higher rates.",
 };
@@ -75,7 +75,7 @@ export function PricingBreakdown({ pricing, showDetailedExplanation = true }: Pr
           <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 space-y-2">
             <h4 className="font-semibold text-sm text-primary">How RateCard.AI Calculates Your Rate</h4>
             <p className="text-sm text-muted-foreground">
-              We use a 6-layer pricing model based on industry benchmarks and real sponsorship data.
+              We use a multi-factor pricing model based on industry benchmarks and real sponsorship data.
               Each factor either increases or decreases your base rate.
             </p>
             <code className="block text-xs text-muted-foreground bg-background/50 p-2.5 rounded-lg font-mono">
@@ -84,7 +84,7 @@ export function PricingBreakdown({ pricing, showDetailedExplanation = true }: Pr
           </div>
         )}
 
-        {/* 6-Layer Breakdown */}
+        {/* Multi-factor Breakdown */}
         <div className="space-y-2">
           {pricing.layers.map((layer, index) => {
             // Use multiplier to calculate percentage (multiplier of 1.1 = +10%, 0.9 = -10%)

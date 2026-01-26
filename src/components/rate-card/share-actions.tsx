@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Download, Share2, Copy, Mail, Check, Loader2, Bookmark } from "lucide-react";
 import { saveRate } from "./saved-rates";
+import { trackEvent } from "@/lib/analytics";
 import type { CreatorProfile, PricingResult, FitScoreResult, ParsedBrief } from "@/lib/types";
 
 interface ShareActionsProps {
@@ -61,6 +62,9 @@ export function ShareActions({ profile, brief, fitScore, pricing }: ShareActions
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+
+      // Track download
+      trackEvent('rate_card_downloaded');
     } catch (err) {
       console.error("Download failed:", err);
     } finally {

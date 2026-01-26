@@ -27,6 +27,7 @@ import {
   ArrowRight,
   Target,
 } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 import type {
   CreatorProfile,
   GiftEvaluationInput,
@@ -109,6 +110,13 @@ export function GiftEvaluatorForm({ profile, initialData, onEvaluationComplete }
       setEvaluation(result.data.evaluation);
       setResponse(result.data.response);
       onEvaluationComplete?.(result.data.evaluation, result.data.response);
+
+      // Track gift evaluation
+      trackEvent('gift_evaluated', {
+        productValue: formData.estimatedProductValue,
+        recommendation: result.data.evaluation.recommendation,
+      });
+
       toast.success("Gift evaluated successfully");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
@@ -154,7 +162,7 @@ export function GiftEvaluatorForm({ profile, initialData, onEvaluationComplete }
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Gift className="h-5 w-5 text-purple-600" />
+            <Gift className="h-5 w-5 text-primary" />
             Evaluate Gift Offer
           </CardTitle>
           <CardDescription>
@@ -345,7 +353,7 @@ export function GiftEvaluatorForm({ profile, initialData, onEvaluationComplete }
                     <Gift className="h-4 w-4" />
                     You Receive
                   </div>
-                  <div className="text-2xl font-bold text-purple-600">
+                  <div className="text-2xl font-bold text-primary">
                     ${evaluation.analysis.productValue}
                   </div>
                   <div className="text-sm text-muted-foreground">Product value</div>

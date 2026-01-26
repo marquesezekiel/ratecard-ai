@@ -1,18 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { signIn } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sparkles, Loader2, ArrowRight, Zap, TrendingUp, DollarSign } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { trackEvent } from "@/lib/analytics";
 
 export default function SignInPage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect authenticated users
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      // Check if user has completed onboarding
+      fetch("/api/profile")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.data?.quickSetupComplete) {
+            router.push("/dashboard");
+          } else {
+            router.push("/onboarding");
+          }
+        })
+        .catch(() => {
+          // If profile fetch fails, redirect to onboarding
+          router.push("/onboarding");
+        });
+    }
+  }, [authLoading, isAuthenticated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +57,9 @@ export default function SignInPage() {
         return;
       }
 
+      // Track successful login
+      trackEvent('login_complete');
+
       // Use full page navigation to ensure cookies are properly attached
       window.location.href = "/dashboard";
     } catch {
@@ -38,6 +67,20 @@ export default function SignInPage() {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking auth
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Sparkles className="h-6 w-6 text-primary animate-sparkle" />
+          </div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">

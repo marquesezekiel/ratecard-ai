@@ -1,6 +1,6 @@
 # V6 Implementation Prompt Sequence
 
-**Total Prompts**: 20 (including setup, testing, commits, and clears)
+**Total Prompts**: 10 prompts, 47 steps (including setup, testing, commits, and clears)
 **Branch**: `claude/analyze-test-coverage-hWgZz`
 
 ---
@@ -9,7 +9,7 @@
 
 ### Step 1: Setup
 ```
-Read IMPLEMENTATION_PLAN_V6.md to understand all 43 issues being addressed. Confirm you understand the scope before proceeding.
+Read IMPLEMENTATION_PLAN_V6.md to understand all 47 issues being addressed. Confirm you understand the scope before proceeding.
 ```
 
 ---
@@ -215,7 +215,7 @@ Read IMPLEMENTATION_PLAN_V6.md and execute Prompt 8 testing checklist. Run full 
 
 ### Step 35: Fix Issues
 ```
-Fix any issues discovered during testing. Ensure all 43 issues from the original list are addressed. Run `pnpm lint && pnpm build` one final time.
+Fix any issues discovered during testing from Prompts 0-8. Run `pnpm lint && pnpm build` one final time before proceeding to Prompt 9.
 ```
 
 ### Step 36: Final Commit
@@ -223,18 +223,67 @@ Fix any issues discovered during testing. Ensure all 43 issues from the original
 Stage all remaining changes and commit with message: "test: final testing and polish for V6 refactor"
 ```
 
+### Step 37: Clear
+```
+/clear
+```
+
+---
+
+## Prompt 9: Onboarding Flow & Access Control
+
+### Step 38: Implement
+```
+Read IMPLEMENTATION_PLAN_V6.md and implement Prompt 9 exactly as written. Create dedicated /onboarding route that captures minimum profile data (platform + followers). Add dashboard access gate in layout.tsx that redirects to /onboarding if quickSetupComplete is false. Change "Add more details for better accuracy" to use Sheet component instead of route navigation. Add onboarding state fields (quickSetupComplete, profileCompleteness, hasSeenDashboardTour) to CreatorProfile in schema.prisma and types.ts. Create src/lib/onboarding.ts with calculateProfileCompleteness function. After implementation, run `pnpm prisma generate` then `pnpm lint && pnpm build` to verify no errors.
+```
+
+### Step 39: Write Tests
+```
+Write tests for onboarding functionality. Test cases: (1) Dashboard redirects to /onboarding when quickSetupComplete is false, (2) Dashboard loads when quickSetupComplete is true, (3) calculateProfileCompleteness returns correct percentage for various profile states, (4) Profile completion banner shows/hides correctly. Run tests with `pnpm test` or `pnpm vitest`.
+```
+
+### Step 40: Test in Browser
+```
+Use Chrome MCP to test onboarding flow. Verify: (1) New user after signup is redirected to /onboarding, (2) /onboarding collects platform and followers, (3) After quick setup, user lands on dashboard, (4) "Add more details" opens Sheet overlay (not new page), (5) Closing Sheet keeps user on current page, (6) First dashboard visit shows tour tooltips, (7) Profile completion banner shows percentage, (8) Banner is dismissible, (9) Banner disappears at 100% completion.
+```
+
+### Step 41: Implement Dashboard Tour
+```
+Create src/components/onboarding/dashboard-tour.tsx component. Add data-tour attributes to dashboard elements: message input, brief upload area, profile nav link. Tour should highlight each element with popover explaining the feature. Include Skip and Next buttons. On completion or skip, set hasSeenDashboardTour to true. Integrate tour into dashboard layout to show on first visit.
+```
+
+### Step 42: Implement Profile Banner
+```
+Create src/components/dashboard/profile-completion-banner.tsx component. Show when profileCompleteness < 100. Display progress bar and percentage. Include "Complete Profile" CTA linking to /dashboard/profile. Add dismiss button that saves timestamp to localStorage. Banner reappears after 24 hours if still incomplete. Add banner to dashboard layout below header.
+```
+
+### Step 43: Test in Browser (Final)
+```
+Use Chrome MCP for final onboarding testing. Complete full flow: (1) Sign up as new user, (2) Verify redirect to /onboarding, (3) Complete quick setup, (4) Verify dashboard loads with tour, (5) Complete or skip tour, (6) Verify tour doesn't show again, (7) Check profile banner shows, (8) Dismiss banner, (9) Verify banner returns after refresh (within 24hr window), (10) Complete full profile, (11) Verify banner disappears permanently.
+```
+
+### Step 44: Commit
+```
+Stage all changes and commit with message: "feat: add onboarding flow with dashboard gate, tour, and profile completion banner"
+```
+
+### Step 45: Clear
+```
+/clear
+```
+
 ---
 
 ## Post-Implementation
 
-### Step 37: Push
+### Step 46: Push
 ```
 Push all commits to remote: git push -u origin claude/analyze-test-coverage-hWgZz
 ```
 
-### Step 38: Summary
+### Step 47: Summary
 ```
-Provide a summary of all changes made across the 9 prompts. List any issues that could not be fully addressed and why. Confirm the 43 issues have been resolved.
+Provide a summary of all changes made across all 10 prompts. List the 47 issues and their resolution status. Note any issues that could not be fully addressed and explain why.
 ```
 
 ---
@@ -290,6 +339,11 @@ Read IMPLEMENTATION_PLAN_V6.md and implement Prompt 7 exactly as written. Simpli
 Read IMPLEMENTATION_PLAN_V6.md and execute Prompt 8 testing checklist. Run full build and lint. Manually test all public flows (homepage → quick-calculate → result). Test authenticated flows (dashboard, inbox, profile, generate). Verify pricing engine constraints. Test API rate limiting. Fix any issues found and commit.
 ```
 
+**Prompt 9:**
+```
+Read IMPLEMENTATION_PLAN_V6.md and implement Prompt 9 exactly as written. Create dedicated /onboarding route. Add dashboard access gate that redirects to /onboarding if quickSetupComplete is false. Change "Add more details" to use Sheet component instead of navigation. Create dashboard tour component for first-time users. Create profile completion banner component. Add onboarding state fields to CreatorProfile schema. Create onboarding utility functions including calculateProfileCompleteness.
+```
+
 ---
 
 ## Issue Tracking
@@ -339,3 +393,7 @@ Read IMPLEMENTATION_PLAN_V6.md and execute Prompt 8 testing checklist. Run full 
 | 41 | Outcome Tracking | 7 | Pending |
 | 42 | Tools in primary nav | 7 | Pending |
 | 43 | Fit mapping hack | 7 | Pending |
+| 44 | Dashboard access gate | 9 | Pending |
+| 45 | "Add more details" navigation | 9 | Pending |
+| 46 | First-time dashboard tooltips | 9 | Pending |
+| 47 | Profile completion banner | 9 | Pending |

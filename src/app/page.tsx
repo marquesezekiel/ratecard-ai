@@ -1,9 +1,39 @@
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Zap, ArrowRight, FileText, TrendingUp, Star, MessageSquare, Check, User, Download } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { trackEvent } from "@/lib/analytics";
 
 export default function HomePage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  // Show loading while checking auth
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Sparkles className="h-6 w-6 text-primary animate-sparkle" />
+          </div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       {/* Header */}
@@ -68,7 +98,11 @@ export default function HomePage() {
               {/* CTA */}
               <div className="mt-8 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4">
                 <Link href="/quick-calculate">
-                  <Button size="xl" className="w-full sm:w-auto text-lg px-8">
+                  <Button
+                    size="xl"
+                    className="w-full sm:w-auto text-lg px-8"
+                    onClick={() => trackEvent('cta_click', { location: 'hero', destination: '/quick-calculate' })}
+                  >
                     Get Your Rate — Free
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -89,7 +123,7 @@ export default function HomePage() {
                   <div className="flex items-center gap-3 mb-6">
                     <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary to-primary/60" />
                     <div>
-                      <div className="font-bold">@maya.creates</div>
+                      <div className="font-bold">@yourcreatorhandle</div>
                       <div className="text-sm text-muted-foreground">18.5K followers</div>
                     </div>
                   </div>
@@ -123,7 +157,7 @@ export default function HomePage() {
                 </div>
                 <div className="absolute -bottom-4 -right-4 bg-card border border-border/50 px-4 py-2 rounded-full text-sm shadow-lg flex items-center gap-2">
                   <Star className="h-4 w-4 text-energy fill-energy" />
-                  <span className="font-medium">Fit score: 92</span>
+                  <span className="font-medium">Deal Quality: 92</span>
                 </div>
               </div>
             </div>
@@ -223,7 +257,7 @@ export default function HomePage() {
       <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-center tracking-display mb-12">
-            Get your rate in 60 seconds
+            Get your rate in 30 seconds
           </h2>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -282,7 +316,12 @@ export default function HomePage() {
                 </p>
                 <div className="mt-8">
                   <Link href="/quick-calculate">
-                    <Button size="xl" variant="secondary" className="bg-white text-primary hover:bg-white/90 text-lg">
+                    <Button
+                      size="xl"
+                      variant="secondary"
+                      className="bg-white text-primary hover:bg-white/90 text-lg"
+                      onClick={() => trackEvent('cta_click', { location: 'bottom_cta', destination: '/quick-calculate' })}
+                    >
                       Get Your Rate — Free
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
@@ -294,40 +333,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer with Social Proof */}
+      {/* Footer */}
       <footer className="py-12 border-t border-border/40 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
-          {/* Social proof stats - more creator-native styling */}
-          <div className="grid grid-cols-3 gap-6 mb-10">
-            <div className="text-center space-y-1">
-              <div className="text-3xl md:text-4xl font-display font-bold text-primary">10K+</div>
-              <div className="text-sm text-muted-foreground">rate cards generated</div>
-            </div>
-            <div className="text-center space-y-1">
-              <div className="text-3xl md:text-4xl font-display font-bold font-money text-money">$2.4M</div>
-              <div className="text-sm text-muted-foreground">in rates calculated</div>
-            </div>
-            <div className="text-center space-y-1">
-              <div className="flex items-center justify-center gap-1">
-                <span className="text-3xl md:text-4xl font-display font-bold">4.9</span>
-                <Star className="h-6 w-6 text-energy fill-energy" />
-              </div>
-              <div className="text-sm text-muted-foreground">creator rating</div>
-            </div>
-          </div>
-
-          {/* Creator-style social proof */}
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <div className="flex -space-x-2">
-              {/* Avatar placeholders - represents real creator community */}
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-400 to-rose-400 border-2 border-background" />
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-violet-400 to-purple-400 border-2 border-background" />
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-teal-400 to-cyan-400 border-2 border-background" />
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 border-2 border-background" />
-            </div>
-            <span className="text-sm text-muted-foreground">
-              Trusted by creators like <span className="font-medium text-foreground">@maya.creates</span>
-            </span>
+          {/* Aspirational message */}
+          <div className="text-center mb-10">
+            <p className="text-lg text-muted-foreground">
+              Join thousands of creators who stopped guessing and started getting paid what they deserve.
+            </p>
           </div>
 
           {/* Footer links */}

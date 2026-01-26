@@ -138,8 +138,38 @@ export type CreatorTier = "nano" | "micro" | "mid" | "rising" | "macro" | "mega"
  *
  * Regional multipliers reflect market differences in advertiser budgets
  * and creator earning potential by geography.
+ *
+ * @deprecated Use AudienceGeography instead. Region refers to creator's location,
+ * but what matters for pricing is where the AUDIENCE is located.
  */
 export type Region =
+  | "united_states"
+  | "united_kingdom"
+  | "canada"
+  | "australia"
+  | "western_europe"
+  | "uae_gulf"
+  | "singapore_hk"
+  | "japan"
+  | "south_korea"
+  | "brazil"
+  | "mexico"
+  | "india"
+  | "southeast_asia"
+  | "eastern_europe"
+  | "africa"
+  | "other";
+
+/**
+ * Audience geography for rate adjustments.
+ * Determines the regional multiplier based on where the creator's AUDIENCE is located.
+ *
+ * This replaces Region which incorrectly assumed creator location = audience location.
+ * A creator in India with a primarily US audience should get US rates.
+ *
+ * Uses the same values as Region for backwards compatibility.
+ */
+export type AudienceGeography =
   | "united_states"
   | "united_kingdom"
   | "canada"
@@ -178,8 +208,19 @@ export interface CreatorProfile {
    * Geographic region for rate adjustments.
    * Defaults to "united_states" if not specified.
    * Used in Layer 1.5 of the pricing engine.
+   *
+   * @deprecated Use audienceGeography instead.
    */
   region?: Region;
+  /**
+   * Primary geographic location of the creator's audience.
+   * This is what matters for pricing - where the audience is,
+   * not where the creator is physically located.
+   *
+   * Takes precedence over region for rate calculations.
+   * Defaults to "united_states" if not specified.
+   */
+  audienceGeography?: AudienceGeography;
   /** Content niches/categories (max 5, e.g., ["lifestyle", "fashion"]) */
   niches: string[];
   /** Instagram platform metrics (optional) */
@@ -2603,3 +2644,137 @@ export interface BrandRedFlag {
  * Response from the Brand Vetter API.
  */
 export type BrandVettingResponse = ApiResponse<BrandVettingResult>;
+
+// =============================================================================
+// ONBOARDING TYPES
+// =============================================================================
+
+/**
+ * Onboarding state for tracking creator setup progress.
+ * Stored in CreatorProfile model.
+ */
+export interface OnboardingState {
+  /** Has completed quick setup (platform + followers) */
+  quickSetupComplete: boolean;
+  /** Profile completeness percentage (0-100) */
+  profileCompleteness: number;
+  /** Has dismissed/completed dashboard tour */
+  hasSeenDashboardTour: boolean;
+  /** When quick setup was completed */
+  onboardingCompletedAt?: Date;
+}
+
+// =============================================================================
+// SAVED RATE CARD TYPES
+// =============================================================================
+
+/**
+ * A saved rate card stored in the database.
+ * Represents a generated rate card that the creator wants to keep.
+ */
+export interface SavedRateCard {
+  /** Unique identifier */
+  id: string;
+  /** Reference to the creator who owns this rate card */
+  creatorId: string;
+  /** User-defined name for this rate card */
+  name: string;
+  /** Platform for this rate card */
+  platform: string;
+  /** Content format for this rate card */
+  contentFormat: string;
+  /** Base rate before adjustments */
+  baseRate: number;
+  /** Final calculated rate */
+  finalRate: number;
+  /** Array of pricing adjustments applied */
+  adjustments: PricingAdjustment[];
+  /** Deal quality score result (optional) */
+  dealQuality?: DealQualityResult | null;
+  /** Reference to the parsed brief (optional) */
+  briefId?: string | null;
+  /** Brand name associated with this rate card */
+  brandName?: string | null;
+  /** Campaign name associated with this rate card */
+  campaignName?: string | null;
+  /** When this rate card was created */
+  createdAt: Date;
+  /** When this rate card was last updated */
+  updatedAt: Date;
+  /** When this rate card was last accessed */
+  lastAccessedAt: Date;
+}
+
+/**
+ * A single pricing adjustment in the rate card calculation.
+ */
+export interface PricingAdjustment {
+  /** Name of the adjustment layer */
+  name: string;
+  /** Description of what this adjustment does */
+  description: string;
+  /** Type of adjustment: add or multiply */
+  type: "add" | "multiply";
+  /** The adjustment value */
+  value: number;
+}
+
+/**
+ * Input for creating a new saved rate card.
+ */
+export interface SavedRateCardCreateInput {
+  /** User-defined name for this rate card */
+  name?: string;
+  /** Platform for this rate card */
+  platform: string;
+  /** Content format for this rate card */
+  contentFormat: string;
+  /** Base rate before adjustments */
+  baseRate: number;
+  /** Final calculated rate */
+  finalRate: number;
+  /** Array of pricing adjustments applied */
+  adjustments: PricingAdjustment[];
+  /** Deal quality score result (optional) */
+  dealQuality?: DealQualityResult | null;
+  /** Reference to the parsed brief (optional) */
+  briefId?: string;
+  /** Brand name associated with this rate card */
+  brandName?: string;
+  /** Campaign name associated with this rate card */
+  campaignName?: string;
+}
+
+/**
+ * Input for updating an existing saved rate card.
+ */
+export interface SavedRateCardUpdateInput {
+  /** User-defined name for this rate card */
+  name?: string;
+  /** Platform for this rate card */
+  platform?: string;
+  /** Content format for this rate card */
+  contentFormat?: string;
+  /** Base rate before adjustments */
+  baseRate?: number;
+  /** Final calculated rate */
+  finalRate?: number;
+  /** Array of pricing adjustments applied */
+  adjustments?: PricingAdjustment[];
+  /** Deal quality score result */
+  dealQuality?: DealQualityResult | null;
+  /** Brand name associated with this rate card */
+  brandName?: string | null;
+  /** Campaign name associated with this rate card */
+  campaignName?: string | null;
+}
+
+/**
+ * Response from the saved rate cards API for listing.
+ */
+export type SavedRateCardListResponse = ApiResponse<SavedRateCard[]>;
+
+/**
+ * Response from the saved rate cards API for a single rate card.
+ */
+export type SavedRateCardResponse = ApiResponse<SavedRateCard>;

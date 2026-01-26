@@ -1,19 +1,13 @@
 "use client";
 
-import { useState, useEffect, startTransition } from "react";
+import { useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useProfile } from "@/hooks/use-profile";
+import { useRateCards } from "@/hooks/use-rate-cards";
 import { Calculator, Gift } from "lucide-react";
 import { InlineMessageAnalyzer } from "@/components/dashboard/inline-message-analyzer";
 import { QuickActionCard } from "@/components/dashboard/quick-action-card";
 import { RecentActivityFeed, type Activity } from "@/components/dashboard/recent-activity-feed";
-
-interface RateCardHistoryItem {
-  name: string;
-  platform: string;
-  format: string;
-  price: number;
-  createdAt: string;
-}
 
 // Time-based greeting helper
 const getGreeting = () => {
@@ -25,57 +19,36 @@ const getGreeting = () => {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [recentRates, setRecentRates] = useState<RateCardHistoryItem[]>([]);
-  const [totalGenerated, setTotalGenerated] = useState(0);
-  const [pendingGifts, setPendingGifts] = useState(0);
-  const [creatorHandle, setCreatorHandle] = useState<string | null>(null);
+  const { profile } = useProfile();
+  const { rateCards } = useRateCards();
 
-  useEffect(() => {
-    startTransition(() => {
-      // Load saved rates
-      const savedRates = localStorage.getItem("savedRates");
-      if (savedRates) {
-        const rates = JSON.parse(savedRates) as RateCardHistoryItem[];
-        setRecentRates(rates.slice(0, 5));
-        // Calculate total generated this month
-        const now = new Date();
-        const thisMonth = rates.filter((r) => {
-          const date = new Date(r.createdAt);
-          return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-        });
-        const total = thisMonth.reduce((sum, r) => sum + r.price, 0);
-        setTotalGenerated(total);
-      }
-      // Load pending gifts count
-      const savedGifts = localStorage.getItem("giftDeals");
-      if (savedGifts) {
-        const gifts = JSON.parse(savedGifts);
-        const pending = gifts.filter((g: { status: string }) => g.status === "pending" || g.status === "received").length;
-        setPendingGifts(pending);
-      }
-      // Load creator handle from profile
-      const profile = localStorage.getItem("creatorProfile");
-      if (profile) {
-        try {
-          const data = JSON.parse(profile);
-          if (data.handle) {
-            setCreatorHandle(data.handle);
-          }
-        } catch {
-          // Invalid JSON, ignore
-        }
-      }
+  // Calculate total generated this month from rate cards
+  const totalGenerated = useMemo(() => {
+    const now = new Date();
+    const thisMonth = rateCards.filter((r) => {
+      const date = new Date(r.createdAt);
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
     });
-  }, []);
+    return thisMonth.reduce((sum, r) => sum + r.finalRate, 0);
+  }, [rateCards]);
+
+  // Get recent rates (top 5)
+  const recentRates = useMemo(() => rateCards.slice(0, 5), [rateCards]);
+
+  // Get creator handle from profile
+  const creatorHandle = profile?.handle ?? null;
+
+  // TODO: Pending gifts should come from API once gift tracking is migrated
+  const pendingGifts = 0;
 
   const firstName = user?.name?.split(" ")[0] || "Creator";
 
   // Transform recent rates into activity feed format
-  const recentActivities: Activity[] = recentRates.map((rate, index) => ({
-    id: `rate-${index}`,
+  const recentActivities: Activity[] = recentRates.map((rate) => ({
+    id: rate.id,
     type: "rate_card" as const,
     title: rate.name || "Quick Quote",
-    subtitle: `${rate.platform} · ${rate.format} · $${rate.price.toLocaleString()}`,
+    subtitle: `${rate.platform} · ${rate.contentFormat} · $${rate.finalRate.toLocaleString()}`,
     timestamp: new Date(rate.createdAt),
   }));
 
@@ -113,7 +86,7 @@ export default function DashboardPage() {
       {/* SECONDARY: Quick actions - with distinct visual identities */}
       <section className="grid grid-cols-2 gap-4">
         <QuickActionCard
-          href="/dashboard/quick-quote"
+          href="/quick-calculate"
           icon={Calculator}
           title="Quick Rate"
           description="Get an instant quote"

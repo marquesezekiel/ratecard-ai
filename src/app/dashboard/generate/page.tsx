@@ -9,38 +9,40 @@ import { Badge } from "@/components/ui/badge";
 import { PriceAdjuster } from "@/components/rate-card/price-adjuster";
 import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-sheet";
 import { ShareActions } from "@/components/rate-card/share-actions";
-import type { CreatorProfile, ParsedBrief, FitScoreResult, PricingResult, ApiResponse } from "@/lib/types";
+import { useProfile } from "@/hooks/use-profile";
+import { trackEvent } from "@/lib/analytics";
+import type { ParsedBrief, FitScoreResult, PricingResult, ApiResponse } from "@/lib/types";
 
 type PageState = "loading" | "calculating" | "success" | "error" | "missing-data";
 
 export default function GeneratePage() {
   const router = useRouter();
+  const { profile, isLoading: profileLoading } = useProfile();
   const [pageState, setPageState] = useState<PageState>("loading");
   const [error, setError] = useState<string | null>(null);
   const [fitScore, setFitScore] = useState<FitScoreResult | null>(null);
   const [pricing, setPricing] = useState<PricingResult | null>(null);
   const [adjustedPricing, setAdjustedPricing] = useState<PricingResult | null>(null);
   const [brief, setBrief] = useState<ParsedBrief | null>(null);
-  const [profile, setProfile] = useState<CreatorProfile | null>(null);
 
   useEffect(() => {
+    // Wait for profile to load
+    if (profileLoading) return;
+
     const loadDataAndCalculate = async () => {
-      // Load data from localStorage
-      const profileData = localStorage.getItem("creatorProfile");
+      // Load brief from localStorage (brief is temporary session data)
       const briefData = localStorage.getItem("currentBrief");
 
-      if (!profileData || !briefData) {
+      if (!profile || !briefData) {
         startTransition(() => {
           setPageState("missing-data");
-          setError(!profileData ? "profile" : "brief");
+          setError(!profile ? "profile" : "brief");
         });
         return;
       }
 
       try {
-        const loadedProfile: CreatorProfile = JSON.parse(profileData);
         const parsedBrief: ParsedBrief = JSON.parse(briefData);
-        setProfile(loadedProfile);
         setBrief(parsedBrief);
 
         startTransition(() => {
@@ -53,7 +55,7 @@ export default function GeneratePage() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ profile: loadedProfile, brief: parsedBrief }),
+          body: JSON.stringify({ profile, brief: parsedBrief }),
         });
 
         const result: ApiResponse<{ fitScore: FitScoreResult; pricing: PricingResult }> = await response.json();
@@ -65,6 +67,14 @@ export default function GeneratePage() {
         setFitScore(result.data.fitScore);
         setPricing(result.data.pricing);
         setPageState("success");
+
+        // Track rate card generation
+        trackEvent('rate_card_generated', {
+          platform: parsedBrief.content.platform,
+          format: parsedBrief.content.format,
+          rate: result.data.pricing.totalPrice,
+          dealQuality: result.data.fitScore.totalScore,
+        });
       } catch (err) {
         setPageState("error");
         setError(err instanceof Error ? err.message : "An unexpected error occurred");
@@ -72,11 +82,11 @@ export default function GeneratePage() {
     };
 
     loadDataAndCalculate();
-  }, []);
+  }, [profile, profileLoading]);
 
   const handleStartOver = () => {
     localStorage.removeItem("currentBrief");
-    router.push("/dashboard/upload");
+    router.push("/dashboard/analyze");
   };
 
   // Loading state
@@ -100,7 +110,7 @@ export default function GeneratePage() {
             : "Please upload a brand brief first."}
         </p>
         <Button
-          onClick={() => router.push(error === "profile" ? "/dashboard/profile" : "/dashboard/upload")}
+          onClick={() => router.push(error === "profile" ? "/dashboard/profile" : "/dashboard/analyze")}
           className="mt-6"
         >
           {error === "profile" ? "Complete Profile" : "Upload Brief"}
@@ -191,11 +201,11 @@ export default function GeneratePage() {
           </CardContent>
         </Card>
 
-        {/* Fit Score Card */}
+        {/* Deal Quality Card */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Brand Fit Score</CardTitle>
+              <CardTitle>Deal Quality</CardTitle>
               <Badge className={fitLevelColors[fitScore.fitLevel]}>
                 {fitScore.fitLevel.charAt(0).toUpperCase() + fitScore.fitLevel.slice(1)} Fit
               </Badge>
