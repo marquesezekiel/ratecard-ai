@@ -176,24 +176,48 @@ describe("Accessibility - Menu Sheet", () => {
 });
 
 describe("Accessibility - Saved Rates", () => {
+  const mockRateCards = [
+    {
+      id: "1",
+      creatorId: "user-1",
+      name: "Instagram Reel",
+      platform: "Instagram",
+      contentFormat: "Reel",
+      baseRate: 400,
+      finalRate: 500,
+      adjustments: [],
+      dealQuality: null,
+      briefId: null,
+      brandName: null,
+      campaignName: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastAccessedAt: new Date(),
+    },
+  ];
+
   beforeEach(() => {
+    vi.resetModules();
     localStorage.clear();
   });
 
   it("copy button should have aria-label with rate name", async () => {
-    // Set up saved rates in localStorage
-    const savedRates = [
-      {
-        id: "1",
-        name: "Instagram Reel",
-        platform: "Instagram",
-        format: "Reel",
-        usageRights: "30-day usage",
-        price: 500,
-        createdAt: new Date().toISOString(),
-      },
-    ];
-    localStorage.setItem("savedRates", JSON.stringify(savedRates));
+    // Mock the useRateCards hook
+    vi.doMock("@/hooks/use-rate-cards", () => ({
+      useRateCards: () => ({
+        rateCards: mockRateCards,
+        isLoading: false,
+        isError: false,
+        deleteRateCard: vi.fn(),
+        updateRateCard: vi.fn(),
+        createRateCard: vi.fn(),
+      }),
+    }));
+
+    // Mock analytics
+    vi.doMock("@/lib/analytics", () => ({
+      trackEvent: vi.fn(),
+    }));
 
     const { SavedRates } = await import("@/components/rate-card/saved-rates");
     render(<SavedRates />);
@@ -203,18 +227,22 @@ describe("Accessibility - Saved Rates", () => {
   });
 
   it("delete button should have aria-label with rate name", async () => {
-    const savedRates = [
-      {
-        id: "1",
-        name: "Instagram Reel",
-        platform: "Instagram",
-        format: "Reel",
-        usageRights: "30-day usage",
-        price: 500,
-        createdAt: new Date().toISOString(),
-      },
-    ];
-    localStorage.setItem("savedRates", JSON.stringify(savedRates));
+    // Mock the useRateCards hook
+    vi.doMock("@/hooks/use-rate-cards", () => ({
+      useRateCards: () => ({
+        rateCards: mockRateCards,
+        isLoading: false,
+        isError: false,
+        deleteRateCard: vi.fn(),
+        updateRateCard: vi.fn(),
+        createRateCard: vi.fn(),
+      }),
+    }));
+
+    // Mock analytics
+    vi.doMock("@/lib/analytics", () => ({
+      trackEvent: vi.fn(),
+    }));
 
     const { SavedRates } = await import("@/components/rate-card/saved-rates");
     render(<SavedRates />);

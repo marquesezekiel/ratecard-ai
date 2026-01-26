@@ -1,30 +1,12 @@
 "use client";
 
-import { useState, useSyncExternalStore, useRef, useCallback } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GiftEvaluatorForm } from "@/components/forms/gift-evaluator-form";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Loader2, Gift } from "lucide-react";
-import type { CreatorProfile, DMAnalysis, GiftEvaluationInput } from "@/lib/types";
-
-const emptySubscribe = () => () => {};
-
-function useLocalStorageProfile(): CreatorProfile | null | undefined {
-  const cacheRef = useRef<{ raw: string | null; parsed: CreatorProfile | null }>({ raw: null, parsed: null });
-
-  const getSnapshot = useCallback(() => {
-    const raw = localStorage.getItem("creatorProfile");
-    if (raw !== cacheRef.current.raw) {
-      cacheRef.current.raw = raw;
-      cacheRef.current.parsed = raw ? JSON.parse(raw) as CreatorProfile : null;
-    }
-    return cacheRef.current.parsed;
-  }, []);
-
-  const getServerSnapshot = useCallback((): CreatorProfile | null | undefined => undefined, []);
-
-  return useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot);
-}
+import { useProfile } from "@/hooks/use-profile";
+import type { DMAnalysis, GiftEvaluationInput } from "@/lib/types";
 
 /**
  * Parses gift analysis from session storage (client-side only).
@@ -54,16 +36,16 @@ function getInitialGiftData(shouldEvaluate: boolean): Partial<GiftEvaluationInpu
 export default function GiftsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const profile = useLocalStorageProfile();
+  const { profile, isLoading: profileLoading } = useProfile();
 
   // Compute initial data synchronously on first render (avoids setState in effect)
   const shouldEvaluate = searchParams.get("evaluate") === "true";
   const [initialData] = useState(() => getInitialGiftData(shouldEvaluate));
 
   // Loading state
-  if (profile === undefined) {
+  if (profileLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
+      <div className="flex h-64 items-center justify-center" role="status" aria-label="Loading profile">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );

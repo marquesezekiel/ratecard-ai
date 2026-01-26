@@ -9,38 +9,39 @@ import { Badge } from "@/components/ui/badge";
 import { PriceAdjuster } from "@/components/rate-card/price-adjuster";
 import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-sheet";
 import { ShareActions } from "@/components/rate-card/share-actions";
-import type { CreatorProfile, ParsedBrief, FitScoreResult, PricingResult, ApiResponse } from "@/lib/types";
+import { useProfile } from "@/hooks/use-profile";
+import type { ParsedBrief, FitScoreResult, PricingResult, ApiResponse } from "@/lib/types";
 
 type PageState = "loading" | "calculating" | "success" | "error" | "missing-data";
 
 export default function GeneratePage() {
   const router = useRouter();
+  const { profile, isLoading: profileLoading } = useProfile();
   const [pageState, setPageState] = useState<PageState>("loading");
   const [error, setError] = useState<string | null>(null);
   const [fitScore, setFitScore] = useState<FitScoreResult | null>(null);
   const [pricing, setPricing] = useState<PricingResult | null>(null);
   const [adjustedPricing, setAdjustedPricing] = useState<PricingResult | null>(null);
   const [brief, setBrief] = useState<ParsedBrief | null>(null);
-  const [profile, setProfile] = useState<CreatorProfile | null>(null);
 
   useEffect(() => {
+    // Wait for profile to load
+    if (profileLoading) return;
+
     const loadDataAndCalculate = async () => {
-      // Load data from localStorage
-      const profileData = localStorage.getItem("creatorProfile");
+      // Load brief from localStorage (brief is temporary session data)
       const briefData = localStorage.getItem("currentBrief");
 
-      if (!profileData || !briefData) {
+      if (!profile || !briefData) {
         startTransition(() => {
           setPageState("missing-data");
-          setError(!profileData ? "profile" : "brief");
+          setError(!profile ? "profile" : "brief");
         });
         return;
       }
 
       try {
-        const loadedProfile: CreatorProfile = JSON.parse(profileData);
         const parsedBrief: ParsedBrief = JSON.parse(briefData);
-        setProfile(loadedProfile);
         setBrief(parsedBrief);
 
         startTransition(() => {
@@ -53,7 +54,7 @@ export default function GeneratePage() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ profile: loadedProfile, brief: parsedBrief }),
+          body: JSON.stringify({ profile, brief: parsedBrief }),
         });
 
         const result: ApiResponse<{ fitScore: FitScoreResult; pricing: PricingResult }> = await response.json();
@@ -72,7 +73,7 @@ export default function GeneratePage() {
     };
 
     loadDataAndCalculate();
-  }, []);
+  }, [profile, profileLoading]);
 
   const handleStartOver = () => {
     localStorage.removeItem("currentBrief");

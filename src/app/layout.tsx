@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Providers } from "@/components/providers/providers";
 import "./globals.css";
 
 // Satoshi - Modern, friendly sans-serif for body text and UI
@@ -56,7 +57,9 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

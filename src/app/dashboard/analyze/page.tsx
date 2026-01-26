@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, useRef, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDropzone } from "react-dropzone";
 import { DMParserForm } from "@/components/forms/dm-parser-form";
@@ -19,27 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertCircle, Loader2, MessageSquare, FileText, Upload, User } from "lucide-react";
-import type { CreatorProfile, DMAnalysis, ParsedBrief, ApiResponse } from "@/lib/types";
+import type { DMAnalysis, ParsedBrief, ApiResponse } from "@/lib/types";
 import { calculateTier } from "@/lib/pricing-engine";
-
-const emptySubscribe = () => () => {};
-
-function useLocalStorageProfile(): CreatorProfile | null | undefined {
-  const cacheRef = useRef<{ raw: string | null; parsed: CreatorProfile | null }>({ raw: null, parsed: null });
-
-  const getSnapshot = useCallback(() => {
-    const raw = localStorage.getItem("creatorProfile");
-    if (raw !== cacheRef.current.raw) {
-      cacheRef.current.raw = raw;
-      cacheRef.current.parsed = raw ? JSON.parse(raw) as CreatorProfile : null;
-    }
-    return cacheRef.current.parsed;
-  }, []);
-
-  const getServerSnapshot = useCallback((): CreatorProfile | null | undefined => undefined, []);
-
-  return useSyncExternalStore(emptySubscribe, getSnapshot, getServerSnapshot);
-}
+import { useProfile } from "@/hooks/use-profile";
 
 const ACCEPTED_FILE_TYPES = {
   "application/pdf": [".pdf"],
@@ -62,7 +44,7 @@ function getStepStatus(currentStep: ParseStep, targetStep: ParseStep): "pending"
 export default function AnalyzeDMPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const profile = useLocalStorageProfile();
+  const { profile, isLoading: profileLoading } = useProfile();
   const [, setLastAnalysis] = useState<DMAnalysis | null>(null);
 
   // Get pre-filled message and tab from query params
@@ -162,8 +144,8 @@ export default function AnalyzeDMPage() {
     setIsCreatingProfile(true);
 
     try {
-      // Create a minimal profile
-      const minimalProfile: Partial<CreatorProfile> = {
+      // Create a minimal profile via API
+      const minimalProfile = {
         displayName: "Creator",
         handle: "creator",
         location: "United States",
@@ -184,8 +166,16 @@ export default function AnalyzeDMPage() {
         },
       };
 
-      // Save to localStorage
-      localStorage.setItem("creatorProfile", JSON.stringify(minimalProfile));
+      // Save to API
+      const response = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(minimalProfile),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create profile");
+      }
 
       // Force a re-render by reloading - the profile hook will pick up the new value
       window.location.reload();
@@ -196,9 +186,9 @@ export default function AnalyzeDMPage() {
   }, [inlineProfile]);
 
   // Loading state
-  if (profile === undefined) {
+  if (profileLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
+      <div className="flex h-64 items-center justify-center" role="status" aria-label="Loading profile">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );

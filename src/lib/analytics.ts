@@ -16,6 +16,8 @@ export type AnalyticsEvent =
   | "quick_calculate_cta_click"
   | "signup_from_calculator"
   | "rate_card_generated"
+  | "rate_saved"
+  | "rate_deleted"
   | "brief_uploaded"
   | "dm_analyzed"
   | "gift_evaluated";
