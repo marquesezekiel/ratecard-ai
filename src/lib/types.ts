@@ -2663,3 +2663,118 @@ export interface OnboardingState {
   /** When quick setup was completed */
   onboardingCompletedAt?: Date;
 }
+
+// =============================================================================
+// SAVED RATE CARD TYPES
+// =============================================================================
+
+/**
+ * A saved rate card stored in the database.
+ * Represents a generated rate card that the creator wants to keep.
+ */
+export interface SavedRateCard {
+  /** Unique identifier */
+  id: string;
+  /** Reference to the creator who owns this rate card */
+  creatorId: string;
+  /** User-defined name for this rate card */
+  name: string;
+  /** Platform for this rate card */
+  platform: string;
+  /** Content format for this rate card */
+  contentFormat: string;
+  /** Base rate before adjustments */
+  baseRate: number;
+  /** Final calculated rate */
+  finalRate: number;
+  /** Array of pricing adjustments applied */
+  adjustments: PricingAdjustment[];
+  /** Deal quality score result (optional) */
+  dealQuality?: DealQualityResult | null;
+  /** Reference to the parsed brief (optional) */
+  briefId?: string | null;
+  /** Brand name associated with this rate card */
+  brandName?: string | null;
+  /** Campaign name associated with this rate card */
+  campaignName?: string | null;
+  /** When this rate card was created */
+  createdAt: Date;
+  /** When this rate card was last updated */
+  updatedAt: Date;
+  /** When this rate card was last accessed */
+  lastAccessedAt: Date;
+}
+
+/**
+ * A single pricing adjustment in the rate card calculation.
+ */
+export interface PricingAdjustment {
+  /** Name of the adjustment layer */
+  name: string;
+  /** Description of what this adjustment does */
+  description: string;
+  /** Type of adjustment: add or multiply */
+  type: "add" | "multiply";
+  /** The adjustment value */
+  value: number;
+}
+
+/**
+ * Input for creating a new saved rate card.
+ */
+export interface SavedRateCardCreateInput {
+  /** User-defined name for this rate card */
+  name?: string;
+  /** Platform for this rate card */
+  platform: string;
+  /** Content format for this rate card */
+  contentFormat: string;
+  /** Base rate before adjustments */
+  baseRate: number;
+  /** Final calculated rate */
+  finalRate: number;
+  /** Array of pricing adjustments applied */
+  adjustments: PricingAdjustment[];
+  /** Deal quality score result (optional) */
+  dealQuality?: DealQualityResult | null;
+  /** Reference to the parsed brief (optional) */
+  briefId?: string;
+  /** Brand name associated with this rate card */
+  brandName?: string;
+  /** Campaign name associated with this rate card */
+  campaignName?: string;
+}
+
+/**
+ * Input for updating an existing saved rate card.
+ */
+export interface SavedRateCardUpdateInput {
+  /** User-defined name for this rate card */
+  name?: string;
+  /** Platform for this rate card */
+  platform?: string;
+  /** Content format for this rate card */
+  contentFormat?: string;
+  /** Base rate before adjustments */
+  baseRate?: number;
+  /** Final calculated rate */
+  finalRate?: number;
+  /** Array of pricing adjustments applied */
+  adjustments?: PricingAdjustment[];
+  /** Deal quality score result */
+  dealQuality?: DealQualityResult | null;
+  /** Brand name associated with this rate card */
+  brandName?: string | null;
+  /** Campaign name associated with this rate card */
+  campaignName?: string | null;
+}
+
+/**
+ * Response from the saved rate cards API for listing.
+ */
+export type SavedRateCardListResponse = ApiResponse<SavedRateCard[]>;
+
+/**
+ * Response from the saved rate cards API for a single rate card.
+ */
+export type SavedRateCardResponse = ApiResponse<SavedRateCard>;
