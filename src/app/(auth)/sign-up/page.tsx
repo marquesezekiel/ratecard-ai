@@ -49,7 +49,8 @@ export default function SignUpPage() {
       localStorage.removeItem("creatorProfile");
 
       // Use full page navigation to ensure cookies are properly attached
-      window.location.href = "/dashboard/profile";
+      // Redirect to onboarding for new users
+      window.location.href = "/onboarding";
     } catch {
       setError("An unexpected error occurred");
       setIsLoading(false);

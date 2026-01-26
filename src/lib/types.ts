@@ -2644,3 +2644,22 @@ export interface BrandRedFlag {
  * Response from the Brand Vetter API.
  */
 export type BrandVettingResponse = ApiResponse<BrandVettingResult>;
+
+// =============================================================================
+// ONBOARDING TYPES
+// =============================================================================
+
+/**
+ * Onboarding state for tracking creator setup progress.
+ * Stored in CreatorProfile model.
+ */
+export interface OnboardingState {
+  /** Has completed quick setup (platform + followers) */
+  quickSetupComplete: boolean;
+  /** Profile completeness percentage (0-100) */
+  profileCompleteness: number;
+  /** Has dismissed/completed dashboard tour */
+  hasSeenDashboardTour: boolean;
+  /** When quick setup was completed */
+  onboardingCompletedAt?: Date;
+}

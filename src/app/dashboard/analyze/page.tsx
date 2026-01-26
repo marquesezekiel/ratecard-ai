@@ -373,7 +373,7 @@ export default function AnalyzeDMPage() {
             </Card>
           ) : (
             /* Upload zone */
-            <Card>
+            <Card data-tour="brief-upload">
               <CardHeader>
                 <CardTitle>Upload Brand Brief</CardTitle>
                 <CardDescription>

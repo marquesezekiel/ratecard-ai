@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Home, User, LogOut, Sparkles, Bookmark, MessageSquare, Gift, Shield, FileSearch } from "lucide-react";
@@ -18,6 +19,8 @@ import {
 import { cn } from "@/lib/utils";
 import { FAB } from "@/components/ui/fab";
 import { MenuSheet } from "@/components/navigation/menu-sheet";
+import { ProfileCompletionBanner } from "@/components/dashboard/profile-completion-banner";
+import { DashboardTour } from "@/components/onboarding/dashboard-tour";
 
 // Mobile bottom nav - reduced to 3 core items
 const mobileNavItems = [
@@ -104,6 +107,13 @@ function BottomNavLink({
   );
 }
 
+// Profile data for onboarding check
+interface ProfileOnboardingState {
+  quickSetupComplete: boolean;
+  profileCompleteness: number;
+  hasSeenDashboardTour: boolean;
+}
+
 export default function DashboardLayout({
   children,
 }: {
@@ -112,6 +122,75 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { user, isLoading } = useAuth();
+  const [profileState, setProfileState] = useState<ProfileOnboardingState | null>(null);
+  const [isCheckingProfile, setIsCheckingProfile] = useState(true);
+  const [showTour, setShowTour] = useState(false);
+
+  // Check profile onboarding state
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkProfile() {
+      if (!user) {
+        if (isMounted) setIsCheckingProfile(false);
+        return;
+      }
+
+      try {
+        const response = await fetch("/api/profile");
+        if (!isMounted) return;
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            const hasSeenTour = data.data.hasSeenDashboardTour ?? false;
+            setProfileState({
+              quickSetupComplete: data.data.quickSetupComplete ?? false,
+              profileCompleteness: data.data.profileCompleteness ?? 0,
+              hasSeenDashboardTour: hasSeenTour,
+            });
+
+            // Redirect to onboarding if quick setup not complete
+            if (!data.data.quickSetupComplete) {
+              router.push("/onboarding");
+              return;
+            }
+
+            // Show tour on first visit to analyze page
+            if (!hasSeenTour) {
+              setShowTour(true);
+            }
+          } else {
+            // No profile exists, redirect to onboarding
+            router.push("/onboarding");
+            return;
+          }
+        } else {
+          // Error fetching profile or unauthorized, let auth handle it
+          setProfileState(null);
+        }
+      } catch (error) {
+        console.error("Error checking profile:", error);
+        // On error, allow access but without profile state
+        if (isMounted) setProfileState(null);
+      }
+
+      if (isMounted) setIsCheckingProfile(false);
+    }
+
+    if (!isLoading && user) {
+      checkProfile();
+    } else if (!isLoading) {
+      // Use microtask to avoid synchronous setState
+      queueMicrotask(() => {
+        if (isMounted) setIsCheckingProfile(false);
+      });
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, isLoading, router]);
 
   const isActive = (href: string) => {
     if (href === "/dashboard") {
@@ -125,7 +204,7 @@ export default function DashboardLayout({
     router.push("/sign-in");
   };
 
-  if (isLoading) {
+  if (isLoading || isCheckingProfile) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -185,7 +264,7 @@ export default function DashboardLayout({
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="rounded-lg">
+                <DropdownMenuItem asChild className="rounded-lg" data-tour="profile-link">
                   <Link href="/dashboard/profile">
                     <User className="mr-2 h-4 w-4" />
                     Profile
@@ -237,6 +316,11 @@ export default function DashboardLayout({
         </Avatar>
       </header>
 
+      {/* Profile Completion Banner */}
+      {profileState && profileState.profileCompleteness < 100 && (
+        <ProfileCompletionBanner completeness={profileState.profileCompleteness} />
+      )}
+
       {/* Page Content */}
       <main className="pb-24 lg:pb-0">
         <div className="mx-auto max-w-5xl px-4 py-6 md:px-6 md:py-8 lg:px-8 lg:py-10">
@@ -265,6 +349,17 @@ export default function DashboardLayout({
         ))}
         <MenuSheet onSignOut={handleSignOut} />
       </nav>
+
+      {/* Dashboard Tour */}
+      <DashboardTour
+        show={showTour}
+        onComplete={() => {
+          setShowTour(false);
+          setProfileState((prev) =>
+            prev ? { ...prev, hasSeenDashboardTour: true } : null
+          );
+        }}
+      />
     </div>
   );
 }

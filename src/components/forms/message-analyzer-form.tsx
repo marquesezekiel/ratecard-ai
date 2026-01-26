@@ -253,7 +253,10 @@ export function MessageAnalyzerForm({
   return (
     <div className="space-y-6">
       {/* Input Form */}
-      <Card className="border-2 border-dashed border-primary/20 hover:border-primary/40 transition-colors">
+      <Card
+        className="border-2 border-dashed border-primary/20 hover:border-primary/40 transition-colors"
+        data-tour="message-input"
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-primary" />

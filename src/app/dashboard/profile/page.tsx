@@ -23,6 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Zap, ChevronDown } from "lucide-react";
 import { calculateTier } from "@/lib/pricing-engine";
 import type { CreatorProfile } from "@/lib/types";
@@ -249,14 +257,27 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Expand to full form */}
-        <button
-          onClick={() => setShowFullForm(true)}
-          className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
-        >
-          <ChevronDown className="h-4 w-4" />
-          Add more details for better accuracy
-        </button>
+        {/* Expand to full form - use Sheet overlay */}
+        <Sheet>
+          <SheetTrigger asChild>
+            <button className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
+              <ChevronDown className="h-4 w-4" />
+              Add more details for better accuracy
+            </button>
+          </SheetTrigger>
+          <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+            <SheetHeader className="mb-6">
+              <SheetTitle>Complete Your Profile</SheetTitle>
+              <SheetDescription>
+                More details = more accurate rates. Fill in what you know.
+              </SheetDescription>
+            </SheetHeader>
+            <ProfileForm
+              initialData={initialData}
+              onValuesChange={handleValuesChange}
+            />
+          </SheetContent>
+        </Sheet>
       </div>
     );
   }
