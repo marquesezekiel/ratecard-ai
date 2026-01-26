@@ -98,7 +98,7 @@ export function InlineMessageAnalyzer() {
         {selectedFile ? (
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
             <div className="flex items-center gap-3">
-              <FileText className="h-8 w-8 text-primary" />
+              <FileText className="h-8 w-8 text-primary" aria-hidden="true" />
               <div>
                 <p className="font-medium text-sm">{selectedFile.name}</p>
                 <p className="text-xs text-muted-foreground">
@@ -113,8 +113,9 @@ export function InlineMessageAnalyzer() {
                 e.stopPropagation()
                 handleClearFile()
               }}
+              aria-label="Remove file"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         ) : (
@@ -139,7 +140,7 @@ export function InlineMessageAnalyzer() {
         )}
 
         <div className="flex items-center justify-between">
-          <div className="flex gap-3 text-xs text-muted-foreground">
+          <div className="flex gap-3 text-xs text-muted-foreground" aria-hidden="true">
             <span className="flex items-center gap-1">
               <MessageSquare className="h-3 w-3" /> DMs
             </span>
@@ -165,13 +166,13 @@ export function InlineMessageAnalyzer() {
           >
             {isAnalyzing ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 {mode === "file" ? "Opening..." : "Analyzing..."}
               </>
             ) : (
               <>
                 {mode === "file" ? "Parse Brief" : "Analyze"}
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </>
             )}
           </Button>

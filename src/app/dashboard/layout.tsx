@@ -59,6 +59,7 @@ function TopNavLink({
   return (
     <Link
       href={href}
+      aria-current={isActive ? "page" : undefined}
       className={cn(
         "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
         isActive
@@ -66,7 +67,7 @@ function TopNavLink({
           : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
       )}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-4 w-4" aria-hidden="true" />
       <span className="hidden sm:inline">{label}</span>
     </Link>
   );
@@ -87,6 +88,7 @@ function BottomNavLink({
   return (
     <Link
       href={href}
+      aria-current={isActive ? "page" : undefined}
       className={cn(
         "flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-xl transition-all duration-200 press",
         isActive ? "text-primary" : "text-muted-foreground"
@@ -98,7 +100,7 @@ function BottomNavLink({
           isActive && "bg-primary/10"
         )}
       >
-        <Icon className={cn("h-5 w-5", isActive && "text-primary")} />
+        <Icon className={cn("h-5 w-5", isActive && "text-primary")} aria-hidden="true" />
       </div>
       <span className={cn("text-[10px] font-medium", isActive && "text-primary")}>
         {label}
@@ -208,10 +210,10 @@ export default function DashboardLayout({
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <Sparkles className="h-6 w-6 text-primary animate-sparkle" />
+          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center" role="status" aria-label="Loading dashboard">
+            <Sparkles className="h-6 w-6 text-primary animate-sparkle" aria-hidden="true" />
           </div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <p className="text-sm text-muted-foreground" aria-hidden="true">Loading...</p>
         </div>
       </div>
     );
@@ -224,15 +226,15 @@ export default function DashboardLayout({
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
-            <Link href="/dashboard" className="flex items-center gap-2">
+            <Link href="/dashboard" className="flex items-center gap-2" aria-label="RateCard.AI - Go to dashboard">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-                <Sparkles className="h-5 w-5 text-primary-foreground" />
+                <Sparkles className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
               </div>
               <span className="text-lg font-bold tracking-tight">RateCard.AI</span>
             </Link>
 
             {/* Navigation */}
-            <nav className="flex items-center gap-1">
+            <nav aria-label="Main navigation" className="flex items-center gap-1">
               {desktopNavItems.map((item) => (
                 <TopNavLink
                   key={item.href}
@@ -248,7 +250,8 @@ export default function DashboardLayout({
                 <Button variant="ghost" className="flex items-center gap-2 rounded-xl">
                   <Avatar className="h-8 w-8 border-2 border-primary/20">
                     <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                      {getInitials(user?.name)}
+                      <span className="sr-only">{user?.name || "User"}&apos;s avatar</span>
+                      <span aria-hidden="true">{getInitials(user?.name)}</span>
                     </AvatarFallback>
                   </Avatar>
                   <span className="hidden md:inline text-sm font-medium">
@@ -266,7 +269,7 @@ export default function DashboardLayout({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild className="rounded-lg" data-tour="profile-link">
                   <Link href="/dashboard/profile">
-                    <User className="mr-2 h-4 w-4" />
+                    <User className="mr-2 h-4 w-4" aria-hidden="true" />
                     Profile
                   </Link>
                 </DropdownMenuItem>
@@ -276,13 +279,13 @@ export default function DashboardLayout({
                 </DropdownMenuLabel>
                 <DropdownMenuItem asChild className="rounded-lg text-muted-foreground hover:text-foreground">
                   <Link href="/dashboard/tools/brand-vetter">
-                    <Shield className="mr-2 h-4 w-4" />
+                    <Shield className="mr-2 h-4 w-4" aria-hidden="true" />
                     Brand Vetter
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="rounded-lg text-muted-foreground hover:text-foreground">
                   <Link href="/dashboard/tools/contract-scanner">
-                    <FileSearch className="mr-2 h-4 w-4" />
+                    <FileSearch className="mr-2 h-4 w-4" aria-hidden="true" />
                     Contract Scanner
                   </Link>
                 </DropdownMenuItem>
@@ -291,7 +294,7 @@ export default function DashboardLayout({
                   onClick={handleSignOut}
                   className="rounded-lg text-destructive focus:text-destructive"
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
+                  <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -302,16 +305,17 @@ export default function DashboardLayout({
 
       {/* Mobile Header */}
       <header className="flex h-16 items-center justify-between border-b border-border/40 bg-card px-4 lg:hidden">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2" aria-label="RateCard.AI - Go to dashboard">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-            <Sparkles className="h-4 w-4 text-primary-foreground" />
+            <Sparkles className="h-4 w-4 text-primary-foreground" aria-hidden="true" />
           </div>
           <span className="font-bold">RateCard.AI</span>
         </Link>
 
         <Avatar className="h-8 w-8 border-2 border-primary/20">
           <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-            {getInitials(user?.name)}
+            <span className="sr-only">{user?.name || "User"}&apos;s avatar</span>
+            <span aria-hidden="true">{getInitials(user?.name)}</span>
           </AvatarFallback>
         </Avatar>
       </header>
@@ -322,7 +326,7 @@ export default function DashboardLayout({
       )}
 
       {/* Page Content */}
-      <main className="pb-24 lg:pb-0">
+      <main id="main-content" className="pb-24 lg:pb-0">
         <div className="mx-auto max-w-5xl px-4 py-6 md:px-6 md:py-8 lg:px-8 lg:py-10">
           {children}
         </div>
@@ -339,7 +343,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Mobile Bottom Navigation - 3 items + Menu */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex lg:hidden items-center justify-around bg-card border-t border-border/40 px-2 py-2 safe-area-bottom">
+      <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 z-50 flex lg:hidden items-center justify-around bg-card border-t border-border/40 px-2 py-2 safe-area-bottom">
         {mobileNavItems.map((item) => (
           <BottomNavLink
             key={item.href}

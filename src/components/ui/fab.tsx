@@ -27,7 +27,7 @@ export function FAB({ className }: FABProps) {
       )}
       aria-label="Create new rate card"
     >
-      <Plus className="h-6 w-6" />
+      <Plus className="h-6 w-6" aria-hidden="true" />
     </button>
   )
 }
