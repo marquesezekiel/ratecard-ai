@@ -3,9 +3,7 @@
 import { cn } from "@/lib/utils";
 import {
   getCreatorLevel,
-  getNextLevel,
   CREATOR_LEVELS,
-  getPercentageToNextLevel,
 } from "@/lib/gamification";
 
 interface ProfileCompletenessProps {
@@ -22,12 +20,10 @@ export function ProfileCompleteness({
   const clampedPercentage = Math.min(100, Math.max(0, percentage));
   const level = getCreatorLevel(clampedPercentage);
   const levelConfig = CREATOR_LEVELS[level];
-  const nextLevel = getNextLevel(level);
-  const progressToNext = getPercentageToNextLevel(clampedPercentage);
 
   return (
     <div className={cn("space-y-2", className)}>
-      {/* Level badge */}
+      {/* Level badge + percentage */}
       <div className="flex items-center gap-2">
         <span className="text-xl">{levelConfig.emoji}</span>
         <div>
@@ -60,15 +56,9 @@ export function ProfileCompleteness({
           />
         </div>
 
-        {/* Progress text */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="font-mono">{Math.round(clampedPercentage)}%</span>
-          {nextLevel && (
-            <span>
-              {progressToNext}% to {CREATOR_LEVELS[nextLevel].emoji} {CREATOR_LEVELS[nextLevel].name}
-            </span>
-          )}
-          {!nextLevel && <span className="text-amber-500">✓ Max level!</span>}
+        {/* Single percentage display */}
+        <div className="text-xs text-muted-foreground text-right">
+          <span className="font-mono">{Math.round(clampedPercentage)}%</span> complete
         </div>
       </div>
     </div>

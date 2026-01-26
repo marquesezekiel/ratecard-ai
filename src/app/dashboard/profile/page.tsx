@@ -72,8 +72,36 @@ export default function ProfilePage() {
   const { celebration, celebrate, dismissCelebration } = useCelebration();
 
   useEffect(() => {
-    const stored = localStorage.getItem("creatorProfile");
-    startTransition(() => {
+    async function loadProfile() {
+      try {
+        // Fetch from API as the authoritative source
+        const response = await fetch("/api/profile");
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            const data = result.data;
+            setInitialData(data);
+            setFormValues(data);
+            // Use the database-stored completeness value for consistency
+            const initialCompleteness = data.profileCompleteness ?? calculateProfileCompleteness(data);
+            setCompleteness(initialCompleteness);
+            // Set initial level without triggering celebration
+            prevLevelRef.current = getCreatorLevel(initialCompleteness);
+            // User has existing profile, show full form by default
+            setHasExistingProfile(true);
+            setShowFullForm(true);
+            // Sync to localStorage for offline access
+            localStorage.setItem("creatorProfile", JSON.stringify(data));
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      }
+
+      // Fall back to localStorage if API fails or returns no data
+      const stored = localStorage.getItem("creatorProfile");
       if (stored) {
         try {
           const data = JSON.parse(stored);
@@ -81,9 +109,7 @@ export default function ProfilePage() {
           setFormValues(data);
           const initialCompleteness = calculateProfileCompleteness(data);
           setCompleteness(initialCompleteness);
-          // Set initial level without triggering celebration
           prevLevelRef.current = getCreatorLevel(initialCompleteness);
-          // User has existing profile, show full form by default
           setHasExistingProfile(true);
           setShowFullForm(true);
         } catch {
@@ -91,6 +117,10 @@ export default function ProfilePage() {
         }
       }
       setIsLoading(false);
+    }
+
+    startTransition(() => {
+      loadProfile();
     });
   }, []);
 
