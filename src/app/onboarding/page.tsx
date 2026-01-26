@@ -112,7 +112,6 @@ export default function OnboardingPage() {
       localStorage.setItem("creatorProfile", JSON.stringify(profileData));
 
       // Track onboarding complete
-      const followerCount = parseInt(followers, 10);
       trackEvent('onboarding_complete', {
         platform,
         followers: followerCount,

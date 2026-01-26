@@ -1,6 +1,6 @@
 'use client';
 
-import { SWRConfig } from 'swr';
+import { SWRConfig, type Cache, type State } from 'swr';
 import type { ReactNode } from 'react';
 
 /**
@@ -8,15 +8,16 @@ import type { ReactNode } from 'react';
  * Persists the SWR cache to localStorage for offline support.
  * This allows the app to show cached data immediately while fetching fresh data.
  */
-function localStorageProvider() {
+function localStorageProvider(): Cache {
   // Server-side: return empty Map
   if (typeof window === 'undefined') {
-    return new Map();
+    return new Map() as Cache;
   }
 
   // Initialize the Map with data from localStorage
   const cacheKey = 'swr-cache';
-  let map: Map<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let map: Map<string, State<any, any>>;
 
   try {
     const stored = localStorage.getItem(cacheKey);
@@ -49,22 +50,22 @@ function localStorageProvider() {
     }
   });
 
-  // Return cleanup function when the provider is unmounted
-  // Note: SWR doesn't call cleanup, so we rely on beforeunload/visibilitychange
+  // Return cache object
   return {
     get: (key: string) => map.get(key),
-    set: (key: string, value: unknown) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    set: (key: string, value: State<any, any>) => {
       map.set(key, value);
     },
     delete: (key: string) => {
       map.delete(key);
+      // Clean up interval when cache is deleted
+      if (map.size === 0) {
+        window.removeEventListener('beforeunload', saveCache);
+        clearInterval(intervalId);
+      }
     },
     keys: () => map.keys(),
-    // Cleanup function (for potential future SWR versions that support it)
-    _cleanup: () => {
-      window.removeEventListener('beforeunload', saveCache);
-      clearInterval(intervalId);
-    },
   };
 }
 

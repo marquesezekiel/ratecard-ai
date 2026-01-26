@@ -5,7 +5,14 @@ import { Shield, Info } from "lucide-react";
 import { BrandVetterForm } from "@/components/forms/brand-vetter-form";
 import { BrandVettingResult } from "@/components/brand-vetting-result";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import type { BrandVettingResult as BrandVettingResultType } from "@/lib/types";
+
+const breadcrumbItems = [
+  { label: "Home", href: "/dashboard" },
+  { label: "Tools", href: "/dashboard/tools" },
+  { label: "Brand Vetter" },
+];
 
 function BrandVetterContent() {
   const [vettingResult, setVettingResult] = useState<BrandVettingResultType | null>(null);
@@ -20,6 +27,9 @@ function BrandVetterContent() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb items={breadcrumbItems} />
+
       {/* Disclaimer */}
       <Alert variant="info">
         <Info className="h-4 w-4" />

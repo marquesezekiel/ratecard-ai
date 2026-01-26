@@ -8,6 +8,16 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Menu, User, Gift, FileSearch, Shield, LogOut, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -26,6 +36,7 @@ export function MenuSheet({ onSignOut }: MenuSheetProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [toolsOpen, setToolsOpen] = useState(false)
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
 
   const mainMenuItems = [
     { href: "/dashboard/profile", icon: User, label: "Profile" },
@@ -46,9 +57,9 @@ export function MenuSheet({ onSignOut }: MenuSheetProps) {
       <SheetTrigger asChild>
         <button
           aria-label="Open menu"
-          className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-xl transition-all duration-200 text-muted-foreground"
+          className="flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-xl transition-all duration-200 text-muted-foreground min-w-[44px]"
         >
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl">
+          <div className="flex items-center justify-center w-11 h-11 rounded-xl">
             <Menu className="h-5 w-5" aria-hidden="true" />
           </div>
           <span className="text-[10px] font-medium" aria-hidden="true">Menu</span>
@@ -113,17 +124,39 @@ export function MenuSheet({ onSignOut }: MenuSheetProps) {
 
           <hr className="my-2" />
           <button
-            onClick={() => {
-              handleLinkClick()
-              onSignOut()
-            }}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-destructive hover:bg-destructive/10 w-full text-left"
+            onClick={() => setShowSignOutConfirm(true)}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-destructive hover:bg-destructive/10 w-full text-left min-h-[44px]"
           >
             <LogOut className="h-5 w-5" aria-hidden="true" />
             <span>Sign Out</span>
           </button>
         </nav>
       </SheetContent>
+
+      {/* Sign Out Confirmation Dialog */}
+      <AlertDialog open={showSignOutConfirm} onOpenChange={setShowSignOutConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign out?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You&apos;ll need to sign in again to access your rate cards and saved
+              data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowSignOutConfirm(false)
+                handleLinkClick()
+                onSignOut()
+              }}
+            >
+              Sign Out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   )
 }

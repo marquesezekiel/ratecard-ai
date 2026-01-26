@@ -5,7 +5,14 @@ import { FileText, AlertTriangle } from "lucide-react";
 import { ContractScannerForm } from "@/components/forms/contract-scanner-form";
 import { ContractScanResult } from "@/components/contract-scan-result";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import type { ContractScanResult as ContractScanResultType } from "@/lib/types";
+
+const breadcrumbItems = [
+  { label: "Home", href: "/dashboard" },
+  { label: "Tools", href: "/dashboard/tools" },
+  { label: "Contract Scanner" },
+];
 
 export default function ContractScannerPage() {
   const [scanResult, setScanResult] = useState<ContractScanResultType | null>(null);
@@ -20,6 +27,9 @@ export default function ContractScannerPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb items={breadcrumbItems} />
+
       {/* Legal Disclaimer */}
       <Alert variant="warning">
         <AlertTriangle className="h-4 w-4" />

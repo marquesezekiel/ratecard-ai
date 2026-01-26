@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Home, User, LogOut, Sparkles, Bookmark, MessageSquare, Gift, Shield, FileSearch } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -21,6 +22,7 @@ import { FAB } from "@/components/ui/fab";
 import { MenuSheet } from "@/components/navigation/menu-sheet";
 import { ProfileCompletionBanner } from "@/components/dashboard/profile-completion-banner";
 import { DashboardTour } from "@/components/onboarding/dashboard-tour";
+import { KeyboardShortcutsModal } from "@/components/ui/keyboard-shortcuts-modal";
 
 // Mobile bottom nav - reduced to 3 core items
 const mobileNavItems = [
@@ -90,13 +92,13 @@ function BottomNavLink({
       href={href}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-xl transition-all duration-200 press",
+        "flex flex-col items-center justify-center gap-1 py-2 px-3 rounded-xl transition-all duration-200 press min-w-[44px]",
         isActive ? "text-primary" : "text-muted-foreground"
       )}
     >
       <div
         className={cn(
-          "flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-200",
+          "flex items-center justify-center w-11 h-11 rounded-xl transition-all duration-200",
           isActive && "bg-primary/10"
         )}
       >
@@ -127,6 +129,13 @@ export default function DashboardLayout({
   const [profileState, setProfileState] = useState<ProfileOnboardingState | null>(null);
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [showTour, setShowTour] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+
+  // Set up keyboard shortcuts
+  useKeyboardShortcuts({
+    onShowHelp: () => setShowKeyboardShortcuts(true),
+    enabled: !showTour && !showKeyboardShortcuts,
+  });
 
   // Check profile onboarding state
   useEffect(() => {
@@ -363,6 +372,12 @@ export default function DashboardLayout({
             prev ? { ...prev, hasSeenDashboardTour: true } : null
           );
         }}
+      />
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal
+        open={showKeyboardShortcuts}
+        onOpenChange={setShowKeyboardShortcuts}
       />
     </div>
   );

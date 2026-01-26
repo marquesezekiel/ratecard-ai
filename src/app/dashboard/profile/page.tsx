@@ -31,9 +31,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Zap, ChevronDown } from "lucide-react";
 import { calculateTier } from "@/lib/pricing-engine";
 import type { CreatorProfile } from "@/lib/types";
+
+const breadcrumbItems = [
+  { label: "Home", href: "/dashboard" },
+  { label: "Profile" },
+];
 
 interface ProfileFormValues {
   displayName?: string;
@@ -314,6 +320,9 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      {/* Breadcrumb */}
+      <Breadcrumb items={breadcrumbItems} />
+
       {/* Celebration Toast */}
       {celebration.isShowing && celebration.milestone && (
         <CelebrationToast

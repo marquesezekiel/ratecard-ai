@@ -79,7 +79,7 @@ export function CopyIconButton({
       variant="ghost"
       size="icon"
       onClick={handleCopy}
-      className={cn("h-8 w-8", className)}
+      className={cn("h-11 w-11 sm:h-8 sm:w-8", className)}
       aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
     >
       {copied ? (
