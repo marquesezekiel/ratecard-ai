@@ -4,6 +4,16 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Copy, Check, Trash2, Bookmark, Zap, FileText, Loader2 } from "lucide-react";
 import { useRateCards } from "@/hooks/use-rate-cards";
 import { trackEvent } from "@/lib/analytics";
@@ -19,6 +29,20 @@ export interface SavedRate {
   createdAt: string;
 }
 
+// Legacy localStorage save function for backwards compatibility with share-actions
+// TODO: Migrate share-actions to use API-based saving via useRateCards hook
+export function saveRate(rate: Omit<SavedRate, "id" | "createdAt">) {
+  const savedRates = JSON.parse(localStorage.getItem("savedRates") || "[]") as SavedRate[];
+  const newRate: SavedRate = {
+    ...rate,
+    id: `rate-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+  };
+  savedRates.push(newRate);
+  localStorage.setItem("savedRates", JSON.stringify(savedRates));
+  return newRate;
+}
+
 interface SavedRatesProps {
   onQuickQuote?: () => void;
   onUploadBrief?: () => void;
@@ -30,6 +54,7 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const copyRate = async (rateCard: typeof rateCards[0]) => {
     const text = `$${rateCard.finalRate} for ${rateCard.contentFormat} on ${rateCard.platform}`;
@@ -38,17 +63,26 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleDelete = async (id: string) => {
-    setDeletingId(id);
+  const handleDeleteClick = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!confirmDeleteId) return;
+
+    setDeletingId(confirmDeleteId);
+    setConfirmDeleteId(null);
     try {
-      await deleteRateCard(id);
-      trackEvent("rate_deleted", { rateId: id });
+      await deleteRateCard(confirmDeleteId);
+      trackEvent("rate_deleted", { rateId: confirmDeleteId });
     } catch (error) {
       console.error("Failed to delete rate card:", error);
     } finally {
       setDeletingId(null);
     }
   };
+
+  const rateToDelete = rateCards.find((r) => r.id === confirmDeleteId);
 
   const startEditing = (rateCard: typeof rateCards[0]) => {
     setEditingId(rateCard.id);
@@ -165,6 +199,7 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
                   onBlur={() => saveEdit(rateCard.id)}
                   onKeyDown={(e) => e.key === "Enter" && saveEdit(rateCard.id)}
                   className="h-8"
+                  // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional for inline editing UX
                   autoFocus
                 />
               ) : (
@@ -202,7 +237,7 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
                 variant="ghost"
                 size="icon"
                 className="h-11 w-11 sm:h-9 sm:w-9 text-muted-foreground hover:text-destructive"
-                onClick={() => handleDelete(rateCard.id)}
+                onClick={() => handleDeleteClick(rateCard.id)}
                 disabled={deletingId === rateCard.id}
                 aria-label={`Delete rate for ${rateCard.name}`}
               >
@@ -216,6 +251,32 @@ export function SavedRates({ onQuickQuote, onUploadBrief }: SavedRatesProps) {
           </div>
         ))}
       </CardContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={confirmDeleteId !== null}
+        onOpenChange={(open) => !open && setConfirmDeleteId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this rate?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <strong>&quot;{rateToDelete?.name}&quot;</strong>. This action cannot
+              be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

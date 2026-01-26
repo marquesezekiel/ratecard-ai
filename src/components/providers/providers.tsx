@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect } from 'react';
 import { SWRProvider } from '@/lib/swr-config';
 import { PostHogProvider } from './posthog-provider';
 
@@ -17,6 +17,11 @@ interface ProvidersProps {
  * Add additional providers here as needed (e.g., theme, auth).
  */
 export function Providers({ children }: ProvidersProps) {
+  useEffect(() => {
+    // Initialize axe-core for accessibility testing in development
+    import('@/lib/axe-dev').then(({ initAxe }) => initAxe());
+  }, []);
+
   return (
     <PostHogProvider>
       <SWRProvider>
