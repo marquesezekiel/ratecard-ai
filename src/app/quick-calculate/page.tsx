@@ -1,16 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Calculator, CheckCircle2 } from "lucide-react";
 import { QuickCalculatorForm } from "@/components/forms/quick-calculator-form";
 import { QuickCalculatorResult } from "@/components/quick-calculator-result";
+import { useAuth } from "@/hooks/use-auth";
 import type { QuickEstimateResult } from "@/lib/types";
 
 export default function QuickCalculatePage() {
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [result, setResult] = useState<QuickEstimateResult | null>(null);
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  // Show loading while checking auth
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Sparkles className="h-6 w-6 text-primary animate-sparkle" />
+          </div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleResult = (estimate: QuickEstimateResult) => {
     setResult(estimate);
