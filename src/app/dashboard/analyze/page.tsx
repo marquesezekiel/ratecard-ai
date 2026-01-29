@@ -45,12 +45,15 @@ export default function AnalyzeDMPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { profile, isLoading: profileLoading } = useProfile();
-  const [, setLastAnalysis] = useState<DMAnalysis | null>(null);
+  const [lastAnalysis, setLastAnalysis] = useState<DMAnalysis | null>(null);
 
   // Get pre-filled message and tab from query params
   const initialMessage = searchParams.get("message") || "";
   const initialTab = searchParams.get("tab") === "briefs" ? "briefs" : "messages";
   const [activeTab, setActiveTab] = useState<"messages" | "briefs">(initialTab);
+
+  // Track if we're showing results (fullscreen mode)
+  const showingResults = lastAnalysis !== null;
 
   // Brief upload state
   const [parseStep, setParseStep] = useState<ParseStep>("idle");
@@ -282,11 +285,30 @@ export default function AnalyzeDMPage() {
     setLastAnalysis(analysis);
   };
 
+  const handleAnalysisReset = () => {
+    setLastAnalysis(null);
+  };
+
   const handleEvaluateGift = (analysis: DMAnalysis) => {
     // Store the analysis for the gift evaluator page
     sessionStorage.setItem("giftAnalysis", JSON.stringify(analysis));
     router.push("/dashboard/gifts?evaluate=true");
   };
+
+  // When showing results, render fullscreen without tabs
+  if (showingResults && activeTab === "messages") {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <DMParserForm
+          profile={profile}
+          initialMessage={initialMessage}
+          onAnalysisComplete={handleAnalysisComplete}
+          onEvaluateGift={handleEvaluateGift}
+          onReset={handleAnalysisReset}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -319,6 +341,7 @@ export default function AnalyzeDMPage() {
             initialMessage={initialMessage}
             onAnalysisComplete={handleAnalysisComplete}
             onEvaluateGift={handleEvaluateGift}
+            onReset={handleAnalysisReset}
           />
         </TabsContent>
 

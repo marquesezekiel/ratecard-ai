@@ -25,6 +25,7 @@ import {
   CheckCircle,
   Shield,
   FileText,
+  RotateCcw,
 } from "lucide-react";
 import { CopyButton } from "@/components/ui/copy-button";
 import { DealBadgesRow } from "@/components/ui/deal-badges-row";
@@ -38,6 +39,7 @@ interface MessageAnalyzerFormProps {
   onAnalysisComplete?: (analysis: MessageAnalysis) => void;
   onEvaluateGift?: (analysis: MessageAnalysis) => void;
   onVetBrand?: (brandName: string, brandHandle?: string | null, platform?: string) => void;
+  onReset?: () => void;
 }
 
 const SOURCE_OPTIONS: { value: MessageSource | "auto"; label: string }[] = [
@@ -67,6 +69,7 @@ export function MessageAnalyzerForm({
   onAnalysisComplete,
   onEvaluateGift,
   onVetBrand,
+  onReset,
 }: MessageAnalyzerFormProps) {
   const router = useRouter();
   const [messageText, setMessageText] = useState(initialMessage);
@@ -156,6 +159,15 @@ export function MessageAnalyzerForm({
         router.push(`/dashboard/tools/brand-vetter?${params.toString()}`);
       }
     }
+  };
+
+  const handleReset = () => {
+    setAnalysis(null);
+    setMessageText("");
+    setSourceHint("auto");
+    setError(null);
+    setStatusMessage("");
+    onReset?.();
   };
 
   const getCompensationBadge = (type: MessageAnalysis["compensationType"]) => {
@@ -269,106 +281,10 @@ export function MessageAnalyzerForm({
     };
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Input Form */}
-      <Card
-        className="border-2 border-dashed border-primary/20 hover:border-primary/40 transition-colors"
-        data-tour="message-input"
-      >
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5 text-primary" />
-            Drop your message here
-          </CardTitle>
-          <CardDescription>
-            Paste a DM, email, or any brand outreach. We&apos;ll decode it for you.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" aria-describedby="message-form-instructions">
-            {/* Form instructions for screen readers */}
-            <p id="message-form-instructions" className="sr-only">{FORM_INSTRUCTIONS}</p>
-            <p className="text-xs text-muted-foreground" aria-hidden="true">{FORM_INSTRUCTIONS}</p>
-
-            <div className="space-y-2">
-              <Label htmlFor="source-hint">Message Source (optional)</Label>
-              <Select value={sourceHint} onValueChange={(v) => setSourceHint(v as MessageSource | "auto")}>
-                <SelectTrigger id="source-hint">
-                  <SelectValue placeholder="Auto-detect" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SOURCE_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                We&apos;ll auto-detect if this is a DM or email, but you can specify if you know.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="message-text" required>Brand Message</Label>
-              <Textarea
-                id="message-text"
-                placeholder={`Paste a brand message here...
-
-Example DM:
-"Hey! We love your content and would love to send you some products to try!"
-
-Example Email:
-"Dear Creator, We're reaching out about a paid partnership opportunity..."`}
-                value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                className="min-h-[200px] resize-none text-base leading-relaxed"
-              />
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <div className="flex gap-3">
-                  <span className="flex items-center gap-1">
-                    <MessageSquare className="h-3 w-3" /> DMs
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Mail className="h-3 w-3" /> Emails
-                  </span>
-                </div>
-                <span>{messageText.length} characters</span>
-              </div>
-            </div>
-
-            {/* Status announcements for screen readers */}
-            <div role="status" aria-live="polite" className="sr-only">
-              {statusMessage}
-            </div>
-
-            {/* Error announcements for screen readers */}
-            <div role="alert" aria-live="assertive">
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
-              )}
-            </div>
-
-            <Button type="submit" disabled={loading || messageText.trim().length < 20} className="w-full">
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Analyze Message
-                </>
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Analysis Results */}
-      {analysis && (
+  // Show only results when analysis is complete (fullscreen takeover)
+  if (analysis) {
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="space-y-4">
           {/* Personality Header */}
           {(() => {
@@ -628,8 +544,113 @@ Example Email:
               </CardContent>
             </Card>
           )}
+
+          {/* Start Over Button */}
+          <div className="flex justify-center pt-4">
+            <Button variant="outline" onClick={handleReset} className="gap-2">
+              <RotateCcw className="h-4 w-4" />
+              Analyze Another Message
+            </Button>
+          </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  // Default: show input form
+  return (
+    <div className="space-y-6">
+      <Card
+        className="border-2 border-dashed border-primary/20 hover:border-primary/40 transition-colors"
+        data-tour="message-input"
+      >
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5 text-primary" />
+            Drop your message here
+          </CardTitle>
+          <CardDescription>
+            Paste a DM, email, or any brand outreach. We&apos;ll decode it for you.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4" aria-describedby="message-form-instructions">
+            <p id="message-form-instructions" className="sr-only">{FORM_INSTRUCTIONS}</p>
+            <p className="text-xs text-muted-foreground" aria-hidden="true">{FORM_INSTRUCTIONS}</p>
+
+            <div className="space-y-2">
+              <Label htmlFor="source-hint">Message Source (optional)</Label>
+              <Select value={sourceHint} onValueChange={(v) => setSourceHint(v as MessageSource | "auto")}>
+                <SelectTrigger id="source-hint">
+                  <SelectValue placeholder="Auto-detect" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SOURCE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                We&apos;ll auto-detect if this is a DM or email, but you can specify if you know.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="message-text" required>Brand Message</Label>
+              <Textarea
+                id="message-text"
+                placeholder={`Paste a brand message here...
+
+Example DM:
+"Hey! We love your content and would love to send you some products to try!"
+
+Example Email:
+"Dear Creator, We're reaching out about a paid partnership opportunity..."`}
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                className="min-h-[200px] resize-none text-base leading-relaxed"
+              />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div className="flex gap-3">
+                  <span className="flex items-center gap-1">
+                    <MessageSquare className="h-3 w-3" /> DMs
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Mail className="h-3 w-3" /> Emails
+                  </span>
+                </div>
+                <span>{messageText.length} characters</span>
+              </div>
+            </div>
+
+            <div role="status" aria-live="polite" className="sr-only">
+              {statusMessage}
+            </div>
+
+            <div role="alert" aria-live="assertive">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
+              )}
+            </div>
+
+            <Button type="submit" disabled={loading || messageText.trim().length < 20} className="w-full">
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Analyze Message
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
