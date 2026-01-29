@@ -92,7 +92,7 @@ export default function HomePage() {
               {/* Subhead */}
               <p className="mt-6 text-lg lg:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0">
                 Get a professional rate card in 30 seconds.
-                Know exactly what to charge brands—and justify every dollar.
+                Know what to charge — and back it up with real data.
               </p>
 
               {/* CTA */}
@@ -169,7 +169,7 @@ export default function HomePage() {
       <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="mx-auto max-w-5xl">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-center tracking-display mb-12">
-            Everything you need to get paid fairly
+            Stop leaving money on the table
           </h2>
 
           <div className="grid md:grid-cols-2 gap-6 md:gap-8">
@@ -184,7 +184,7 @@ export default function HomePage() {
                 </h3>
                 <p className="text-muted-foreground">
                   Paste a DM or email. We&apos;ll tell you if it&apos;s legit, what to charge,
-                  and give you a response to copy-paste.
+                  and write your response for you.
                 </p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-center gap-2">
@@ -219,15 +219,15 @@ export default function HomePage() {
                   Professional Rate Cards
                 </h3>
                 <p className="text-muted-foreground">
-                  Generate a PDF rate card you can send to any brand. Backed by real
-                  market data so you never undercharge.
+                  Get a PDF that looks like it came from a talent agency.
+                  Send it to any brand, know you&apos;re not lowballing yourself.
                 </p>
                 <ul className="space-y-2 text-sm">
                   <li className="flex items-center gap-2">
                     <div className="h-5 w-5 rounded-full bg-coral/10 flex items-center justify-center">
                       <Check className="h-3 w-3 text-coral" />
                     </div>
-                    10+ pricing factors calculated
+                    10 factors brands actually care about
                   </li>
                   <li className="flex items-center gap-2">
                     <div className="h-5 w-5 rounded-full bg-coral/10 flex items-center justify-center">
@@ -239,7 +239,7 @@ export default function HomePage() {
                     <div className="h-5 w-5 rounded-full bg-coral/10 flex items-center justify-center">
                       <Check className="h-3 w-3 text-coral" />
                     </div>
-                    Looks like it came from an agency
+                    Polished enough for any brand
                   </li>
                 </ul>
               </div>
@@ -312,7 +312,7 @@ export default function HomePage() {
                   ready to know your worth?
                 </h2>
                 <p className="mt-4 text-lg text-primary-foreground/80 max-w-xl">
-                  Join creators who stopped underselling and started getting paid what they deserve.
+                  Thousands of creators stopped guessing. Now they show up with real numbers.
                 </p>
                 <div className="mt-8">
                   <Link href="/quick-calculate">
@@ -339,7 +339,7 @@ export default function HomePage() {
           {/* Aspirational message */}
           <div className="text-center mb-10">
             <p className="text-lg text-muted-foreground">
-              Join thousands of creators who stopped guessing and started getting paid what they deserve.
+              Built by creators, for creators. No VCs, no ads, no selling your data.
             </p>
           </div>
 

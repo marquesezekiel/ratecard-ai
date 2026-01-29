@@ -26,8 +26,6 @@ import {
   Shield,
   FileText,
   RotateCcw,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { CopyButton } from "@/components/ui/copy-button";
 import { DealBadgesRow } from "@/components/ui/deal-badges-row";
@@ -301,11 +299,13 @@ export function MessageAnalyzerForm({
               <div className="flex items-start gap-3">
                 <Shield className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-amber-800">We recommend vetting this brand</p>
+                  <p className="font-medium text-amber-800">
+                    {analysis.tone === "scam_likely" ? "Verify before engaging" : "Quick verification recommended"}
+                  </p>
                   <p className="text-sm text-amber-700 mt-1">
                     {analysis.tone === "scam_likely"
-                      ? "This message has suspicious signals. Research the brand before responding."
-                      : "Multiple red flags detected. A quick brand check can save you time."}
+                      ? "Save time by confirming this brand's legitimacy before responding."
+                      : "A 30-second brand check can help you prioritize this opportunity."}
                   </p>
                   <Button
                     variant="outline"
@@ -314,7 +314,7 @@ export function MessageAnalyzerForm({
                     className="mt-3 border-amber-300 text-amber-800 hover:bg-amber-100"
                   >
                     <Shield className="h-4 w-4 mr-2" />
-                    Research {analysis.brandName}
+                    Quick Check: {analysis.brandName}
                   </Button>
                 </div>
               </div>

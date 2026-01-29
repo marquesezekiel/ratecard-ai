@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +22,9 @@ import type { QuickEstimateResult } from "@/lib/types";
 import { useSession } from "@/lib/auth-client";
 import { trackEvent } from "@/lib/analytics";
 
+// Key for storing quick calculator data in localStorage
+const QUICK_CALC_STORAGE_KEY = "quickCalcData";
+
 interface QuickCalculatorResultProps {
   result: QuickEstimateResult;
   onReset: () => void;
@@ -39,8 +43,28 @@ export function QuickCalculatorResult({
   result,
   onReset,
 }: QuickCalculatorResultProps) {
+  const router = useRouter();
   const { data: session } = useSession();
   const isAuthenticated = !!session?.user;
+
+  // Store calculator data and navigate to sign-up
+  const handleSignUpClick = () => {
+    // Store the calculator results for pre-filling onboarding
+    const dataToStore = {
+      followerCount: result.followerCount,
+      platform: result.platform,
+      niche: result.niche,
+      estimatedRate: result.maxRate,
+    };
+    localStorage.setItem(QUICK_CALC_STORAGE_KEY, JSON.stringify(dataToStore));
+
+    trackEvent('quick_calculate_cta_click', {
+      destination: '/sign-up',
+      estimatedRate: result.maxRate,
+    });
+
+    router.push("/sign-up");
+  };
 
   const formatDisplayNames: Record<string, string> = {
     static: "Static Post",
@@ -152,12 +176,10 @@ export function QuickCalculatorResult({
           <div className="border-t pt-6">
             <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 text-center">
               <Lightbulb className="h-8 w-8 text-primary mx-auto mb-2" />
-              <p className="font-semibold mb-1">Did you know?</p>
+              <p className="font-semibold mb-1">Creators who know their market rate get paid more</p>
               <p className="text-sm text-muted-foreground">
-                <span className="text-foreground font-medium">73% of creators</span> with 10K-50K followers undercharge by an average of <span className="font-mono font-medium text-foreground">$340</span> per deal.
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                That&apos;s <span className="font-semibold">$4,000+ left on the table</span> per year.
+                When you can back your rate with real data, brands take you seriously.
+                No more guessing, no more lowballing yourself.
               </p>
             </div>
           </div>
@@ -192,20 +214,31 @@ export function QuickCalculatorResult({
           </div>
 
           <div className="flex flex-col gap-3 pt-2">
-            <Button
-              asChild
-              size="lg"
-              className="w-full gap-2 text-base"
-              onClick={() => trackEvent('quick_calculate_cta_click', {
-                destination: isAuthenticated ? '/dashboard' : '/sign-up',
-                estimatedRate: result.maxRate,
-              })}
-            >
-              <Link href={isAuthenticated ? "/dashboard" : "/sign-up"}>
-                {isAuthenticated ? "Create Your Rate Card" : "Get Your Full Rate Card"}
+            {isAuthenticated ? (
+              <Button
+                asChild
+                size="lg"
+                className="w-full gap-2 text-base"
+                onClick={() => trackEvent('quick_calculate_cta_click', {
+                  destination: '/dashboard',
+                  estimatedRate: result.maxRate,
+                })}
+              >
+                <Link href="/dashboard">
+                  Create Your Rate Card
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                className="w-full gap-2 text-base"
+                onClick={handleSignUpClick}
+              >
+                Get Your Full Rate Card
                 <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"

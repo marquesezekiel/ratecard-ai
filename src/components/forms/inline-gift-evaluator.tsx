@@ -18,7 +18,6 @@ import {
   Loader2,
   Gift,
   DollarSign,
-  Clock,
   TrendingUp,
   AlertTriangle,
   CheckCircle,

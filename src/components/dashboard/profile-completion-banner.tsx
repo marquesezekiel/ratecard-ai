@@ -66,7 +66,7 @@ export function ProfileCompletionBanner({ completeness }: ProfileCompletionBanne
           <div className="flex items-center gap-4 min-w-0">
             <Progress value={completeness} className="w-20 h-2 flex-shrink-0" />
             <span className="text-sm text-foreground/80 truncate">
-              Your profile is <span className="font-semibold">{completeness}%</span> complete
+              Profile <span className="font-semibold">{completeness}%</span> — add more for better rate accuracy
             </span>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">

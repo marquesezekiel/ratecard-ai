@@ -8,7 +8,7 @@ const tools = [
   {
     href: "/dashboard/tools/brand-vetter",
     title: "Brand Vetter",
-    description: "Check if a brand is legitimate before engaging. Research their social presence, website, and collaboration history.",
+    description: "Is this brand real? Have they worked with creators before? Find out before you reply.",
     icon: Shield,
     color: "text-blue-600",
     bgColor: "bg-blue-50",
@@ -16,7 +16,7 @@ const tools = [
   {
     href: "/dashboard/tools/contract-scanner",
     title: "Contract Scanner",
-    description: "Upload a contract to analyze it for red flags, missing clauses, and terms that need negotiation.",
+    description: "Upload that contract before you sign. We'll flag anything sketchy and tell you what's missing.",
     icon: FileText,
     color: "text-purple-600",
     bgColor: "bg-purple-50",
@@ -33,7 +33,7 @@ export default function ToolsPage() {
           <h1 className="text-2xl font-display font-bold md:text-3xl">Creator Tools</h1>
         </div>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Helpful tools to protect yourself and make smarter decisions about brand partnerships.
+          Before you say yes: check if the brand&apos;s legit, spot red flags in contracts.
         </p>
       </header>
 

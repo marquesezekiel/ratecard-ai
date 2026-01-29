@@ -112,7 +112,7 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
     }
 
     if (followers > MAX_FOLLOWER_COUNT) {
-      setError(`For creators with ${MAX_FOLLOWER_COUNT.toLocaleString()}+ followers, we recommend a custom consultation. Our tool is optimized for creators with up to 10M followers.`);
+      setError(`At ${MAX_FOLLOWER_COUNT.toLocaleString()}+ followers, your rates depend heavily on exclusivity deals and brand relationships. Create a free account for personalized pricing at your level.`);
       return;
     }
 
@@ -222,7 +222,7 @@ export function QuickCalculatorForm({ onResult }: QuickCalculatorFormProps) {
           <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
             <AlertCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
             <p className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Celebrity tier detected.</span> Rates at this level vary significantly based on brand relationships and exclusivity deals.
+              <span className="font-medium text-foreground">Nice numbers.</span> At your level, rates swing a lot based on exclusivity and brand relationships. We&apos;ll give you a baseline — adjust from there.
             </p>
           </div>
         )}

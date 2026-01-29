@@ -2,7 +2,8 @@
 
 import { useState, useEffect, startTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, AlertCircle, CheckCircle2, RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { Loader2, AlertCircle, CheckCircle2, RotateCcw, Shield, FileSearch, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -255,6 +256,41 @@ export default function GeneratePage() {
             New Rate Card
           </Button>
         </div>
+
+        {/* What's Next */}
+        <Card className="border-dashed">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">What&apos;s Next?</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Link
+              href={`/dashboard/tools/brand-vetter?brand=${encodeURIComponent(brief.brand.name)}`}
+              className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <Shield className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium text-sm">Vet {brief.brand.name}</p>
+                  <p className="text-xs text-muted-foreground">Check if they&apos;re legit before you respond</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/dashboard/tools/contract-scanner"
+              className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <FileSearch className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium text-sm">Got a contract?</p>
+                  <p className="text-xs text-muted-foreground">Scan it for red flags before signing</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     );
   }
