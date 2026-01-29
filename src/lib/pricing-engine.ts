@@ -84,17 +84,21 @@ function getFitLevelFromScore(score: ScoreInput): FitLevel {
 /**
  * Maximum total multiplier cap to prevent volatile/unrealistic outputs.
  * Even with all premiums stacked (engagement, niche, format, rights, etc.),
- * the final rate cannot exceed 3.0x the base rate.
+ * the final rate cannot exceed 2.5x the base rate.
+ *
+ * UPDATED: Reduced from 3.0x to 2.5x to keep micro-tier rates closer to
+ * market expectations. A micro creator ($400 base) capped at 2.5x = $1,000
+ * per deliverable, which is more aligned with industry standards.
  *
  * This prevents edge cases where a creator with:
  * - High engagement (2.0x)
  * - Finance niche (1.5x)
  * - Video format (+35%)
  * - Full exclusivity (+50%)
- * - Paid social whitelisting (+100%)
- * ...would result in a 9x+ multiplier.
+ * - Paid social whitelisting (+50%)
+ * ...would result in unrealistic rates.
  */
-const MAX_TOTAL_MULTIPLIER = 3.0;
+const MAX_TOTAL_MULTIPLIER = 2.5;
 
 // =============================================================================
 // LAYER 1: BASE RATES BY TIER
@@ -397,24 +401,33 @@ const EXCLUSIVITY_PREMIUMS: Record<ExclusivityLevel, number> = {
 
 /**
  * Whitelisting premiums based on how brand can use creator content.
- * This is separate from usage rights (duration + exclusivity) because
- * whitelisting represents additional value when brands use creator content
- * in their own channels/ads.
  *
- * IMPORTANT: Capped at +100% max to prevent double-counting with usage rights.
- * Usage rights already cover duration/exclusivity - whitelisting is the
- * additional value for channel usage specifically.
+ * IMPORTANT: Whitelisting is now ADDITIVE with usage rights, not multiplicative.
+ * When usage rights already include paid media (durationDays > 0), the whitelisting
+ * premium is reduced to avoid double-counting.
  *
  * - none: Content stays on creator's channels only (0%)
- * - organic: Brand can repost organically (+25%)
- * - paid_social: Brand can run as paid social ads (+50%)
- * - full_media: Full media buy - TV, OOH, digital ads (+100% max)
+ * - organic: Brand can repost organically (+15%)
+ * - paid_social: Brand can run as paid social ads (+25% if no usage rights, +10% with usage rights)
+ * - full_media: Full media buy - TV, OOH, digital ads (+40% if no usage rights, +20% with usage rights)
  */
 const WHITELISTING_PREMIUMS: Record<WhitelistingType, number> = {
   none: 0,          // No whitelisting
-  organic: 0.25,    // Brand reposts (+25%, was +50%)
-  paid_social: 0.5, // Brand runs as paid ads (+50%, was +100%)
-  full_media: 1.0,  // Full media buy (+100% max, was +200%)
+  organic: 0.15,    // Brand reposts (+15%, reduced from +25%)
+  paid_social: 0.25, // Brand runs as paid ads (+25%, reduced from +50%)
+  full_media: 0.40,  // Full media buy (+40%, reduced from +100%)
+};
+
+/**
+ * Reduced whitelisting premiums when usage rights already include paid media.
+ * This prevents double-counting since usage rights already compensate for
+ * the brand using content in paid channels.
+ */
+const WHITELISTING_PREMIUMS_WITH_USAGE: Record<WhitelistingType, number> = {
+  none: 0,
+  organic: 0.10,    // Reduced to +10% (brand already paying for usage)
+  paid_social: 0.10, // Reduced to +10% (usage rights cover most of this value)
+  full_media: 0.20,  // Reduced to +20% (TV/OOH is additional value beyond digital)
 };
 
 /** Default whitelisting type */
@@ -1378,16 +1391,23 @@ function getDurationPremium(durationDays: number): number {
 }
 
 /**
- * Get whitelisting premium based on type.
- * Returns the premium multiplier for how brand can use creator content
- * in their own channels.
+ * Get whitelisting premium based on type and whether usage rights are included.
+ * Returns a reduced premium when usage rights already include paid media
+ * to avoid double-counting.
  *
  * @param type - The whitelisting type
- * @returns Premium value (e.g., 0 for none, 0.5 for organic, 1.0 for paid_social, 2.0 for full_media)
+ * @param hasUsageRights - Whether the deal includes paid usage rights (durationDays > 0)
+ * @returns Premium value (reduced if usage rights are included)
  */
-export function getWhitelistingPremium(type: string | undefined): number {
+export function getWhitelistingPremium(type: string | undefined, hasUsageRights: boolean = false): number {
   if (!type) return WHITELISTING_PREMIUMS[DEFAULT_WHITELISTING_TYPE];
   const normalizedType = type.toLowerCase().trim() as WhitelistingType;
+
+  // Use reduced premiums if usage rights already include paid media
+  if (hasUsageRights) {
+    return WHITELISTING_PREMIUMS_WITH_USAGE[normalizedType] ?? WHITELISTING_PREMIUMS_WITH_USAGE[DEFAULT_WHITELISTING_TYPE];
+  }
+
   return WHITELISTING_PREMIUMS[normalizedType] ?? WHITELISTING_PREMIUMS[DEFAULT_WHITELISTING_TYPE];
 }
 
@@ -1584,15 +1604,20 @@ export function calculateUGCPrice(
   currentPrice *= 1 + totalRightsPremium;
 
   // -------------------------------------------------------------------------
-  // Layer 2.5: Whitelisting Premium (UGC)
+  // Layer 2.5: Whitelisting Premium (UGC - reduced if usage rights included)
   // -------------------------------------------------------------------------
   const whitelistingType = brief.usageRights.whitelistingType || "none";
-  const whitelistingPremium = getWhitelistingPremium(whitelistingType);
+  const hasUsageRights = durationDays > 0;
+  const whitelistingPremium = getWhitelistingPremium(whitelistingType, hasUsageRights);
   const whitelistingDisplayName = getWhitelistingDisplayName(whitelistingType);
+
+  const whitelistingDescription = hasUsageRights && whitelistingPremium > 0
+    ? `${whitelistingDisplayName} (reduced - usage rights included)`
+    : whitelistingDisplayName;
 
   layers.push({
     name: "Whitelisting",
-    description: whitelistingDisplayName,
+    description: whitelistingDescription,
     baseValue: whitelistingType,
     multiplier: 1 + whitelistingPremium,
     adjustment: currentPrice * whitelistingPremium,
@@ -1897,15 +1922,21 @@ function calculateStandardSponsoredPrice(
   currentPrice *= 1 + totalRightsPremium;
 
   // -------------------------------------------------------------------------
-  // Layer 5.5: Whitelisting Premium
+  // Layer 5.5: Whitelisting Premium (reduced if usage rights already included)
   // -------------------------------------------------------------------------
   const whitelistingType = brief.usageRights.whitelistingType || "none";
-  const whitelistingPremium = getWhitelistingPremium(whitelistingType);
+  const hasUsageRights = durationDays > 0; // Brand already paying for usage rights
+  const whitelistingPremium = getWhitelistingPremium(whitelistingType, hasUsageRights);
   const whitelistingDisplayName = getWhitelistingDisplayName(whitelistingType);
+
+  // Add note if premium was reduced due to usage rights
+  const whitelistingDescription = hasUsageRights && whitelistingPremium > 0
+    ? `${whitelistingDisplayName} (reduced - usage rights included)`
+    : whitelistingDisplayName;
 
   layers.push({
     name: "Whitelisting",
-    description: whitelistingDisplayName,
+    description: whitelistingDescription,
     baseValue: whitelistingType,
     multiplier: 1 + whitelistingPremium,
     adjustment: currentPrice * whitelistingPremium,
