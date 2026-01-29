@@ -1,5 +1,6 @@
+import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
-import { FileText, Gift, MessageSquare } from "lucide-react"
+import { FileText, Gift, MessageSquare, ChevronRight } from "lucide-react"
 import { DealBadge } from "@/components/ui/deal-badge"
 
 export interface Activity {
@@ -10,6 +11,18 @@ export interface Activity {
   timestamp: Date
   dealQuality?: "excellent" | "good" | "fair" | "caution"
   isGift?: boolean
+}
+
+// Get the link for each activity type
+function getActivityLink(activity: Activity): string | null {
+  switch (activity.type) {
+    case "rate_card":
+      return `/dashboard/rate-cards/${activity.id}`
+    case "gift":
+      return `/dashboard/gifts`
+    default:
+      return null
+  }
 }
 
 function formatRelativeTime(date: Date): string {
@@ -54,9 +67,11 @@ export function RecentActivityFeed({ activities }: { activities: Activity[] }) {
       <CardContent className="p-0 divide-y">
         {activities.map((activity) => {
           const Icon = iconMap[activity.type]
-          return (
-            <div key={activity.id} className="flex items-center gap-3 p-4">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+          const link = getActivityLink(activity)
+
+          const content = (
+            <>
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted shrink-0">
                 <Icon className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="flex-1 min-w-0">
@@ -76,6 +91,27 @@ export function RecentActivityFeed({ activities }: { activities: Activity[] }) {
               <time className="text-xs text-muted-foreground whitespace-nowrap">
                 {formatRelativeTime(activity.timestamp)}
               </time>
+              {link && (
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              )}
+            </>
+          )
+
+          if (link) {
+            return (
+              <Link
+                key={activity.id}
+                href={link}
+                className="flex items-center gap-3 p-4 hover:bg-muted/50 transition-colors"
+              >
+                {content}
+              </Link>
+            )
+          }
+
+          return (
+            <div key={activity.id} className="flex items-center gap-3 p-4">
+              {content}
             </div>
           )
         })}
