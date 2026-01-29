@@ -242,10 +242,10 @@ export function InlineMessageAnalyzer() {
   if (analyzerState === "complete" && inlineResult) {
     const { brief, pricing, dealQuality } = inlineResult
     const usageText = brief.usageRights.durationDays === 0
-      ? "Organic only"
+      ? "Your posts only"
       : brief.usageRights.durationDays >= 365
-        ? "Perpetual usage"
-        : `${brief.usageRights.durationDays}-day usage`
+        ? "Forever (they own it)"
+        : `${brief.usageRights.durationDays}-day rights`
 
     return (
       <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">

@@ -424,6 +424,7 @@ export function calculateQuickEstimate(
     platform,
     contentFormat,
     niche,
+    followerCount, // For pre-filling signup
     // NEW: Percentile & comparison data
     percentile: calculatePercentile(baseRate, tier),
     topPerformerRange: getTopPerformerRange(tier),

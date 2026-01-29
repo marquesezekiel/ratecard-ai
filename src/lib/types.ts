@@ -2526,6 +2526,8 @@ export interface QuickEstimateResult {
   contentFormat: ContentFormat;
   /** Niche used in calculation */
   niche: string;
+  /** Follower count used in calculation (for pre-filling signup) */
+  followerCount: number;
 
   // NEW: Percentile & comparison data
   /** Percentile rank among creators in this tier (0-100) */

@@ -150,10 +150,9 @@ export default function AnalyzeDMPage() {
       {/* Header - hide when showing results in messages tab */}
       {!(showingResults && activeTab === "messages") && (
         <header className="space-y-1">
-          <h1 className="text-2xl font-display font-bold">Brand Inbox</h1>
+          <h1 className="text-2xl font-display font-bold">Analyze a Deal</h1>
           <p className="text-muted-foreground">
-            Paste any message from a brand — DMs, emails, screenshots — or upload a brand brief.
-            We&apos;ll tell you what it&apos;s worth and how to respond.
+            Got a brand message? Paste it here. We&apos;ll tell you what to charge and write your response.
           </p>
         </header>
       )}
@@ -212,9 +211,9 @@ export default function AnalyzeDMPage() {
             /* Show progress steps during parsing */
             <Card>
               <CardHeader>
-                <CardTitle>Analyzing Your Brief</CardTitle>
+                <CardTitle>Reading your brief...</CardTitle>
                 <CardDescription>
-                  Our AI is extracting the key details from your brief.
+                  Pulling out the important stuff — brand, deliverables, timeline, rights.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -242,9 +241,9 @@ export default function AnalyzeDMPage() {
             /* Upload zone */
             <Card data-tour="brief-upload">
               <CardHeader>
-                <CardTitle>Upload Brand Brief</CardTitle>
+                <CardTitle>Upload a Brief</CardTitle>
                 <CardDescription>
-                  Upload a brand brief document. We&apos;ll extract the key details and calculate your rate.
+                  Drop that PDF or Word doc. We&apos;ll pull out the details and give you a rate.
                 </CardDescription>
               </CardHeader>
               <CardContent>

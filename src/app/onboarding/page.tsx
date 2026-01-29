@@ -30,16 +30,43 @@ const PLATFORMS: { value: Platform; label: string }[] = [
   { value: "twitch", label: "Twitch" },
 ];
 
+// Key for reading quick calculator data from localStorage
+const QUICK_CALC_STORAGE_KEY = "quickCalcData";
+
 export default function OnboardingPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const hasTrackedStart = useRef(false);
+  const hasLoadedCalcData = useRef(false);
 
   const [platform, setPlatform] = useState<Platform>("instagram");
   const [followers, setFollowers] = useState("");
   const [engagementRate, setEngagementRate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // Pre-fill from quick calculator data (if available)
+  useEffect(() => {
+    if (hasLoadedCalcData.current) return;
+    hasLoadedCalcData.current = true;
+
+    try {
+      const storedData = localStorage.getItem(QUICK_CALC_STORAGE_KEY);
+      if (storedData) {
+        const data = JSON.parse(storedData);
+        if (data.followerCount) {
+          setFollowers(data.followerCount.toString());
+        }
+        if (data.platform) {
+          setPlatform(data.platform as Platform);
+        }
+        // Clear the stored data after reading
+        localStorage.removeItem(QUICK_CALC_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }, []);
 
   // Track onboarding start once
   useEffect(() => {
@@ -164,9 +191,9 @@ export default function OnboardingPage() {
           <div className="mx-auto h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
             <Zap className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-xl">Quick Setup</CardTitle>
+          <CardTitle className="text-xl">Let&apos;s get you set up</CardTitle>
           <CardDescription>
-            Tell us about your primary platform. You can add more details later.
+            Just 2 things and you&apos;re in. Takes 30 seconds.
           </CardDescription>
         </CardHeader>
 

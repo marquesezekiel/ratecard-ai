@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,8 @@ import {
   Copy,
   ArrowRight,
   Target,
+  Shield,
+  Bookmark,
 } from "lucide-react";
 import { trackEvent } from "@/lib/analytics";
 import type {
@@ -523,6 +526,41 @@ export function GiftEvaluatorForm({ profile, initialData, onEvaluationComplete }
               </CardContent>
             </Card>
           )}
+
+          {/* What's Next */}
+          <Card className="border-dashed">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">What&apos;s Next?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Link
+                href="/dashboard/tools/brand-vetter"
+                className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <Shield className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-sm">Vet this brand</p>
+                    <p className="text-xs text-muted-foreground">Check if they&apos;re legit before committing</p>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                href="/dashboard/gifts"
+                className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <Bookmark className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-sm">Track this gift</p>
+                    <p className="text-xs text-muted-foreground">Save it and set follow-up reminders</p>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

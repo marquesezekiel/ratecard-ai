@@ -35,7 +35,7 @@ function getAdjustmentStyles(adjustment: number) {
 // Explanations for each pricing layer
 const LAYER_EXPLANATIONS: Record<string, string> = {
   "Base Rate": "Starting rate based on your follower tier. Nano (1K-10K): $100, Micro (10K-50K): $250, Mid (50K-500K): $750, Macro (500K+): $2,500.",
-  "Engagement Multiplier": "Higher engagement means your audience actually pays attention. Brands pay more for engaged audiences.",
+  "Engagement Multiplier": "When your audience likes, comments, and shares, brands notice. Higher engagement = more value to them.",
   "Format Premium": "Video content (Reels, TikToks) takes more effort than static posts. Complex formats command higher rates.",
   "Deal Quality": "When your audience matches the brand's target customer, your content performs better—justifying a premium.",
   "Usage Rights": "If the brand wants to use your content in their ads, that's worth significantly more than organic posting only.",
@@ -73,14 +73,11 @@ export function PricingBreakdown({ pricing, showDetailedExplanation = true }: Pr
         {/* Explanation Panel */}
         {showExplanation && (
           <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 space-y-2">
-            <h4 className="font-semibold text-sm text-primary">How RateCard.AI Calculates Your Rate</h4>
+            <h4 className="font-semibold text-sm text-primary">How we got this number</h4>
             <p className="text-sm text-muted-foreground">
-              We use a multi-factor pricing model based on industry benchmarks and real sponsorship data.
-              Each factor either increases or decreases your base rate.
+              We look at 10 factors that actually affect what brands pay — your audience size,
+              engagement, content type, usage rights, and more. Each one bumps your rate up or down.
             </p>
-            <code className="block text-xs text-muted-foreground bg-background/50 p-2.5 rounded-lg font-mono">
-              (Base × Engagement) × (1+Format) × (1+Fit) × (1+Rights) × (1+Complexity)
-            </code>
           </div>
         )}
 

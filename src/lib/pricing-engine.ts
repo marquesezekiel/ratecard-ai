@@ -84,21 +84,17 @@ function getFitLevelFromScore(score: ScoreInput): FitLevel {
 /**
  * Maximum total multiplier cap to prevent volatile/unrealistic outputs.
  * Even with all premiums stacked (engagement, niche, format, rights, etc.),
- * the final rate cannot exceed 2.5x the base rate.
+ * the final rate cannot exceed 4.0x the base rate.
  *
- * UPDATED: Reduced from 3.0x to 2.5x to keep micro-tier rates closer to
- * market expectations. A micro creator ($400 base) capped at 2.5x = $1,000
- * per deliverable, which is more aligned with industry standards.
+ * UPDATED: Raised from 2.5x to 4.0x to allow legitimate premium pricing
+ * for creators with exceptional factors. A micro creator ($400 base) with
+ * high engagement + premium niche + usage rights can now reach $1,600
+ * per deliverable, better reflecting their actual market value.
  *
- * This prevents edge cases where a creator with:
- * - High engagement (2.0x)
- * - Finance niche (1.5x)
- * - Video format (+35%)
- * - Full exclusivity (+50%)
- * - Paid social whitelisting (+50%)
- * ...would result in unrealistic rates.
+ * The previous 2.5x cap was suppressing legitimate rates for creators
+ * with multiple strong factors (engagement, niche, usage rights, etc.).
  */
-const MAX_TOTAL_MULTIPLIER = 2.5;
+const MAX_TOTAL_MULTIPLIER = 4.0;
 
 // =============================================================================
 // LAYER 1: BASE RATES BY TIER
