@@ -4,9 +4,7 @@ import { useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { useRateCards } from "@/hooks/use-rate-cards";
-import { Calculator, Gift } from "lucide-react";
 import { InlineMessageAnalyzer } from "@/components/dashboard/inline-message-analyzer";
-import { QuickActionCard } from "@/components/dashboard/quick-action-card";
 import { RecentActivityFeed, type Activity } from "@/components/dashboard/recent-activity-feed";
 
 // Time-based greeting helper
@@ -37,11 +35,8 @@ export default function DashboardPage() {
 
   // Get creator handle from profile
   const creatorHandle = profile?.handle ?? null;
-
-  // TODO: Pending gifts should come from API once gift tracking is migrated
-  const pendingGifts = 0;
-
   const firstName = user?.name?.split(" ")[0] || "Creator";
+  const hasActivity = recentRates.length > 0;
 
   // Transform recent rates into activity feed format
   const recentActivities: Activity[] = recentRates.map((rate) => ({
@@ -70,49 +65,23 @@ export default function DashboardPage() {
         </p>
       </header>
 
-      {/* PRIMARY: Inline Message Analyzer */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Got a brand message?
-          </h2>
-          <span className="text-xs text-muted-foreground">
-            Works with DMs, emails, and briefs
-          </span>
-        </div>
+      {/* PRIMARY: Inline Message Analyzer - the single focused action */}
+      <section className="space-y-2">
+        <p className="text-sm text-muted-foreground">
+          Paste a brand DM, email, or upload a brief. We&apos;ll tell you what to charge.
+        </p>
         <InlineMessageAnalyzer />
       </section>
 
-      {/* SECONDARY: Quick actions - with distinct visual identities */}
-      <section className="grid grid-cols-2 gap-4">
-        <QuickActionCard
-          href="/quick-calculate"
-          icon={Calculator}
-          title="Quick Rate"
-          description="Get an instant quote"
-          variant="outline"
-          accent="primary"
-          emoji="⚡"
-        />
-        <QuickActionCard
-          href="/dashboard/gifts"
-          icon={Gift}
-          title="Gift Deals"
-          badge={pendingGifts > 0 ? `${pendingGifts} pending` : undefined}
-          description="Track gift offers"
-          variant="outline"
-          accent="coral"
-          emoji="🎁"
-        />
-      </section>
-
-      {/* Recent Activity */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-          Recent Activity
-        </h2>
-        <RecentActivityFeed activities={recentActivities} />
-      </section>
+      {/* Recent Activity - only show if there's activity */}
+      {hasActivity && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+            Recent Activity
+          </h2>
+          <RecentActivityFeed activities={recentActivities} />
+        </section>
+      )}
     </div>
   );
 }
