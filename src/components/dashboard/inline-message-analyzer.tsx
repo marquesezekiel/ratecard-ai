@@ -68,9 +68,8 @@ export function InlineMessageAnalyzer() {
     noClick: mode === "text" && !selectedFile,
   })
 
-  const parseAndCalculate = async (file: File) => {
+  const parseAndCalculateFromFile = async (file: File) => {
     if (!profile) {
-      // No profile - redirect to profile setup
       router.push("/dashboard/profile")
       return
     }
@@ -79,7 +78,7 @@ export function InlineMessageAnalyzer() {
     setError(null)
 
     try {
-      // Step 1: Parse the brief
+      // Step 1: Parse the brief from file
       const formData = new FormData()
       formData.append("file", file)
 
@@ -94,49 +93,81 @@ export function InlineMessageAnalyzer() {
         throw new Error(parseResult.error || "Failed to parse brief")
       }
 
-      const brief = parseResult.data as ParsedBrief
-
-      // Step 2: Calculate rate
-      setAnalyzerState("calculating")
-
-      const calcResponse = await fetch("/api/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ profile, brief }),
-      })
-
-      const calcResult: ApiResponse<{ dealQuality: DealQualityResult; pricing: PricingResult }> = await calcResponse.json()
-
-      if (!calcResult.success || !calcResult.data) {
-        throw new Error(calcResult.error || "Failed to calculate rate")
-      }
-
-      // Store brief in localStorage for the full rate card page
-      localStorage.setItem("currentBrief", JSON.stringify(brief))
-
-      setInlineResult({
-        brief,
-        pricing: calcResult.data.pricing,
-        dealQuality: calcResult.data.dealQuality,
-      })
-      setAnalyzerState("complete")
+      await calculateRate(parseResult.data as ParsedBrief)
     } catch (err) {
       setAnalyzerState("error")
       setError(err instanceof Error ? err.message : "Something went wrong")
     }
   }
 
+  const parseAndCalculateFromText = async (text: string) => {
+    if (!profile) {
+      router.push("/dashboard/profile")
+      return
+    }
+
+    setAnalyzerState("parsing")
+    setError(null)
+
+    try {
+      // Step 1: Parse the brief from text
+      const parseResponse = await fetch("/api/parse-brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      })
+
+      const parseResult: ApiResponse<Omit<ParsedBrief, "id">> = await parseResponse.json()
+
+      if (!parseResult.success || !parseResult.data) {
+        throw new Error(parseResult.error || "Failed to parse message")
+      }
+
+      await calculateRate(parseResult.data as ParsedBrief)
+    } catch (err) {
+      setAnalyzerState("error")
+      setError(err instanceof Error ? err.message : "Something went wrong")
+    }
+  }
+
+  const calculateRate = async (brief: ParsedBrief) => {
+    setAnalyzerState("calculating")
+
+    const calcResponse = await fetch("/api/calculate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profile, brief }),
+    })
+
+    const calcResult: ApiResponse<{ dealQuality: DealQualityResult; pricing: PricingResult }> = await calcResponse.json()
+
+    if (!calcResult.success || !calcResult.data) {
+      throw new Error(calcResult.error || "Failed to calculate rate")
+    }
+
+    // Store brief in localStorage for the full rate card page
+    localStorage.setItem("currentBrief", JSON.stringify(brief))
+
+    setInlineResult({
+      brief,
+      pricing: calcResult.data.pricing,
+      dealQuality: calcResult.data.dealQuality,
+    })
+    setAnalyzerState("complete")
+  }
+
   const handleAnalyze = async () => {
     setIsAnalyzing(true)
 
     if (mode === "file" && selectedFile) {
-      // Parse and calculate inline
-      await parseAndCalculate(selectedFile)
-      setIsAnalyzing(false)
+      // Parse file and calculate inline
+      await parseAndCalculateFromFile(selectedFile)
     } else if (message.trim()) {
-      // Navigate to analyzer with message (DMs/emails still go to dedicated page)
-      router.push(`/dashboard/analyze?message=${encodeURIComponent(message)}`)
+      // Parse text and calculate inline
+      await parseAndCalculateFromText(message.trim())
     }
+
+    setIsAnalyzing(false)
   }
 
   const handleClearFile = () => {
@@ -301,7 +332,9 @@ export function InlineMessageAnalyzer() {
           <div className="flex flex-col items-center justify-center py-6 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">
-              {analyzerState === "parsing" ? "Reading your brief..." : "Calculating your rate..."}
+              {analyzerState === "parsing"
+                ? (mode === "file" ? "Reading your brief..." : "Reading your message...")
+                : "Calculating your rate..."}
             </p>
           </div>
         </CardContent>
@@ -396,11 +429,11 @@ export function InlineMessageAnalyzer() {
             {isAnalyzing ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                {mode === "file" ? "Calculating..." : "Analyzing..."}
+                Calculating...
               </>
             ) : (
               <>
-                {mode === "file" ? "Get My Rate" : "Analyze"}
+                Get My Rate
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </>
             )}
