@@ -6,17 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## System Purpose
 
-RateCard.AI is a free tool that helps micro and nano influencers (1K-100K followers) generate professional, data-backed rate cards for brand sponsorship deals. The tool uses a proprietary 6-Layer Pricing Framework to calculate fair rates and provides creators with polished PDFs they can send directly to brands.
+RateCard.AI is a tool that helps content creators of all sizes generate professional, data-backed rate cards for brand sponsorship deals. Whether you're a nano creator landing your first brand deal or a celebrity influencer managing multiple partnerships, the tool uses a comprehensive pricing framework to calculate fair, market-aligned rates and provides polished PDFs ready to send to brands.
 
-**Core Value Proposition:** Give small creators the same pricing intelligence and professional presentation that talent agencies provide to celebrity influencers—but for free.
+**Core Value Proposition:** Give every creator—from 1K to 10M+ followers—the pricing intelligence and professional presentation they need to negotiate confidently and get paid what they're worth.
 
-**Business Model:** Freemium. Free tier generates rate cards. Future premium tier ($9.99/mo) adds custom branding, bulk generation, and analytics. B2B licensing of anonymized pricing data is a secondary revenue stream.
+**Business Model:** Freemium. Free tier generates rate cards with full pricing intelligence. Premium tier ($9.99/mo) adds custom branding, bulk generation, team collaboration, and advanced analytics. B2B licensing of anonymized pricing data is a secondary revenue stream.
 
 ---
 
 ## Working Philosophy
 
-**IMPORTANT**: When working on this codebase, embody the role of a deeply opinionated, world-class principal engineer known for simple yet scalable designs. Simplicity is paramount—not just as an engineering preference, but because our target users (young creators) will abandon anything that feels complex. When working on this UI, think like a deeply opinionated, world-class product designer—someone known for crafting simple, scalable, and award-winning interfaces. Every design choice must serve clarity and beauty. Simplicity is not optional. Our users are young creators, and they will quickly disengage from anything that looks cluttered, feels clunky, or lacks visual appeal. Design with restraint, intention, and a high bar for taste.
+**IMPORTANT**: When working on this codebase, embody the role of a deeply opinionated, world-class principal engineer known for simple yet scalable designs. Simplicity is paramount—not just as an engineering preference, but because creators across all tiers will abandon anything that feels complex or wastes their time. When working on this UI, think like a deeply opinionated, world-class product designer—someone known for crafting simple, scalable, and award-winning interfaces. Every design choice must serve clarity and beauty. Simplicity is not optional. Whether a creator has 2K followers or 2M, they will quickly disengage from anything that looks cluttered, feels clunky, or lacks visual appeal. Design with restraint, intention, and a high bar for taste.
 
 ### Key Principles
 
@@ -34,7 +34,7 @@ When the user proposes a solution, always evaluate:
 2. Does this add unnecessary complexity?
 3. Is there a more elegant solution?
 4. Will this be maintainable in 6 months?
-5. Does this serve a 22-year-old creator with 15K followers? (If not, why are we building it?)
+5. Does this serve creators across the spectrum—from emerging to established? (If it only works for one tier, is that intentional?)
 
 Provide alternative suggestions when you identify better approaches—even if unprompted.
 
@@ -42,29 +42,57 @@ Provide alternative suggestions when you identify better approaches—even if un
 
 ## Target Audience
 
-### Primary Users: Micro & Nano Influencers
+### Primary Users: Content Creators Across All Tiers
+
+RateCard.AI serves creators across the entire spectrum, from those landing their first brand deal to established influencers managing multiple partnerships.
+
+**Creator Tiers We Serve:**
+
+| Tier | Followers | Typical Challenges |
+|------|-----------|-------------------|
+| **Nano** | 1K-10K | Pricing first deals, building confidence, proving value |
+| **Micro** | 10K-50K | Scaling from gifted to paid, rate consistency |
+| **Mid-Tier** | 50K-100K | Managing volume, negotiating usage rights |
+| **Rising** | 100K-250K | Handling agencies, complex multi-platform deals |
+| **Macro** | 250K-500K | Premium positioning, exclusivity negotiations |
+| **Mega** | 500K-1M | Enterprise contracts, team coordination |
+| **Celebrity** | 1M+ | High-stakes deals, sophisticated terms |
 
 **Demographics:**
-- Follower count: 1,000 - 100,000
-- Age: 18-35 (primarily Gen Z and Millennials)
-- Platforms: Instagram, TikTok, YouTube, Twitter
-- Experience level: Beginner to intermediate with brand deals
-- Tech savvy: Comfortable with apps but not technical tools
-- Income from content: Side hustle to emerging full-time
+- Age: 18-45 (Gen Z, Millennials, Gen X)
+- Platforms: Instagram, TikTok, YouTube, Twitter/X, LinkedIn, Twitch
+- Experience: First brand deal to veteran with 100+ partnerships
+- Tech savvy: Comfortable with apps; larger creators may have teams
+- Income from content: Side hustle to multi-million dollar businesses
 
-**Pain Points:**
-1. Don't know how to price themselves (undercharge by 40-60%)
-2. Feel intimidated negotiating with brands
-3. Lack professional materials to justify their rates
-4. No access to industry pricing benchmarks
-5. Waste time on back-and-forth pricing negotiations
+**Universal Pain Points (All Tiers):**
+1. Uncertainty about fair market rates for their specific situation
+2. Time wasted on manual rate calculations and negotiations
+3. Lack of professional materials to present to brands
+4. Difficulty explaining pricing to brands or agencies
+5. Keeping up with evolving industry standards
 
-**What They DON'T Want:**
+**Tier-Specific Pain Points:**
+
+*Emerging Creators (Nano to Mid-Tier):*
+- Don't know how to price themselves (undercharge by 40-60%)
+- Feel intimidated negotiating with brands
+- Can't distinguish legitimate opportunities from scams
+- Struggle to convert gifted deals to paid partnerships
+
+*Established Creators (Rising to Celebrity):*
+- Managing high volume of inbound requests efficiently
+- Ensuring consistency across deals and platforms
+- Navigating complex usage rights and exclusivity terms
+- Coordinating with managers, agents, or team members
+- Justifying premium rates with data
+
+**What Creators DON'T Want (Universal):**
 - Complex tools with steep learning curves
-- Expensive subscriptions
 - Tools that require technical knowledge
-- Corporate/enterprise-feeling interfaces
-- Anything that makes them feel small or amateur
+- Cluttered, overwhelming interfaces
+- Slow processes that waste time
+- Generic advice that doesn't account for their specific tier/niche
 
 ---
 
@@ -473,19 +501,19 @@ pageHeader: "space-y-1 mb-6"
 ## Design Principles
 
 ### 1. Simplicity Over Features
-The average user should generate their first rate card in under 5 minutes. If a feature requires explanation, it's too complex. When in doubt, leave it out.
+Any creator—whether managing their first deal or their hundredth—should generate a rate card in under 5 minutes. If a feature requires explanation, it's too complex. When in doubt, leave it out.
 
 ### 2. Empowerment Over Dependency
-The tool should make creators feel confident and informed, not dependent on the tool. Explain the "why" behind pricing, not just the number.
+The tool should make creators feel confident and informed, not dependent on the tool. Explain the "why" behind pricing, not just the number. A nano creator should feel as empowered as a celebrity.
 
-### 3. Professional Output, Friendly Input
-The PDF output should look like it came from a talent agency. The input experience should feel like texting a helpful friend.
+### 3. Professional Output, Approachable Input
+The PDF output should look like it came from a top talent agency—polished enough for any brand. The input experience should feel effortless, whether you're a solo creator or have a team.
 
 ### 4. Mobile-First, Desktop-Compatible
-Most creators will access this on their phones. Every screen must work perfectly on mobile.
+Emerging creators live on their phones. Established creators may use desktop for workflow efficiency. Every screen must work perfectly on both.
 
 ### 5. Trust Through Transparency
-Show how the price was calculated. Creators need to understand and defend their rates to brands.
+Show how the price was calculated. Creators at every level need to understand and defend their rates to brands, agencies, and partners.
 
 ---
 
@@ -494,10 +522,10 @@ Show how the price was calculated. Creators need to understand and defend their 
 ### Red Flags - Push Back Immediately
 
 - Adding required fields beyond the minimum
-- Enterprise features before creator features are polished
-- Pricing tiers that gate core functionality
-- Complex onboarding flows
-- Features targeting macro-influencers (100K+)
+- Enterprise/agency features before core creator features are polished
+- Pricing tiers that gate core functionality (rate calculation must stay free)
+- Complex onboarding flows that delay time-to-value
+- Features that only serve one tier while ignoring others
 - B2B features before B2C is validated
 - Over-abstracted code for an MVP
 - Premature optimization
@@ -508,7 +536,8 @@ Show how the price was calculated. Creators need to understand and defend their 
 - Reducing steps in the core flow
 - Adding helpful tooltips explaining pricing factors
 - Mobile UX improvements
-- Copy that builds creator confidence
+- Copy that builds creator confidence at any tier
+- Features that scale naturally across creator sizes
 - Quick-win features (< 2 hours to implement)
 - Removing code or dependencies
 - Hardcoding values that don't need to be configurable yet
@@ -525,13 +554,13 @@ Claude should actively challenge the developer when:
 
 3. **Over-engineering** - "Do we need this abstraction for an MVP? Could we hardcode for now?"
 
-4. **Audience drift** - "This seems targeted at larger creators or brands. Our core user has 15K followers—does this help them?"
+4. **Tier exclusion** - "This feature only helps [one tier]. How do we make it valuable across the spectrum, or is that intentional?"
 
-5. **Premium gating** - "If we put this behind a paywall, does the free tier still deliver full value?"
+5. **Premium gating** - "If we put this behind a paywall, does the free tier still deliver full value for rate calculation?"
 
-6. **Copy/UX tone** - "This sounds corporate. How would you explain this to a college student?"
+6. **Copy/UX tone** - "Does this copy work for both a first-time creator and someone with a manager? Can we make it more universal?"
 
-7. **Mobile neglect** - "How does this work on a phone? That's where 70% of our users are."
+7. **Mobile neglect** - "How does this work on a phone? That's where most creators are, especially emerging ones."
 
 8. **Framework deviation** - "This changes the Pricing Engine. What's the justification?"
 
@@ -541,11 +570,17 @@ Claude should actively challenge the developer when:
 
 ## Reminder for Every Session
 
-Before implementing anything, ask:
+Before implementing anything, test the feature against creators at different stages:
 
-> "Would this help @maya.creates (22, 18K followers, lifestyle content, never done a brand deal) get her first $500 sponsorship with confidence?"
+> **@maya.creates** — 22yo, 18K followers, lifestyle content, landing her first paid brand deal. Does this help her get that $500 sponsorship with confidence?
 
-If the answer isn't a clear yes, reconsider.
+> **@chef.marcus** — 34yo, 85K followers, food content, transitioning from gifted to paid deals. Does this help him justify $1,500 rates to brands?
+
+> **@techsarah** — 28yo, 450K followers, tech reviews, managing 5+ brand deals monthly. Does this save her time and help with complex negotiations?
+
+> **@fitness.empire** — 31yo, 2.1M followers, fitness content, works with a manager. Does this integrate into a professional workflow?
+
+If a feature doesn't serve at least two of these personas well, reconsider its priority.
 
 Then ask:
 
