@@ -7,7 +7,7 @@ import { DMParserForm } from "@/components/forms/dm-parser-form";
 import { BriefReviewForm } from "@/components/forms/brief-review-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// Tabs removed - using custom tab buttons to keep form state stable
 import { ProgressSteps } from "@/components/ui/progress-steps";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -289,64 +289,62 @@ export default function AnalyzeDMPage() {
     setLastAnalysis(null);
   };
 
-  const handleEvaluateGift = (analysis: DMAnalysis) => {
-    // Store the analysis for the gift evaluator page
-    sessionStorage.setItem("giftAnalysis", JSON.stringify(analysis));
-    router.push("/dashboard/gifts?evaluate=true");
-  };
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header - hide when showing results in messages tab */}
+      {!(showingResults && activeTab === "messages") && (
+        <header className="space-y-1">
+          <h1 className="text-2xl font-display font-bold">Brand Inbox</h1>
+          <p className="text-muted-foreground">
+            Paste any message from a brand — DMs, emails, screenshots — or upload a brand brief.
+            We&apos;ll tell you what it&apos;s worth and how to respond.
+          </p>
+        </header>
+      )}
 
-  // When showing results, render fullscreen without tabs
-  if (showingResults && activeTab === "messages") {
-    return (
-      <div className="max-w-4xl mx-auto">
+      {/* Tab list - hide when showing results in messages tab */}
+      {!(showingResults && activeTab === "messages") && (
+        <div className="w-full border-b">
+          <div className="grid w-full grid-cols-2">
+            <button
+              onClick={() => setActiveTab("messages")}
+              className={`flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === "messages"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              Messages
+            </button>
+            <button
+              onClick={() => setActiveTab("briefs")}
+              className={`flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === "briefs"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              Brand Briefs
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Messages Tab Content - always in same tree position */}
+      {activeTab === "messages" && (
         <DMParserForm
           profile={profile}
           initialMessage={initialMessage}
           onAnalysisComplete={handleAnalysisComplete}
-          onEvaluateGift={handleEvaluateGift}
           onReset={handleAnalysisReset}
         />
-      </div>
-    );
-  }
+      )}
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <header className="space-y-1">
-        <h1 className="text-2xl font-display font-bold">Brand Inbox</h1>
-        <p className="text-muted-foreground">
-          Paste any message from a brand — DMs, emails, screenshots — or upload a brand brief.
-          We&apos;ll tell you what it&apos;s worth and how to respond.
-        </p>
-      </header>
-
-      {/* Tabs for Messages vs Briefs */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "messages" | "briefs")} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="messages" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            Messages
-          </TabsTrigger>
-          <TabsTrigger value="briefs" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Brand Briefs
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Messages Tab - DM/Email Analysis */}
-        <TabsContent value="messages" className="mt-6">
-          <DMParserForm
-            profile={profile}
-            initialMessage={initialMessage}
-            onAnalysisComplete={handleAnalysisComplete}
-            onEvaluateGift={handleEvaluateGift}
-            onReset={handleAnalysisReset}
-          />
-        </TabsContent>
-
-        {/* Briefs Tab - File Upload */}
-        <TabsContent value="briefs" className="mt-6">
+      {/* Briefs Tab Content */}
+      {activeTab === "briefs" && (
+        <>
           {/* If brief is parsed, show the review form */}
           {parsedBrief && parseStep === "complete" ? (
             <BriefReviewForm
@@ -444,8 +442,8 @@ export default function AnalyzeDMPage() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-      </Tabs>
+        </>
+      )}
     </div>
   );
 }

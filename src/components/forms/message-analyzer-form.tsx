@@ -26,9 +26,12 @@ import {
   Shield,
   FileText,
   RotateCcw,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { CopyButton } from "@/components/ui/copy-button";
 import { DealBadgesRow } from "@/components/ui/deal-badges-row";
+import { InlineGiftEvaluator } from "@/components/forms/inline-gift-evaluator";
 import { trackEvent } from "@/lib/analytics";
 import type { CreatorProfile, MessageAnalysis, MessageSource } from "@/lib/types";
 import { toast } from "sonner";
@@ -37,7 +40,6 @@ interface MessageAnalyzerFormProps {
   profile: CreatorProfile;
   initialMessage?: string;
   onAnalysisComplete?: (analysis: MessageAnalysis) => void;
-  onEvaluateGift?: (analysis: MessageAnalysis) => void;
   onVetBrand?: (brandName: string, brandHandle?: string | null, platform?: string) => void;
   onReset?: () => void;
 }
@@ -67,7 +69,6 @@ export function MessageAnalyzerForm({
   profile,
   initialMessage = "",
   onAnalysisComplete,
-  onEvaluateGift,
   onVetBrand,
   onReset,
 }: MessageAnalyzerFormProps) {
@@ -78,6 +79,7 @@ export function MessageAnalyzerForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>("");
+  const [showGiftEvaluator, setShowGiftEvaluator] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,12 +134,6 @@ export function MessageAnalyzerForm({
     }
   };
 
-  const handleEvaluateGift = () => {
-    if (analysis && onEvaluateGift) {
-      onEvaluateGift(analysis);
-    }
-  };
-
   const handleVetBrand = () => {
     if (analysis?.brandName) {
       if (onVetBrand) {
@@ -167,6 +163,7 @@ export function MessageAnalyzerForm({
     setSourceHint("auto");
     setError(null);
     setStatusMessage("");
+    setShowGiftEvaluator(false);
     onReset?.();
   };
 
@@ -300,8 +297,8 @@ export function MessageAnalyzerForm({
 
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-2 justify-center">
-            {analysis.isGiftOffer && onEvaluateGift && (
-              <Button variant="outline" size="sm" onClick={handleEvaluateGift}>
+            {analysis.isGiftOffer && !showGiftEvaluator && (
+              <Button variant="outline" size="sm" onClick={() => setShowGiftEvaluator(true)}>
                 <Gift className="h-4 w-4 mr-2" />
                 Evaluate This Gift
               </Button>
@@ -419,44 +416,52 @@ export function MessageAnalyzerForm({
             </CardContent>
           </Card>
 
-          {/* Gift Analysis (if gift offer) */}
-          {analysis.isGiftOffer && analysis.giftAnalysis && (
+          {/* Gift Evaluation (inline) */}
+          {analysis.isGiftOffer && showGiftEvaluator && (
+            <InlineGiftEvaluator
+              profile={profile}
+              analysis={analysis}
+              onClose={() => setShowGiftEvaluator(false)}
+            />
+          )}
+
+          {/* Gift Analysis Summary (if gift offer and evaluator not shown) */}
+          {analysis.isGiftOffer && analysis.giftAnalysis && !showGiftEvaluator && (
             <Card className="border-purple-200 bg-purple-50/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-purple-800">
-                  <Gift className="h-5 w-5" />
-                  Gift Offer Detected
-                </CardTitle>
-                <CardDescription className="text-purple-700">
-                  This is a gift/product-only offer. Here&apos;s our recommendation.
-                </CardDescription>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-purple-800">
+                    <Gift className="h-5 w-5" />
+                    Gift Offer Detected
+                  </CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowGiftEvaluator(true)}
+                    className="text-purple-700 border-purple-300 hover:bg-purple-100"
+                  >
+                    <DollarSign className="h-3 w-3 mr-1" />
+                    Calculate Worth
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {analysis.giftAnalysis.productMentioned && (
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                  {analysis.giftAnalysis.productMentioned && (
+                    <div>
+                      <span className="text-purple-700">Product:</span>
+                      <p className="font-medium">{analysis.giftAnalysis.productMentioned}</p>
+                    </div>
+                  )}
                   <div>
-                    <Label className="text-sm text-purple-700">Product</Label>
-                    <p className="mt-1 font-medium">{analysis.giftAnalysis.productMentioned}</p>
+                    <span className="text-purple-700">Content:</span>
+                    <p className="font-medium capitalize">{analysis.giftAnalysis.contentExpectation}</p>
                   </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm text-purple-700">Content Expected</Label>
-                    <p className="mt-1 font-medium capitalize">{analysis.giftAnalysis.contentExpectation}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm text-purple-700">Conversion Potential</Label>
-                    <p className="mt-1 font-medium capitalize">{analysis.giftAnalysis.conversionPotential}</p>
+                    <span className="text-purple-700">Conversion:</span>
+                    <p className="font-medium capitalize">{analysis.giftAnalysis.conversionPotential}</p>
                   </div>
                 </div>
-
-                <div className="p-3 bg-white rounded-lg border border-purple-200">
-                  <Label className="text-sm text-purple-700">Recommended Approach</Label>
-                  <p className="mt-1 font-semibold text-purple-900 capitalize">
-                    {analysis.giftAnalysis.recommendedApproach.replace(/_/g, " ")}
-                  </p>
-                </div>
-
               </CardContent>
             </Card>
           )}
