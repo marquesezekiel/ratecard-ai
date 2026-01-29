@@ -441,7 +441,7 @@ Timeline: Content due in 2 weeks"
               disabled={pastedText.length < MIN_TEXT_LENGTH}
               className="w-full"
             >
-              Parse Brief
+              Get My Rate
             </Button>
           </TabsContent>
         </Tabs>

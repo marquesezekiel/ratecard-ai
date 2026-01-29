@@ -6,7 +6,7 @@ import type {
   ApiResponse,
   CreatorProfile,
   ParsedBrief,
-  FitScoreResult,
+  DealQualityResult,
   PricingResult,
 } from "@/lib/types";
 import { headers } from "next/headers";
@@ -14,7 +14,7 @@ import { headers } from "next/headers";
 interface GeneratePdfRequest {
   profile: CreatorProfile;
   brief: ParsedBrief;
-  fitScore: FitScoreResult;
+  dealQuality: DealQualityResult;
   pricing: PricingResult;
 }
 
@@ -45,7 +45,7 @@ export async function POST(
 
     // Parse JSON body
     const body = (await request.json()) as Partial<GeneratePdfRequest>;
-    const { profile, brief, fitScore, pricing } = body;
+    const { profile, brief, dealQuality, pricing } = body;
 
     // Validate required inputs
     if (!profile) {
@@ -68,11 +68,11 @@ export async function POST(
       );
     }
 
-    if (!fitScore) {
+    if (!dealQuality) {
       return NextResponse.json(
         {
           success: false,
-          error: "Missing fit score. Please calculate fit score first.",
+          error: "Missing deal quality. Please calculate deal quality first.",
         },
         { status: 400 }
       );
@@ -90,7 +90,7 @@ export async function POST(
 
     // Generate PDF buffer
     const pdfBuffer = await renderToBuffer(
-      RateCardDocument({ profile, brief, fitScore, pricing })
+      RateCardDocument({ profile, brief, dealQuality, pricing })
     );
 
     // Create filename with handle and timestamp

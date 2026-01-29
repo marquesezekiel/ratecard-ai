@@ -10,7 +10,7 @@ import {
 import type {
   CreatorProfile,
   ParsedBrief,
-  FitScoreResult,
+  DealQualityResult,
   PricingResult,
   PricingModel,
   PDFExportMode,
@@ -32,12 +32,12 @@ const colors = {
   white: "#FFFFFF",
 };
 
-// Fit level colors
-const fitLevelColors: Record<string, string> = {
-  perfect: colors.success,
-  high: colors.primary,
-  medium: colors.warning,
-  low: colors.danger,
+// Deal quality level colors
+const qualityLevelColors: Record<string, string> = {
+  excellent: colors.success,
+  good: colors.primary,
+  fair: colors.warning,
+  caution: colors.danger,
 };
 
 const styles = StyleSheet.create({
@@ -833,7 +833,7 @@ const styles = StyleSheet.create({
 interface RateCardDocumentProps {
   profile: CreatorProfile;
   brief: ParsedBrief;
-  fitScore: FitScoreResult;
+  dealQuality: DealQualityResult;
   pricing: PricingResult;
   /** Export mode: "brand" = rate card only, "creator" = rate card + negotiation tips */
   exportMode?: PDFExportMode;
@@ -846,11 +846,11 @@ interface RateCardDocumentProps {
 export function RateCardDocument({
   profile,
   brief,
-  fitScore,
+  dealQuality,
   pricing,
   exportMode = "creator", // Default to creator mode (includes negotiation tips)
 }: RateCardDocumentProps): React.ReactElement<DocumentProps> {
-  const fitColor = fitLevelColors[fitScore.fitLevel] || colors.gray;
+  const qualityColor = qualityLevelColors[dealQuality.qualityLevel] || colors.gray;
   const expiryDate = new Date();
   expiryDate.setDate(expiryDate.getDate() + pricing.validDays);
 
@@ -1242,31 +1242,30 @@ export function RateCardDocument({
           </View>
         </View>
 
-        {/* Fit Score Section */}
+        {/* Deal Quality Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Brand-Creator Fit</Text>
+          <Text style={styles.sectionTitle}>Deal Quality</Text>
           <View style={styles.fitScoreContainer}>
             <View
-              style={[styles.fitScoreCircle, { backgroundColor: fitColor }]}
+              style={[styles.fitScoreCircle, { backgroundColor: qualityColor }]}
             >
-              <Text style={styles.fitScoreNumber}>{fitScore.totalScore}</Text>
+              <Text style={styles.fitScoreNumber}>{dealQuality.totalScore}</Text>
             </View>
             <View style={styles.fitScoreDetails}>
-              <Text style={[styles.fitLevel, { color: fitColor }]}>
-                {fitScore.fitLevel.charAt(0).toUpperCase() +
-                  fitScore.fitLevel.slice(1)}{" "}
-                Fit
+              <Text style={[styles.fitLevel, { color: qualityColor }]}>
+                {dealQuality.qualityLevel.charAt(0).toUpperCase() +
+                  dealQuality.qualityLevel.slice(1)}
               </Text>
               <Text style={styles.fitAdjustment}>
                 Price adjustment:{" "}
-                {fitScore.priceAdjustment > 0 ? "+" : ""}
-                {(fitScore.priceAdjustment * 100).toFixed(0)}%
+                {dealQuality.priceAdjustment > 0 ? "+" : ""}
+                {(dealQuality.priceAdjustment * 100).toFixed(0)}%
               </Text>
             </View>
           </View>
-          {fitScore.insights.length > 0 && (
+          {dealQuality.insights.length > 0 && (
             <View style={styles.insightsList}>
-              {fitScore.insights.slice(0, 3).map((insight, index) => (
+              {dealQuality.insights.slice(0, 3).map((insight, index) => (
                 <Text key={index} style={styles.insight}>
                   • {insight}
                 </Text>

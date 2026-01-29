@@ -11,7 +11,7 @@ import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-
 import { ShareActions } from "@/components/rate-card/share-actions";
 import { useProfile } from "@/hooks/use-profile";
 import { trackEvent } from "@/lib/analytics";
-import type { ParsedBrief, FitScoreResult, PricingResult, ApiResponse } from "@/lib/types";
+import type { ParsedBrief, DealQualityResult, PricingResult, ApiResponse } from "@/lib/types";
 
 type PageState = "loading" | "calculating" | "success" | "error" | "missing-data";
 
@@ -20,7 +20,7 @@ export default function GeneratePage() {
   const { profile, isLoading: profileLoading } = useProfile();
   const [pageState, setPageState] = useState<PageState>("loading");
   const [error, setError] = useState<string | null>(null);
-  const [fitScore, setFitScore] = useState<FitScoreResult | null>(null);
+  const [dealQuality, setDealQuality] = useState<DealQualityResult | null>(null);
   const [pricing, setPricing] = useState<PricingResult | null>(null);
   const [adjustedPricing, setAdjustedPricing] = useState<PricingResult | null>(null);
   const [brief, setBrief] = useState<ParsedBrief | null>(null);
@@ -58,13 +58,13 @@ export default function GeneratePage() {
           body: JSON.stringify({ profile, brief: parsedBrief }),
         });
 
-        const result: ApiResponse<{ fitScore: FitScoreResult; pricing: PricingResult }> = await response.json();
+        const result: ApiResponse<{ dealQuality: DealQualityResult; pricing: PricingResult }> = await response.json();
 
         if (!result.success || !result.data) {
           throw new Error(result.error || "Failed to calculate rate");
         }
 
-        setFitScore(result.data.fitScore);
+        setDealQuality(result.data.dealQuality);
         setPricing(result.data.pricing);
         setPageState("success");
 
@@ -73,7 +73,7 @@ export default function GeneratePage() {
           platform: parsedBrief.content.platform,
           format: parsedBrief.content.format,
           rate: result.data.pricing.totalPrice,
-          dealQuality: result.data.fitScore.totalScore,
+          dealQuality: result.data.dealQuality.totalScore,
         });
       } catch (err) {
         setPageState("error");
@@ -160,12 +160,12 @@ export default function GeneratePage() {
   }
 
   // Success state - show results
-  if (pageState === "success" && fitScore && pricing && brief && profile) {
-    const fitLevelColors: Record<string, string> = {
-      perfect: "bg-green-100 text-green-800",
-      high: "bg-blue-100 text-blue-800",
-      medium: "bg-amber-100 text-amber-800",
-      low: "bg-red-100 text-red-800",
+  if (pageState === "success" && dealQuality && pricing && brief && profile) {
+    const qualityLevelColors: Record<string, string> = {
+      excellent: "bg-green-100 text-green-800",
+      good: "bg-blue-100 text-blue-800",
+      fair: "bg-amber-100 text-amber-800",
+      caution: "bg-red-100 text-red-800",
     };
 
     return (
@@ -206,24 +206,24 @@ export default function GeneratePage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Deal Quality</CardTitle>
-              <Badge className={fitLevelColors[fitScore.fitLevel]}>
-                {fitScore.fitLevel.charAt(0).toUpperCase() + fitScore.fitLevel.slice(1)} Fit
+              <Badge className={qualityLevelColors[dealQuality.qualityLevel]}>
+                {dealQuality.qualityLevel.charAt(0).toUpperCase() + dealQuality.qualityLevel.slice(1)}
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
-              <div className="text-4xl font-bold">{fitScore.totalScore}</div>
+              <div className="text-4xl font-bold">{dealQuality.totalScore}</div>
               <div className="flex-1">
                 <div className="h-3 rounded-full bg-muted overflow-hidden">
                   <div
                     className="h-full bg-primary transition-all"
-                    style={{ width: `${fitScore.totalScore}%` }}
+                    style={{ width: `${dealQuality.totalScore}%` }}
                   />
                 </div>
               </div>
             </div>
-            <p className="text-sm text-muted-foreground mt-4">{fitScore.insights[0]}</p>
+            <p className="text-sm text-muted-foreground mt-4">{dealQuality.insights[0]}</p>
           </CardContent>
         </Card>
 
@@ -242,7 +242,7 @@ export default function GeneratePage() {
             <ShareActions
               profile={profile}
               brief={brief}
-              fitScore={fitScore}
+              dealQuality={dealQuality}
               pricing={adjustedPricing || pricing}
             />
           </div>
