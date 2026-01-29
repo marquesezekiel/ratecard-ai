@@ -295,6 +295,32 @@ export function MessageAnalyzerForm({
             );
           })()}
 
+          {/* Contextual Brand Vetting Prompt - show when suspicious signals */}
+          {analysis.brandName && (analysis.tone === "scam_likely" || analysis.redFlags.length >= 2) && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg animate-in fade-in duration-300">
+              <div className="flex items-start gap-3">
+                <Shield className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-amber-800">We recommend vetting this brand</p>
+                  <p className="text-sm text-amber-700 mt-1">
+                    {analysis.tone === "scam_likely"
+                      ? "This message has suspicious signals. Research the brand before responding."
+                      : "Multiple red flags detected. A quick brand check can save you time."}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleVetBrand}
+                    className="mt-3 border-amber-300 text-amber-800 hover:bg-amber-100"
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    Research {analysis.brandName}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-2 justify-center">
             {analysis.isGiftOffer && !showGiftEvaluator && (
@@ -304,7 +330,8 @@ export function MessageAnalyzerForm({
               </Button>
             )}
 
-            {analysis.brandName && (
+            {/* Only show vet button here if not already shown in callout */}
+            {analysis.brandName && analysis.tone !== "scam_likely" && analysis.redFlags.length < 2 && (
               <Button variant="outline" size="sm" onClick={handleVetBrand}>
                 <Shield className="h-4 w-4 mr-2" />
                 Vet This Brand
