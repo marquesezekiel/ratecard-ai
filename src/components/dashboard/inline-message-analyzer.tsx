@@ -10,7 +10,6 @@ import {
   ArrowRight,
   MessageSquare,
   Mail,
-  ImageIcon,
   FileText,
   Upload,
   Loader2,
@@ -347,13 +346,14 @@ export function InlineMessageAnalyzer() {
     <Card
       {...getRootProps()}
       className={cn(
-        "border-2 border-dashed transition-all duration-200",
+        "border-2 transition-all duration-200 shadow-sm hover:shadow-md",
         isDragActive
-          ? "border-primary bg-primary/5"
-          : "border-primary/20 hover:border-primary/40"
+          ? "border-primary bg-primary/5 border-solid"
+          : "border-muted-foreground/20 hover:border-primary/50",
+        !message && !selectedFile && "bg-gradient-to-b from-muted/30 to-transparent"
       )}
     >
-      <CardContent className="p-4 space-y-4">
+      <CardContent className="p-5 space-y-4">
         <input {...getInputProps()} />
 
         {/* File Selected State */}
@@ -384,8 +384,8 @@ export function InlineMessageAnalyzer() {
           /* Text Input State */
           <Textarea
             placeholder={isDragActive
-              ? "Drop your brief here..."
-              : "Paste that brand DM here... or drop a brief 📄"
+              ? "Drop it here..."
+              : "Paste a brand DM, email, or drop a brief..."
             }
             value={message}
             onChange={(e) => {
@@ -395,25 +395,22 @@ export function InlineMessageAnalyzer() {
             onKeyDown={handleKeyDown}
             onClick={(e) => e.stopPropagation()}
             className={cn(
-              "min-h-[100px] resize-none border-0 bg-transparent p-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/60",
+              "min-h-[120px] resize-none border-0 bg-transparent p-0 focus-visible:ring-0 text-base placeholder:text-muted-foreground/50",
               isDragActive && "opacity-50"
             )}
           />
         )}
 
-        <div className="flex items-center justify-between">
-          <div className="flex gap-3 text-xs text-muted-foreground" aria-hidden="true">
-            <span className="flex items-center gap-1">
-              <MessageSquare className="h-3 w-3" /> DMs
+        <div className="flex items-center justify-between pt-1 border-t border-muted-foreground/10">
+          <div className="flex gap-4 text-xs text-muted-foreground/70" aria-hidden="true">
+            <span className="flex items-center gap-1.5">
+              <MessageSquare className="h-3.5 w-3.5" /> DM
             </span>
-            <span className="flex items-center gap-1">
-              <Mail className="h-3 w-3" /> Emails
+            <span className="flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5" /> Email
             </span>
-            <span className="flex items-center gap-1">
-              <Upload className="h-3 w-3" /> Briefs
-            </span>
-            <span className="flex items-center gap-1">
-              <ImageIcon className="h-3 w-3" /> Screenshots
+            <span className="flex items-center gap-1.5">
+              <Upload className="h-3.5 w-3.5" /> Brief
             </span>
           </div>
 
@@ -429,7 +426,7 @@ export function InlineMessageAnalyzer() {
             {isAnalyzing ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                Calculating...
+                Analyzing...
               </>
             ) : (
               <>

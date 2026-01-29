@@ -8,7 +8,6 @@ import { useRateCards } from "@/hooks/use-rate-cards";
 import { useGifts } from "@/hooks/use-gifts";
 import { InlineMessageAnalyzer } from "@/components/dashboard/inline-message-analyzer";
 import { RecentActivityFeed, type Activity } from "@/components/dashboard/recent-activity-feed";
-import { Button } from "@/components/ui/button";
 import { Gift, ArrowRight } from "lucide-react";
 
 // Time-based greeting helper
@@ -23,7 +22,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { rateCards } = useRateCards();
-  const { gifts, activeGifts, followUpsDue } = useGifts();
+  const { gifts, followUpsDue } = useGifts();
 
   // Calculate total generated this month from rate cards
   const totalGenerated = useMemo(() => {
@@ -66,11 +65,7 @@ export default function DashboardPage() {
   }, [rateCards, gifts]);
 
   const hasActivity = recentActivities.length > 0;
-  const hasActiveGifts = activeGifts.length > 0;
   const hasFollowUpsDue = followUpsDue.length > 0;
-
-  // Show quick stats row for power users (have significant activity)
-  const isPowerUser = rateCards.length >= 3 || gifts.length >= 2;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -90,32 +85,34 @@ export default function DashboardPage() {
         </p>
       </header>
 
-      {/* Power User Quick Stats - only show for active creators */}
-      {isPowerUser && (hasActiveGifts || hasFollowUpsDue) && (
-        <section className="flex flex-wrap gap-2">
-          {hasActiveGifts && (
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/dashboard/gifts">
-                <Gift className="h-4 w-4 mr-2" />
-                {activeGifts.length} Active Gift{activeGifts.length !== 1 ? "s" : ""}
-                {hasFollowUpsDue && (
-                  <span className="ml-2 px-1.5 py-0.5 text-xs bg-amber-100 text-amber-800 rounded-full">
-                    {followUpsDue.length} due
-                  </span>
-                )}
-              </Link>
-            </Button>
-          )}
-        </section>
+
+      {/* Contextual Gift Alert - only when follow-ups are due */}
+      {hasFollowUpsDue && (
+        <Link
+          href="/dashboard/gifts"
+          className="flex items-center justify-between p-4 rounded-xl bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
+              <Gift className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="font-medium text-amber-900">
+                {followUpsDue.length} gift follow-up{followUpsDue.length !== 1 ? "s" : ""} due
+              </p>
+              <p className="text-sm text-amber-700">
+                Time to convert {followUpsDue.length === 1 ? "this" : "these"} to paid deals
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="h-5 w-5 text-amber-600 group-hover:translate-x-1 transition-transform" />
+        </Link>
       )}
 
       {/* PRIMARY: Inline Message Analyzer - the single focused action */}
-      <section className="space-y-2">
-        <p className="text-sm text-muted-foreground">
-          Paste a brand DM, email, or upload a brief. We&apos;ll tell you what to charge.
-        </p>
+      <section className="space-y-3">
         <InlineMessageAnalyzer />
-        {/* Secondary path for power users who skip DM analysis */}
+        {/* Secondary path */}
         <p className="text-xs text-muted-foreground text-center">
           Already have a brief?{" "}
           <Link href="/dashboard/analyze?tab=briefs" className="text-primary hover:underline">
