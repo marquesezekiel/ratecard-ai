@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PriceAdjuster } from "@/components/rate-card/price-adjuster";
+import { PriceBreakdown } from "@/components/rate-card/price-breakdown";
 import { NegotiationCheatSheet } from "@/components/rate-card/negotiation-cheat-sheet";
 import { ShareActions } from "@/components/rate-card/share-actions";
 import { useProfile } from "@/hooks/use-profile";
@@ -198,6 +199,9 @@ export default function GeneratePage() {
                   : "Total project rate"}
               </p>
             </div>
+
+            {/* Price Breakdown - collapsed by default */}
+            <PriceBreakdown pricing={pricing} className="mt-4" />
           </CardContent>
         </Card>
 
